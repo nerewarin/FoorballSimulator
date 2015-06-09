@@ -5,7 +5,7 @@ __author__ = 'NereWARin'
 # import xml.dom.minidom as ET
 # import json, os, time#, sys
 # from HTMLParser import HTMLParser
-import operator
+import operator, os
 
 # http://habrahabr.ru/post/220125/
 # import lxml
@@ -180,4 +180,10 @@ if __name__ == "__main__":
     # create teams list
     teamsL = createTeamFromHTML()
     printParsedTable(teamsL)
-    createExcelTable("Rating.xls", teamsL)
+    excelFilename = "Rating.xls"
+    # create Excel table, if not exists
+    if not os.path.isfile(excelFilename):
+        print "create new xls"
+        createExcelTable(excelFilename, teamsL)
+    else:
+        print "initial xls was already created, see", excelFilename
