@@ -13,7 +13,8 @@ from lxml import html as html
 # import lxml.html as html
 # from pandas import DataFrame
 
-import xlwt
+import xlwt # write Excel xls
+import xlrd # read Excel xls
 
 class Team():
     """
@@ -74,7 +75,7 @@ def unicode_to_str(string):
 
 # print type(site.xpath("//table[@id=\"clubrank\"]/tbody/tr")), site.xpath("//table[@id=\"clubrank\"]/tbody/tr")
 # HTML parse
-def createTeamFromHTML():
+def createTeamsFromHTML():
     UEFA_club_ratingRU = "http://ru.uefa.com/memberassociations/uefarankings/club/"
     UEFA_club_ratingEN = "http://www.uefa.com/memberassociations/uefarankings/club/season=2015/index.html"
     UEFAsiteEN = html.parse(UEFA_club_ratingEN)
@@ -175,15 +176,42 @@ def createExcelTable(filename, teamsL):
 
     book.save(filename)
 
-if __name__ == "__main__":
-    testTeam()
+
+def createTeamsFromExcelTable(excelFilename = "Rating.xls"):
+    """
+    create list of Team objects, sorted by rating
+    :param excelFilename: table that stores all ratings
+    :return:
+    """
+    # read ExcelTable
+    rb = xlrd.open_workbook(excelFilename,formatting_info=True)
+    sheet = rb.sheet_by_index(0)
     # create teams list
-    teamsL = createTeamFromHTML()
-    printParsedTable(teamsL)
+    # create teams list sorted by rating
+    teamsL = []
+    for rownum in range(1, sheet.nrows): # exclude 1 cause there are headers
+        row = sheet.row_values(rownum)
+        # print row#.encode('utf8')
+        name = row[1]
+        country = row[3]
+        rating = row[4]
+        ruName = row[2]
+        uefaPos = row[0]
+        teamsL.append(Team(name, country, rating, ruName, uefaPos))
+        # print name, country, rating, ruName, uefaPos
+    return teamsL
+
+if __name__ == "__main__":
     excelFilename = "Rating.xls"
     # create Excel table, if not exists
     if not os.path.isfile(excelFilename):
         print "create new xls"
+        testTeam()
+        # create teams list
+        teamsL = createTeamsFromHTML()
+        # printParsedTable(teamsL)
         createExcelTable(excelFilename, teamsL)
     else:
         print "initial xls was already created, see", excelFilename
+    # read Excel table
+    createTeamsFromExcelTable(excelFilename)
