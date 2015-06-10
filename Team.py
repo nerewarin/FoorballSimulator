@@ -209,9 +209,12 @@ if __name__ == "__main__":
         testTeam()
         # create teams list
         teamsL = createTeamsFromHTML()
-        # printParsedTable(teamsL)
+        # creare Excel table
         createExcelTable(excelFilename, teamsL)
     else:
         print "initial xls was already created, see", excelFilename
     # read Excel table
-    createTeamsFromExcelTable(excelFilename)
+    teamsL = createTeamsFromExcelTable(excelFilename)
+    # print to console all teams
+    printParsedTable(teamsL)
+
