@@ -10,7 +10,14 @@ import random, Team
 
 
 class Match():
-    def __init__(self, members, name = "no name match"):
+    def __init__(self, members, deltaCoefs, name = "no name match"):
+        """
+
+        :param members:
+        :param deltaCoefs:
+        :param name:
+        :return:
+        """
         self.name = name
         self.home  = members[0]
         self.guest = members[1]
@@ -23,7 +30,7 @@ class Match():
         # print self.homeName, self.guestName
 
         self.result = ("not played",)
-
+        self.tie = "Tie"
 
     def run(self, mode = "dice original"):
         """
@@ -57,16 +64,39 @@ class Match():
         return "%s. %s %s %s" % \
                (self.name, self.homeName, str(self.result[0])+ ":" + str(self.result[1]) ,self.guestName)
 
+    def getWinner(self):
+        if self.result[0] > self.result[1]:
+            # return self.homeName
+            return 0 # Home Wins, Guest Loses
+        elif self.result[0] < self.result[1]:
+            # return self.guestName
+            return 1 # Home Loses, Guest Wins
+        else:
+            # return self.tie
+            return 2 # Tie
+
+    def updateRatings(self):
+
+        self.home.setRating (self.homeRating  + homeDelta)
+        self.guest.setRating(self.guestRating + guestDelta)
+
 # TEST
+ITERATIONS = 10
 if __name__ == "__main__":
     print "\nTEST MATCH CLASS\n"
     team1 = Team.Team("Manchester City FC", "ENG", 87.078, "Манчестер Сити", 17)
     team2 = Team.Team("FC Shakhtar Donetsk", "UKR", 85.899, "Шахтер Донецк", 18)
-    for i in range(10):
+    results = [0,0,0]
+    for i in range(ITERATIONS):
         testMatch = Match((team1, team2), "testMatch%s" % (i + 1))
+        # testMatch = Match((team2, team1), "testMatch%s" % (i + 1))
         testMatch.run()
-        print testMatch.printResult()
+        results[testMatch.getWinner()] += 1
+        # print testMatch.printResult()
+    # print results
     for i in range(10):
         testMatch = Match((team2, team1), "testMatch%s" % (i + 11))
         testMatch.run()
-        print testMatch.printResult()
+        # print testMatch.printResult()
+
+
