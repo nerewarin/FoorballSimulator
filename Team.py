@@ -1,11 +1,17 @@
 __author__ = 'NereWARin'
 # -*- coding: utf-8 -*-
 
+"""
+Define Team class, create storage from HTML to Excel or Database
+"""
+# import from util provided by AI EDX course project AI WEEK9 - REINFORCEMENT LEARNING
+import util
+
 # from lxml import etree as ET
 # import xml.dom.minidom as ET
 # import json, os, time#, sys
 # from HTMLParser import HTMLParser
-import operator, os
+import operator, os, sys
 
 # http://habrahabr.ru/post/220125/
 # import lxml
@@ -15,6 +21,9 @@ from lxml import html as html
 
 import xlwt # write Excel xls
 import xlrd # read Excel xls
+import psycopg2 as db
+import django
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 class Team():
     """
@@ -75,14 +84,16 @@ def unicode_to_str(string):
 
 # print type(site.xpath("//table[@id=\"clubrank\"]/tbody/tr")), site.xpath("//table[@id=\"clubrank\"]/tbody/tr")
 # HTML parse
-def createTeamsFromHTML():
+def createTeamsFromHTML(mode = "creating"):
     UEFA_club_ratingRU = "http://ru.uefa.com/memberassociations/uefarankings/club/"
-    UEFA_club_ratingEN = "http://www.uefa.com/memberassociations/uefarankings/club/season=2015/index.html"
+    UEFA_club_ratingEN = "http://www.uefa.com/memberassociations/uefarankings/club/"
     UEFAsiteEN = html.parse(UEFA_club_ratingEN)
     UEFAsiteRU = html.parse(UEFA_club_ratingRU)
     rows_xpathEN = UEFAsiteEN.xpath("//table[@id=\"clubrank\"]/tbody/tr")
     rows_xpathRU = UEFAsiteRU.xpath("//table[@id=\"clubrank\"]/tbody/tr")
     teams_count = len(rows_xpathEN)
+    if mode == "get count":
+        return teams_count
     UEFApos_xpath = "td[1]/span[1]"
     team_xpath1 = "td[1]/span[3]/a"
     team_xpath2 = "td[1]/span[3]/span[2]"
@@ -129,8 +140,8 @@ def createTeamsFromHTML():
 
 def printParsedTable(teamsL):
     for i, team in enumerate(teamsL):
-        print str(i+1) + ".", team.getName() + " (" + team.getRuName() + ")" , team.getCountry(), team.getRating()
-        pass
+        print str(i+1) + ".", unicode_to_str(team.getName()), "(" + team.getRuName() + ")" , team.getCountry(), team.getRating()
+
 
 
 # for key, value in teams.iteritems():
@@ -160,6 +171,12 @@ def printParsedTable(teamsL):
 
 # CREATE EXCEL TABLE
 def createExcelTable(filename, teamsL):
+    # create Excel table, if not exists
+    if os.path.isfile(excelFilename):
+         print "initial xls was already created, see", excelFilename
+         return
+
+    print "creating Excel Table", excelFilename
     book = xlwt.Workbook(encoding="utf-8")
 
     sheet1 = book.add_sheet("Sheet 1")
@@ -177,12 +194,13 @@ def createExcelTable(filename, teamsL):
     book.save(filename)
 
 
-def createTeamsFromExcelTable(excelFilename = "Rating.xls"):
+def createTeamsFromExcelTable(teamsL, excelFilename = "Rating.xls"):
     """
     create list of Team objects, sorted by rating
     :param excelFilename: table that stores all ratings
     :return:
     """
+
     # read ExcelTable
     rb = xlrd.open_workbook(excelFilename,formatting_info=True)
     sheet = rb.sheet_by_index(0)
@@ -199,22 +217,226 @@ def createTeamsFromExcelTable(excelFilename = "Rating.xls"):
         uefaPos = row[0]
         teamsL.append(Team(name, country, rating, ruName, uefaPos))
         # print name, country, rating, ruName, uefaPos
+    # print to console all teams
     return teamsL
 
+
+# CREATE DATABASE AND TABLES
+def createDB(teamsL, storage = "Postgre"):
+    if storage == "Postgre":
+        # https://www.ibm.com/developerworks/ru/library/l-python_part_11/
+        django_ver = django.VERSION
+        # using example from http://ideafix.name/wp-content/uploads/2012/05/Python-10.pdf
+        db_api =  db.apilevel
+        db_paramstyle = db.paramstyle
+        db_threadsafety = db.threadsafety
+        # http://stackoverflow.com/questions/19426448/creating-a-postgresql-db-using-psycopg2
+
+        # c = db.connect(database="GameDB")
+        # c = db.connect(None, database="GameDB", __author__, 1472258369)
+        dbuser = "postgres"
+        dbname="FootballSimDB"
+        # dbname="postgres"
+        dbpassword = "1472258369"
+        # crea
+        # c = db.connect(None, database, user, password)
+        con = db.connect(dbname=dbname, user=dbuser, host = 'localhost', password=dbpassword)
+        con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cur = con.cursor()
+
+        cur.execute('SELECT version()')
+        ver = cur.fetchone()
+        # print ver # ('PostgreSQL 9.4.4, compiled by Visual C++ build 1800, 64-bit',)
+
+        try:
+            cur.execute('CREATE DATABASE ' + dbname)
+        except db.DatabaseError, x:
+            print x.pgerror.decode('utf8')
+        con.commit()
+
+        con = None
+
+        try:
+            con = db.connect(database=dbname, user=dbuser)
+            cur = con.cursor()
+            cur.execute('SELECT version()')
+            ver = cur.fetchone()
+            # print "db ver = ", ver
+
+        except db.DatabaseError, e:
+            print 'Error %s' % e
+            sys.exit(1)
+
+
+
+        # CREATE TABLE TeamInfo
+        team_count = createTeamsFromHTML("get count")
+
+        # ALL CHECKS IF EXISTS DON'T WORK!! (RETURN NONE OF FALSE OR ERROR)
+        schema = 'public'
+        table_name = 'TeamInfo'
+
+        # try:
+        #     cur.execute("select exists(select * from information_schema.tables where table_name=%s)", ('TeamInfo',))
+        # except db.DatabaseError, e:
+        #     # print 'Error %s' % e.pgerror.decode('utf8')
+        #     print e.pgerror.decode('utf8')
+        #     sys.exit(1)
+
+
+        # cur.execute("select exists(select * from information_schema.tables where table_name=%s)", ('TeamInfo',))
+        # isTeamInfo = cur.fetchone()[0]
+
+        # print "isTeamInfo =", isTeamInfo
+        # isTeamInfo =  cur.execute('SELECT EXISTS(SELECT 1 FROM information_schema.tables \
+        #                           WHERE table_catalog=%s AND\
+        #                             table_schema='public' AND\
+        #                             table_name='TABLE_NAME');')
+
+
+        # query = 'SELECT EXISTS(SELECT 1 FROM information_schema.tables \
+        #                           WHERE table_catalog=%s AND\
+        #                             table_schema=%s AND\
+        #                             table_name=%s);'
+        # data = (dbname, schema, table_name)
+        # isTeamInfo =  cur.execute(query, data)
+        # print "isTeamInfo =", isTeamInfo
+
+        # SELECT 1 FROM pg_catalog.pg_class WHERE relkind = 'r' AND relname = 'name' AND pg_catalog.pg_table_is_visible(oid) LIMIT 1
+
+        # isTeamInfo = cur.execute('SELECT count(*) FROM information_schema.tables WHERE table_name = 'TeamInfo';')
+        # isTeamInfo = cur.execute('SELECT EXISTS (SELECT 1 FROM   information_schema.tables WHERE  table_schema = 'public' AND    table_name = 'TeamInfo');')
+        # isTeamInfo = cur.execute('SELECT EXISTS (SELECT 1 FROM   information_schema.tables WHERE  table_schema = 'public' AND    table_name = 'TeamInfo');')
+
+        # cur.execute("select * from information_schema.tables where table_name=%s", (table_name,))
+        # isTeamInfo = bool(cur.rowcount)
+        #
+        # print "isTeamInfo =", isTeamInfo
+
+        isTeamInfo = True
+        if not isTeamInfo:
+            print "TeamInfo not exists"
+            try:
+                cur.execute('CREATE TABLE TeamInfo(team_ID INTEGER PRIMARY KEY, team_Name VARCHAR(30), team_RuName VARCHAR(30), team_country VARCHAR(3))')
+                # cur.execute('ALTER TABLE TeamInfo ADD country VARCHAR(3)')
+                print "create table TeamInfo ok"
+                # print "add column ok"
+
+                # team_count = 0
+                for ind in xrange(team_count):
+                    team = teamsL[ind]
+                    teamID = ind+1
+                    teamName = unicode_to_str(team.getName())
+                    teamRuName = team.getRuName()
+                    teamCountry = team.getCountry()
+                    teamRating = team.getRating()
+                    print "inserting...", ind
+
+                    ## create table
+                    query =  "INSERT INTO TeamInfo (team_ID, team_Name, team_RuName, team_country) VALUES (%s, %s, %s, %s);"
+                    data = (teamID, teamName, teamRuName, teamCountry)
+                    cur.execute(query, data)
+
+                    # add column
+                    # query =  "INSERT INTO TeamInfo (country) VALUES (teamCountry);"
+                    # query =  "INSERT INTO TeamInfo (country) VALUES (%s);"
+                    # data = teamCountry
+                con.commit()
+            except db.DatabaseError, e:
+                # print 'Error %s' % e.pgerror.decode('utf8')
+                print e.pgerror.decode('utf8')
+                sys.exit(1)
+        else:
+            print "TeamInfo exists"
+
+        # CREATE TABLE TeamCountries and relation to TeamInfo
+        isTeamCountry = False
+        if not isTeamCountry:
+            try:
+                # table_name = "TeamCountries"
+                # cur.execute('DROP TABLE TeamCountries')
+                # print "DROP table TeamCountries ok"
+
+                cur.execute('DROP TABLE RL_TeamCountries')
+                cur.execute('DROP TABLE Countries')
+
+                print "DROP table Countries ok"
+                cur.execute('CREATE TABLE Countries(\
+                            country_ID INTEGER PRIMARY KEY,\
+                            country_name VARCHAR(3),\
+                            teams_count INTEGER\
+                            )')
+                print "create table Countries ok"
+
+                cur.execute('CREATE TABLE RL_TeamCountries(\
+                            team_ID INTEGER references TeamInfo(team_ID),\
+                            country_ID INTEGER references Countries(country_ID))')
+                print "create table RL_TeamCountries ok"
+
+                countries = util.Counter()
+                for team in teamsL:
+                    countries[team.getCountry()] +=1
+                print countries
+
+                ind = 1
+                for country, teams_count in countries.items():
+                    query =  "INSERT INTO Countries (country_ID, country_name, teams_count) VALUES (%s, %s, %s);"
+                    data = (ind, country, teams_count)
+                    print "insert data", data, "to table Countries"
+                    cur.execute(query, data)
+                    ind += 1
+
+                # teamCountry
+                # for ind in xrange(team_count):
+                #     team = teamsL[ind]
+                #     teamID = ind+1
+                #     teamName = unicode_to_str(team.getName())
+                #     teamRuName = team.getRuName()
+                #     teamCountry = team.getCountry()
+                #     teamRating = team.getRating()
+                #     print "inserting...", ind
+                #     query =  "INSERT INTO TeamCountries (teamID, team_Country) VALUES (%s, %s, %s);"
+                #     data = (teamID, teamCountry)
+                #     cur.execute(query, data)
+                con.commit()
+            except db.DatabaseError, e:
+                # print 'Error %s' % e.pgerror.decode('utf8')
+                print e.pgerror.decode('utf8')
+                sys.exit(1)
+
+            # finally:
+            #     if con:
+            #         con.close()
+
+        # cur.close()
+        # con.close()
+
+STORAGE = "Postgre"
+# STORAGE = "Excel"
 if __name__ == "__main__":
-    excelFilename = "Rating.xls"
-    # create Excel table, if not exists
-    if not os.path.isfile(excelFilename):
-        print "create new xls"
-        testTeam()
-        # create teams list
-        teamsL = createTeamsFromHTML()
-        # creare Excel table
+    # test team class
+    testTeam()
+    # create teams list
+    teamsL = createTeamsFromHTML()
+    if STORAGE == "Excel":
+        excelFilename = "Rating.xls"
+        # # read from Excel table (create it if not exists)
+        # teamsL = createTeamsFromExcelTable(teamsL, excelFilename)
         createExcelTable(excelFilename, teamsL)
+        teamsL = createTeamsFromExcelTable(teamsL, excelFilename)
+        printParsedTable(teamsL)
+
+    elif STORAGE == "Postgre":
+        createDB(teamsL, "Postgre")
+
     else:
-        print "initial xls was already created, see", excelFilename
-    # read Excel table
-    teamsL = createTeamsFromExcelTable(excelFilename)
-    # print to console all teams
-    printParsedTable(teamsL)
+        print "Unknown storage type", STORAGE
+        sys.exit(1)
+
+    # # print to console all teams
+    # printParsedTable(teamsL)
+
+
+
+
 
