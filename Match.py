@@ -7,7 +7,7 @@ represents Match Class
 
 import Team
 import random, os
-import values
+from values import Coefficients as C
 
 
 # print values.Coefficients()
@@ -120,7 +120,7 @@ ITERATIONS = 100000
 if __name__ == "__main__":
     with open(os.path.join("", 'VERSION')) as version_file:
         values_version = version_file.read().strip()
-    coefs = values.Coefficients(values_version).getRatingUpdateCoefs("list")
+    coefs = C(values_version).getRatingUpdateCoefs("list")
 
     print "\nTEST MATCH CLASS\n"
     team1 = Team.Team("Manchester City FC", "ENG", 87.078, "Манчестер Сити", 17)
