@@ -260,9 +260,9 @@ def createDB(teamsL, storage = "Postgre"):
         else:
             print "Database %s found" % dbname
 
-        # CONNECT
-        con = None
 
+        # CONNECT
+        # con = None
         try:
             con = db.connect(database=dbname, user=dbuser)
             cur = con.cursor()
@@ -275,11 +275,17 @@ def createDB(teamsL, storage = "Postgre"):
             sys.exit(1)
 
 
+        # PRINT EXISTING TABLES
+        trySQLquery(cur.execute, """SELECT table_name FROM information_schema.tables
+                WHERE table_schema = 'public'""")
+        print "tables of DB ", cur.fetchall()
+
+
         # COUNTRIES COUNTER DICT
         countries = util.Counter()
         for team in teamsL:
             countries[team.getCountry()] +=1
-        # print "countries", countries
+        print "countries", countries
 
         # when sorted, we can define country_ID for team with maximum teams
         sorted_countries = sorted(countries.items(), key=operator.itemgetter(1), reverse=True)
@@ -290,15 +296,18 @@ def createDB(teamsL, storage = "Postgre"):
         # CREATE TABLE TeamInfo
         table_name = "TeamInfo"
          # print "isTeamInfo exists()?", exists(cur, "TeamInfo", dbname, schema)
-        if not tableExists(cur, table_name):
-            print "%s exists but I think, its not complete, so recreating" % table_name
+        recreating = True
+        # create table if it doesn't exists or need recreating
+        if not tableExists(cur, table_name) or recreating:
+            # print "%s exists but I think, its not complete, so recreating" % table_name
+            print "%s recreating" % table_name
             # DROP AND RECREATE
             # trySQLquery(cur, 'DROP TABLE RL_TeamCountries')
             # query = 'DROP TABLE TeamInfo'
-            trySQLquery(cur.execute, 'DROP TABLE TeamInfo')
+            trySQLquery(cur.execute, 'DROP TABLE %s' % table_name)
             # trySQLquery(cur, 'DROP TABLE Countries')
 
-            createTable_TeamInfo(cur, con, team_count, countries)
+            createTable_TeamInfo(cur, con, table_name, team_count, countries)
         else:
             print "%s is already exists" % table_name
 
@@ -311,9 +320,9 @@ def createDB(teamsL, storage = "Postgre"):
             print "%s exists but I think, its not complete, so recreating" % table_name
             # # DROP AND RECREATE
             # cur.execute('DROP TABLE Countries')
-            trySQLquery(cur.execute, 'DROP TABLE Countries')
+            trySQLquery(cur.execute, 'DROP TABLE %s' % table_name)
             # print "DROP table Countries ok"
-            createTable_Countries(cur, con, team_count, sorted_countries)
+            createTable_Countries(cur, con, table_name, team_count, sorted_countries)
         else:
             print "%s is already exists" % table_name
 
@@ -359,54 +368,32 @@ def trySQLquery(func, query, data = None):
         print e.pgerror.decode('utf8')
         sys.exit(1)
 
-def createTable_TeamInfo(cur, con, team_count, sorted_countries):
+def createTable_TeamInfo(cur, con, table_name, team_count, sorted_countries):
     try:
-        cur.execute('CREATE TABLE TeamInfo(team_ID INTEGER PRIMARY KEY, team_Name VARCHAR(30), team_RuName VARCHAR(30), countryID VARCHAR(3))')
-        # cur.execute('ALTER TABLE TeamInfo ADD country VARCHAR(3)')
-        print "create table TeamInfo ok"
-        # print "add column ok"
-
-        # team_count = 0
+        cur.execute('CREATE TABLE %s(team_ID INTEGER PRIMARY KEY, team_Name VARCHAR(30), team_RuName VARCHAR(30), countryID VARCHAR(3))' % table_name)
+        print "create table %s ok" % table_name
         for ind in xrange(team_count):
             team = teamsL[ind]
             teamID = ind+1
             teamName = unicode_to_str(team.getName())
             teamRuName = team.getRuName()
             teamCountry = team.getCountry()
-            print "teamCountry =", teamCountry
+            # print "teamCountry =", teamCountry
             # country_ID = countries[teamCountry] # NO!!!
-            country_ID = sorted_countries[ind]
-            # we need ID from table
-            # country_ID = trySQLquery(cur.execute, 'SELECT * FROM Counties WHERE country_name = %s;', teamCountry)
-            # trySQLquery(cur.execute, 'SELECT country_ID FROM Countries WHERE country_name = %s;' % teamCountry)
-            # country_ID = trySQLquery(cur.execute, 'SELECT country_ID FROM Countries;')
-            # country_ID = trySQLquery(cur.execute, 'SELECT country_ID FROM Countries;')
-            # country_ID = trySQLquery(cur.execute, 'SELECT * FROM Countries;')
-            # country_ID = cur.execute('SELECT * FROM Countries;')
-            # country_ID = cur.execute("""SELECT country_ID FROM Countries WHERE country_name = 'ESP';""")
-            country_ID = cur.execute('SELECT country_ID FROM Countries WHERE country_name = %s;' % teamCountry)
-            # this works from SQL console but not in py! CAUSE FORGOT ABOUT FETCHALL
-            # SELECT country_ID FROM Countries WHERE country_name = 'ESP';
-            # country_ID = cur.execute("""SELECT country_ID FROM Countries WHERE country_name = 'ESP';""")
-            # country_ID = cur.execute("""SELECT country_ID FROM Countries ;""")
-            # country_ID = cur.execute("SELECT * FROM Countries", 5)
-            # country_ID = cur.execute('SELECT * FROM TeamInfo;')
-            for row in cur.fetchall():
-                print "row", row
-            print "country_ID = ", country_ID, type(country_ID)
-            teamRating = team.getRating()
+            # country_ID = sorted_countries[ind]
+            cur.execute("""SELECT country_ID FROM Countries WHERE country_name = %s;""", (teamCountry, )) # ok
+            country_ID = cur.fetchone()[0]
+
+            # print "country_ID = ", country_ID, type(country_ID)
+            # teamRating = team.getRating()
 
             ## create table
             query =  "INSERT INTO TeamInfo (team_ID, team_Name, team_RuName, countryID) VALUES (%s, %s, %s, %s);"
             data = (teamID, teamName, teamRuName, country_ID)
+            # data = (teamID, unicode_to_str(teamName), unicode_to_str(teamRuName), country_ID)
             print "insert data", data, "to table TeamInfo"
-
             trySQLquery(cur.execute, query, data)
 
-            # add column
-            # query =  "INSERT INTO TeamInfo (country) VALUES (teamCountry);"
-            # query =  "INSERT INTO TeamInfo (country) VALUES (%s);"
-            # data = teamCountry
         con.commit()
     except db.DatabaseError, e:
         # print 'Error %s' % e.pgerror.decode('utf8')
@@ -414,20 +401,20 @@ def createTable_TeamInfo(cur, con, team_count, sorted_countries):
         sys.exit(1)
 
 
-def createTable_Countries(cur, con, team_count, sorted_countries):
+def createTable_Countries(cur, con, table_name, team_count, sorted_countries):
     try:
         # CREATE TABLES
-        cur.execute('CREATE TABLE Countries(\
+        cur.execute('CREATE TABLE %s(\
                     country_ID INTEGER PRIMARY KEY,\
                     country_name VARCHAR(3),\
                     teams_count INTEGER\
-                    )')
+                    )' % table_name)
         print "create table Countries ok"
 
         # INSERT TO TABLE Countries
         for ind, (country, teams_count) in enumerate(sorted_countries):
-            query =  "INSERT INTO Countries (country_ID, country_name, teams_count) VALUES (%s, %s, %s);"
-            data = (ind+1, country, teams_count)
+            query =  "INSERT INTO %s (country_ID, country_name, teams_count) VALUES (%s, %s, %s);"
+            data = (table_name, ind+1, country, teams_count)
             print "insert data", data, "to table Countries"
             cur.execute(query, data)
 
