@@ -4,7 +4,23 @@ __author__ = 'NereWARin'
 
 class Coefficients():
     """
-    defines coefficients to calculate rating changes after mathes
+    defines coefficients to calculate rating changes after matches
+    MAIN FUNC - getRatingUpdateCoefs
+                # mode = "Favorite" (home)
+                self.FHW - favorite home win
+                self.OGL = outsider guest lose
+                self.FHL = favorite home lose
+                self.OGW = outsider guest win
+                self.FHT = favorite home tie
+                self.OGT = outsider guest tie
+
+                # mode = "Outsider" (home)
+                self.OHW = outsider home win
+                self.FGL = favorite guest lose
+                self.OHL = outsider home lose
+                self.FGW = favorite guest win
+                self.OHT = outsider home tie
+                self.FGT = favorite guest tie
     """
     def __init__(self, version):
         # self.version = version
@@ -47,6 +63,7 @@ class Coefficients():
 
         # choose dictionary to store coefs
         self.coefs = {}
+        self.scaler = 0.001 # to scale to rating UEFA format
         # self.coefs[FHW] =
         # print type(self.__dict__.keys())
         instance_variables  = self.__dict__.keys()
@@ -54,18 +71,36 @@ class Coefficients():
         # кроме последней переменной - self.coefs - самого словаря, куда собираем переменные.
         # дабы не собирать словарь в себя же, ура рекурсивному словарю  :-)
             # print type(instance_variable)
-            self.coefs[instance_variables[ind]] = getattr(self, instance_variables[ind])
+            self.coefs[instance_variables[ind]] = getattr(self, instance_variables[ind]) * self.scaler
         # for key,val in self.coefs.items():
         #     print key,val
         #     pass
         # print "\n--end--\n"
 
-    def getRatingUpdateCoefs(self):
+    def getRatingUpdateCoefs(self, type = "dict"):
         """
 
         :return: dictionary of coefs (see above)
         """
-        return self.coefs
+        if type == "dict":
+            return self.coefs
+        elif type == "list":
+            return [coef * self.scaler for coef in [self.FHW,
+                                                    self.OGL,
+                                                    self.FHL,
+                                                    self.OGW,
+                                                    self.FHT,
+                                                    self.OGT,
+
+                                                    self.OHW,
+                                                    self.FGL,
+                                                    self.OHL,
+                                                    self.FGW,
+                                                    self.OHT,
+                                                    self.FGT]
+                    ]
+        else:
+            print "unknown type %s for getRatingUpdateCoefs return data type" % type
 
     def check(self, version):
         """
@@ -146,6 +181,7 @@ class Coefficients():
         return divs
 
 if __name__ == "__main__":
+    print "Test Values (coefficients to compute ratings)"
     test_versions = ["v1.0", "v1.1"]
     for version in test_versions:
         test_Coef = Coefficients(version)

@@ -1,7 +1,17 @@
 __author__ = 'NereWARin'
 # -*- coding: utf-8 -*-
-import random, Team
 
+"""
+represents Match Class
+"""
+
+import Team
+import random, os
+import values
+
+
+# print values.Coefficients()
+# import bumpversion
 # class Result():
 #     def __init(self, homeScore, guestScore):
 #         self.result = (homeScore, guestScore)
@@ -29,26 +39,40 @@ class Match():
         self.guestRating = self.guest.getRating()
         # print self.homeName, self.guestName
 
+        if self.homeRating >= self.guestRating:
+            # mode index multiplier for searching in self.deltaCoefs
+            self.mim = 0 # "Favorite" #(Home)
+        else:
+            # self.mode = "Outsider" #(Home)
+            self.mim = 1 #"Outsider" #(Home)
+
+        self.deltaCoefs = deltaCoefs
+
         self.result = ("not played",)
         self.tie = "Tie"
 
-    def run(self, mode = "dice original"):
+    def run(self, update = True, mode = "dice original"):
         """
         generate result of match
         :param mode: "dice original" - original game by Gorbachev Arsenii written in 2001 year, played by paper
         :return: result
         """
         if mode == "dice original":
+            # throw dice, generate random goals numbers
             homeLuck  = random.randint(1, 6)
             guestLuck = random.randint(1, 6)
             self.homeScore  = homeLuck
             self.guestScore = guestLuck
+
             # match score logic computation
-            if self.homeRating > self.guestRating:
+            # if self.homeRating >= self.guestRating:
+            if self.mim == 0:
                 self.guestScore += -3
-            elif self.homeRating < self.guestRating:
+            # elif self.homeRating < self.guestRating:
+            else:
                 self.homeScore  += -2
                 self.guestScore += -1
+
             # for check positive score
             if self.homeScore < 0:
                 self.homeScore = 0
@@ -56,6 +80,10 @@ class Match():
                 self.guestScore = 0
 
             self.result = (self.homeScore, self.guestScore)
+
+            if update:
+                self.updateRatings()
+
             return self.result
         else:
             raise NotImplementedError, "unknown mode \"%s\"" % (mode)
@@ -68,6 +96,7 @@ class Match():
         if self.result[0] > self.result[1]:
             # return self.homeName
             return 0 # Home Wins, Guest Loses
+            # return self.home
         elif self.result[0] < self.result[1]:
             # return self.guestName
             return 1 # Home Loses, Guest Wins
@@ -76,27 +105,45 @@ class Match():
             return 2 # Tie
 
     def updateRatings(self):
+        mimLenght = 6  # coefs in one sector (for favorite at home or otherwise mode) = len(self.deltaCoefs) / 2
+        # print "self.deltaCoefs %s lenght of %s" % (self.deltaCoefs, mimLenght)
 
-        self.home.setRating (self.homeRating  + homeDelta)
-        self.guest.setRating(self.guestRating + guestDelta)
+        # cimpute index for get deltaCoef from list, depending of Favorite or Outsider played home, and Result
+        home_delta_ind = mimLenght * self.mim + self.getWinner() * 2 # (2 teams played)
+        self.home.setRating (self.homeRating  + self.deltaCoefs[home_delta_ind])
+        guest_delta_ind = home_delta_ind + 1
+        self.guest.setRating(self.guestRating + self.deltaCoefs[guest_delta_ind])
+
 
 # TEST
-ITERATIONS = 10
+ITERATIONS = 100000
 if __name__ == "__main__":
+    with open(os.path.join("", 'VERSION')) as version_file:
+        values_version = version_file.read().strip()
+    coefs = values.Coefficients(values_version).getRatingUpdateCoefs("list")
+
     print "\nTEST MATCH CLASS\n"
     team1 = Team.Team("Manchester City FC", "ENG", 87.078, "Манчестер Сити", 17)
     team2 = Team.Team("FC Shakhtar Donetsk", "UKR", 85.899, "Шахтер Донецк", 18)
     results = [0,0,0]
+
     for i in range(ITERATIONS):
-        testMatch = Match((team1, team2), "testMatch%s" % (i + 1))
+        if i > ITERATIONS*0.5 - 1:
+            testMatch = Match((team2, team1), coefs, "testMatch%s" % (i + 1))
+        else:
+            testMatch = Match((team1, team2), coefs, "testMatch%s" % (i + 1))
         # testMatch = Match((team2, team1), "testMatch%s" % (i + 1))
         testMatch.run()
-        results[testMatch.getWinner()] += 1
-        # print testMatch.printResult()
-    # print results
-    for i in range(10):
-        testMatch = Match((team2, team1), "testMatch%s" % (i + 11))
-        testMatch.run()
-        # print testMatch.printResult()
+        # print testMatch.printResult(), "updated ratings", team1.getRating(), team2.getRating()
+        if not i % 1000:
+            # print every 1000 iterations
+            print testMatch.printResult(), "| updated ratings", team1.getRating(), team2.getRating()
+        # results[testMatch.getWinner()] += 1
+        # print "updated ratings", team1.getRating(), team2.getRating()
+    # # print results
+    # for i in range(10):
+    #     testMatch = Match((team2, team1), coefs, "testMatch%s" % (i + 11))
+    #     testMatch.run()
+    #     print testMatch.printResult()
 
 
