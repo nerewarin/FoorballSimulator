@@ -18,6 +18,21 @@ import inspect
 import heapq, random
 import cStringIO
 
+# Gorb hepler func1
+def unicode_to_str(string):
+    """
+    helper function to convert unicode to string.
+    :param unicode: unicode
+    :return: string
+    """
+    try:
+        string.encode('utf8')
+    except AttributeError:
+        # print "type of entry of func <unicode_to_str> is not unicode! "
+        answer = str(string)
+    else:
+        answer = string.encode('utf8')
+    return answer
 
 class FixedRandom:
     def __init__(self):
