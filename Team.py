@@ -247,11 +247,18 @@ def createDB(teamsL, storage = "Postgre"):
         # print ver # ('PostgreSQL 9.4.4, compiled by Visual C++ build 1800, 64-bit',)
 
         # CREATE DB
-        try:
-            cur.execute('CREATE DATABASE ' + dbname)
-        except db.DatabaseError, x:
-            print x.pgerror.decode('utf8')
-        con.commit()
+        trySQLquery(cur.execute, 'SELECT exists(SELECT 1 from pg_catalog.pg_database where datname = %s)', (dbname,))
+        isDB = cur.fetchone()[0]
+        # print "BD exists?", isDB
+        if not isDB:
+            print "Database %s not found, creating" % dbname
+            try:
+                cur.execute('CREATE DATABASE ' + dbname)
+            except db.DatabaseError, x:
+                print x.pgerror.decode('utf8')
+            con.commit()
+        else:
+            print "Database %s found" % dbname
 
         # CONNECT
         con = None
@@ -272,7 +279,7 @@ def createDB(teamsL, storage = "Postgre"):
         countries = util.Counter()
         for team in teamsL:
             countries[team.getCountry()] +=1
-        print "countries", countries
+        # print "countries", countries
 
         # when sorted, we can define country_ID for team with maximum teams
         sorted_countries = sorted(countries.items(), key=operator.itemgetter(1), reverse=True)
@@ -280,13 +287,11 @@ def createDB(teamsL, storage = "Postgre"):
         print "sorted_countries", sorted_countries
 
 
-
         # CREATE TABLE TeamInfo
-        # ALL CHECKS IF EXISTS DON'T WORK!! (RETURN NONE OF FALSE OR ERROR, now hardcoded as True)
-        isTeamInfo = False
-        # if not exists():
-        if not isTeamInfo:
-            print "TeamInfo not complete, recreating"
+        table_name = "TeamInfo"
+         # print "isTeamInfo exists()?", exists(cur, "TeamInfo", dbname, schema)
+        if not tableExists(cur, table_name):
+            print "%s exists but I think, its not complete, so recreating" % table_name
             # DROP AND RECREATE
             # trySQLquery(cur, 'DROP TABLE RL_TeamCountries')
             # query = 'DROP TABLE TeamInfo'
@@ -295,29 +300,32 @@ def createDB(teamsL, storage = "Postgre"):
 
             createTable_TeamInfo(cur, con, team_count, countries)
         else:
-            print "TeamInfo exists"
+            print "%s is already exists" % table_name
 
 
         # CREATE TABLE TeamCountries
-        isTeamCountry = False
-        if not isTeamCountry:
+        # isTeamCountry = False
+        # isTeamCountry = True
+        table_name = "Countries"
+        if not tableExists(cur, table_name):
+            print "%s exists but I think, its not complete, so recreating" % table_name
             # # DROP AND RECREATE
             # cur.execute('DROP TABLE Countries')
             trySQLquery(cur.execute, 'DROP TABLE Countries')
             # print "DROP table Countries ok"
             createTable_Countries(cur, con, team_count, sorted_countries)
         else:
-            print "Table Countries is already exists"
+            print "%s is already exists" % table_name
 
-        # CREATE TABLE RL_TeamCountries (relation between TeamInfo and Countries)
-        isTeamCountry = True # NO CREATING
-        if not isTeamCountry:
-            # # DROP AND RECREATE
-            # cur.execute('DROP TABLE RL_TeamCountries')
-            # print "DROP table Countries ok"
-            createTable_RL_TeamCountries(cur, con, team_count, countries)
-        else:
-            print "Table Countries is already exists"
+        # # CREATE TABLE RL_TeamCountries (relation between TeamInfo and Countries)
+        # isTeamCountry = True # NO CREATING
+        # if not isTeamCountry:
+        #     # # DROP AND RECREATE
+        #     # cur.execute('DROP TABLE RL_TeamCountries')
+        #     # print "DROP table Countries ok"
+        #     createTable_RL_TeamCountries(cur, con, team_count, countries)
+        # else:
+        #     print "%s is already exists" % table_name
 
         # close connection to DB
         if con:
@@ -326,56 +334,27 @@ def createDB(teamsL, storage = "Postgre"):
         if cur:
             cur.close()
 
-def exists():
-       # try:
-    #     cur.execute("select exists(select * from information_schema.tables where table_name=%s)", ('TeamInfo',))
-    # except db.DatabaseError, e:
-    #     # print 'Error %s' % e.pgerror.decode('utf8')
-    #     print e.pgerror.decode('utf8')
-    #     sys.exit(1)
+# def exists(cur, table_name, dbname, schema):
+def tableExists(cur, table_name):
+   try:
+        cur.execute("select exists(select * from information_schema.tables where table_name=%s)", (table_name.lower(),))
+        isTeamInfo = cur.fetchone()[0]
+        # another way
+        # cur.execute("select * from information_schema.tables where table_name=%s", (table_name.lower(),))
+        # isTeamInfo = bool(cur.rowcount)
+        return isTeamInfo
 
+   except db.DatabaseError, e:
+        print e.pgerror.decode('utf8')
+        sys.exit(1)
 
-    # cur.execute("select exists(select * from information_schema.tables where table_name=%s)", ('TeamInfo',))
-    # isTeamInfo = cur.fetchone()[0]
-
-    # print "isTeamInfo =", isTeamInfo
-    # isTeamInfo =  cur.execute('SELECT EXISTS(SELECT 1 FROM information_schema.tables \
-    #                           WHERE table_catalog=%s AND\
-    #                             table_schema='public' AND\
-    #                             table_name='TABLE_NAME');')
-
-
-    # query = 'SELECT EXISTS(SELECT 1 FROM information_schema.tables \
-    #                           WHERE table_catalog=%s AND\
-    #                             table_schema=%s AND\
-    #                             table_name=%s);'
-    # data = (dbname, schema, table_name)
-    # isTeamInfo =  cur.execute(query, data)
-    # print "isTeamInfo =", isTeamInfo
-
-    # SELECT 1 FROM pg_catalog.pg_class WHERE relkind = 'r' AND relname = 'name' AND pg_catalog.pg_table_is_visible(oid) LIMIT 1
-
-    # isTeamInfo = cur.execute('SELECT count(*) FROM information_schema.tables WHERE table_name = 'TeamInfo';')
-    # isTeamInfo = cur.execute('SELECT EXISTS (SELECT 1 FROM   information_schema.tables WHERE  table_schema = 'public' AND    table_name = 'TeamInfo');')
-    # isTeamInfo = cur.execute('SELECT EXISTS (SELECT 1 FROM   information_schema.tables WHERE  table_schema = 'public' AND    table_name = 'TeamInfo');')
-
-    # cur.execute("select * from information_schema.tables where table_name=%s", (table_name,))
-    # isTeamInfo = bool(cur.rowcount)
-    #
-    # print "isTeamInfo =", isTeamInfo
-    return True
 
 # def trySQLquery(cur, func, query, data = None):
 def trySQLquery(func, query, data = None):
     try:
-        # # cur.func(query, data)
-        # print type(args)
-        # # print *args
-        # for a in args:
-        #     print a
-        # # print "*args", *args
-        print  query, data
-        func(query, data)
+        # print query, data
+        return func(query, data)
+
     except db.DatabaseError, e:
         print e.pgerror.decode('utf8')
         sys.exit(1)
@@ -399,9 +378,22 @@ def createTable_TeamInfo(cur, con, team_count, sorted_countries):
             country_ID = sorted_countries[ind]
             # we need ID from table
             # country_ID = trySQLquery(cur.execute, 'SELECT * FROM Counties WHERE country_name = %s;', teamCountry)
-            # country_ID = trySQLquery(cur.execute, 'SELECT country_ID FROM Countries WHERE country_name = %s;' % teamCountry)
+            # trySQLquery(cur.execute, 'SELECT country_ID FROM Countries WHERE country_name = %s;' % teamCountry)
             # country_ID = trySQLquery(cur.execute, 'SELECT country_ID FROM Countries;')
-            print "country_ID = ", country_ID
+            # country_ID = trySQLquery(cur.execute, 'SELECT country_ID FROM Countries;')
+            # country_ID = trySQLquery(cur.execute, 'SELECT * FROM Countries;')
+            # country_ID = cur.execute('SELECT * FROM Countries;')
+            # country_ID = cur.execute("""SELECT country_ID FROM Countries WHERE country_name = 'ESP';""")
+            country_ID = cur.execute('SELECT country_ID FROM Countries WHERE country_name = %s;' % teamCountry)
+            # this works from SQL console but not in py! CAUSE FORGOT ABOUT FETCHALL
+            # SELECT country_ID FROM Countries WHERE country_name = 'ESP';
+            # country_ID = cur.execute("""SELECT country_ID FROM Countries WHERE country_name = 'ESP';""")
+            # country_ID = cur.execute("""SELECT country_ID FROM Countries ;""")
+            # country_ID = cur.execute("SELECT * FROM Countries", 5)
+            # country_ID = cur.execute('SELECT * FROM TeamInfo;')
+            for row in cur.fetchall():
+                print "row", row
+            print "country_ID = ", country_ID, type(country_ID)
             teamRating = team.getRating()
 
             ## create table
@@ -420,6 +412,7 @@ def createTable_TeamInfo(cur, con, team_count, sorted_countries):
         # print 'Error %s' % e.pgerror.decode('utf8')
         print e.pgerror.decode('utf8')
         sys.exit(1)
+
 
 def createTable_Countries(cur, con, team_count, sorted_countries):
     try:
@@ -442,6 +435,7 @@ def createTable_Countries(cur, con, team_count, sorted_countries):
     except db.DatabaseError, e:
         print e.pgerror.decode('utf8')
         sys.exit(1)
+
 
 def createTable_RL_TeamCountries(cur, con, team_count, countries):
     try:
