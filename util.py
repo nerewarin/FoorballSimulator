@@ -34,6 +34,21 @@ def unicode_to_str(string):
         answer = string.encode('utf8')
     return answer
 
+
+def edges_of_figure(nodes):
+    """
+    Helper function to compute number of matches in league
+
+    :param nodes: number of nodes in figure (for example, teams in league)
+    :return:  number of connections possible in n-nodes figure (0,1:0, 2:1, 3:3, 4:6, 5: 10, 6: 15 , etc.)
+    """
+    if nodes == 2:
+        return 1
+    elif nodes < 2:
+        return 0
+    return edges_of_figure(nodes - 1) + nodes - 1
+
+
 class FixedRandom:
     def __init__(self):
         fixedState = (3, (2147483648L, 507801126L, 683453281L, 310439348L, 2597246090L, \

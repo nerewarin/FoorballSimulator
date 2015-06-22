@@ -21,6 +21,9 @@ class Team():
         self.uefaPos = uefaPos
         self.methods = ["getUefaPos", "getName", "getRuName", "getCountry", "getRating"]
 
+    def __str__(self):
+        return self.name
+
     def getUefaPos(self):
         """
         current position in UEFA rating

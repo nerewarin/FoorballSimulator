@@ -88,7 +88,7 @@ class Match():
         else:
             raise NotImplementedError, "unknown mode \"%s\"" % (mode)
 
-    def printResult(self):
+    def __str__(self):
         return "%s. %s %s %s" % \
                (self.name, self.homeName, str(self.result[0])+ ":" + str(self.result[1]) ,self.guestName)
 
@@ -137,7 +137,7 @@ if __name__ == "__main__":
         # print testMatch.printResult(), "updated ratings", team1.getRating(), team2.getRating()
         if not i % 1000:
             # print every 1000 iterations
-            print testMatch.printResult(), "| updated ratings", team1.getRating(), team2.getRating()
+            print testMatch, "| updated ratings", team1.getRating(), team2.getRating()
         # results[testMatch.getWinner()] += 1
         # print "updated ratings", team1.getRating(), team2.getRating()
     # # print results
