@@ -132,12 +132,16 @@ class League():
 
 
                     # print team_indexes
-                    team1_ind = team_indexes.pop(tour % len(team_indexes))
+                    team1_ind = team_indexes.pop(0) # tour % len(team_indexes)
                     # team1_ind = team_indexes.pop(match_ind % len(team_indexes))
                     # team1_ind = team_indexes.pop(0)
                     # team1 = teams[team_indexes.pop(0)]
                     team1 = teams[team1_ind]
-                    team2_ind = team_indexes.pop()
+                    # print len(team_indexes) - tour, len(team_indexes)
+                    # print len(team_indexes[1:])- tour, len(team_indexes)
+                    # print [1][-1]
+                    # team2_ind = team_indexes.pop( (len(team_indexes[1:]) - tour) % len(team_indexes)  )
+                    team2_ind = team_indexes.pop( -1  - tour  % len(team_indexes)  )
                     # team2 = teams[team_indexes.pop()]
                     team2 = teams[team2_ind]
                     # print team1_ind, team2_ind, team_indexes
