@@ -20,7 +20,7 @@ from values import Coefficients as C
 
 
 class Match():
-    def __init__(self, members, deltaCoefs, name = "no name match"):
+    def __init__(self, members, deltaCoefs, name = "no name match", result_format = {"Win" : 0, "Lose" : 1, "Draw" : 2}):
         """
 
         :param members:
@@ -31,6 +31,7 @@ class Match():
         self.name = name
         self.home  = members[0]
         self.guest = members[1]
+        self.result_format = result_format
 
         self.homeName   = self.home.getName()
         self.homeRating = self.home.getRating()
@@ -95,14 +96,17 @@ class Match():
     def getWinner(self):
         if self.result[0] > self.result[1]:
             # return self.homeName
-            return 0 # Home Wins, Guest Loses
+            # return 0 # Home Wins, Guest Loses
             # return self.home
+            return self.result_format["Win"]
         elif self.result[0] < self.result[1]:
             # return self.guestName
-            return 1 # Home Loses, Guest Wins
+            # return 1 # Home Loses, Guest Wins
+            return self.result_format["Lose"]
         else:
             # return self.tie
-            return 2 # Tie
+            # return 2 # Tie
+            return self.result_format["Draw"]
 
     def updateRatings(self):
         mimLenght = 6  # coefs in one sector (for favorite at home or otherwise mode) = len(self.deltaCoefs) / 2
@@ -118,9 +122,12 @@ class Match():
 # TEST
 ITERATIONS = 100000
 if __name__ == "__main__":
+    # v1.1 coefs
     with open(os.path.join("", 'VERSION')) as version_file:
         values_version = version_file.read().strip()
     coefs = C(values_version).getRatingUpdateCoefs("list")
+    # v1.0 coefs
+    # coefs = C("v1.0").getRatingUpdateCoefs("list")
 
     print "\nTEST MATCH CLASS\n"
     team1 = Team.Team("Manchester City FC", "ENG", 87.078, "Манчестер Сити", 17)
@@ -128,7 +135,8 @@ if __name__ == "__main__":
     results = [0,0,0]
 
     for i in range(ITERATIONS):
-        if i > ITERATIONS*0.5 - 1:
+        # if i > ITERATIONS*0.5 - 1:
+        if not i % 2:
             testMatch = Match((team2, team1), coefs, "testMatch%s" % (i + 1))
         else:
             testMatch = Match((team1, team2), coefs, "testMatch%s" % (i + 1))
