@@ -1,3 +1,6 @@
+# !/usr/bin/python
+# -*- coding: utf-8 -*-
+
 # util.py
 # -------
 # Licensing Information:  You are free to use or extend these projects for 
@@ -48,6 +51,19 @@ def edges_of_figure(nodes):
         return 0
     return edges_of_figure(nodes - 1) + nodes - 1
 
+
+def timer(f):
+    """
+    decorator of main functions to control execution time
+    :param f:
+    :return:
+    """
+    def tmp(*args, **kwargs):
+        t = time.time()
+        res = f(*args, **kwargs)
+        print ("Время выполнения функции: %f" % (time.time()-t)).decode("UTF-8")
+        return res
+    return tmp
 
 class FixedRandom:
     def __init__(self):

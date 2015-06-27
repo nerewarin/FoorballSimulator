@@ -41,7 +41,7 @@ def createExcelTable(filename, teamsL):
     book.save(filename)
 
 
-def createTeamsFromExcelTable(teamsL, excelFilename = "Rating.xls"):
+def createTeamsFromExcelTable(excelFilename = "Rating.xls"):
     """
     create list of Team objects, sorted by rating
     :param excelFilename: table that stores all ratings
@@ -308,7 +308,7 @@ def TestStorage(storage, teamsL):
         # # read from Excel table (create it if not exists)
         # teamsL = createTeamsFromExcelTable(teamsL, excelFilename)
         createExcelTable(excelFilename, teamsL)
-        teamsL = createTeamsFromExcelTable(teamsL, excelFilename)
+        teamsL = createTeamsFromExcelTable(excelFilename)
         DataParsing.printParsedTable(teamsL)
 
     elif storage == "Postgre":
