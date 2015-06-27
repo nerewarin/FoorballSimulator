@@ -12,20 +12,23 @@ class Coefficients():
                 self.OGL = outsider guest lose
                 self.FHL = favorite home lose
                 self.OGW = outsider guest win
-                self.FHT = favorite home tie
-                self.OGT = outsider guest tie
+                self.FHT = favorite home tie (draw)
+                self.OGT = outsider guest tie (draw)
 
                 # mode = "Outsider" (home)
                 self.OHW = outsider home win
                 self.FGL = favorite guest lose
                 self.OHL = outsider home lose
                 self.FGW = favorite guest win
-                self.OHT = outsider home tie
-                self.FGT = favorite guest tie
+                self.OHT = outsider home tie (draw)
+                self.FGT = favorite guest tie (draw)
     """
     def __init__(self, version):
         # self.version = version
         if version[1] == "1": #"v1.x"
+
+            self.scaler = 0.01 # to scale to rating UEFA format
+
             if version[3] == "0": # "v1.0"
                 # v1.0 original coefficients from 2004 paper game
                 self.FHW = +1
@@ -64,7 +67,7 @@ class Coefficients():
 
         # choose dictionary to store coefs
         self.coefs = {}
-        self.scaler = 0.001 # to scale to rating UEFA format
+
         # self.coefs[FHW] =
         # print type(self.__dict__.keys())
         instance_variables  = self.__dict__.keys()
