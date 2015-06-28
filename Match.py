@@ -66,7 +66,7 @@ class Match(object):
 
     def __str__(self):
         return "%s. %s %s %s" % \
-               (self.name, self.homeName, str(self.getResult()).replace(",", ":") ,self.guestName)
+               (self.name, self.homeName, str(self.getResult())[1:-1].replace(",", ":").replace(" ", "") ,self.guestName)
                # (self.name, self.homeName, str(self.result[0])+ ":" + str(self.result[1]) ,self.guestName)
 
     def getName(self):

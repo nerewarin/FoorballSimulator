@@ -191,8 +191,15 @@ class Cup(League):
         # [team_champion, team_finished_in_final, teams_finished_in_semi-final, ... , teams_finished_in_qualRoundn, ...
         # teams_finished_in_qualRound1# ]
         print "\nWELCOME TO CUP ***", name.upper(), season, "***"
+
+        state = {st:None for st in state_params}
+
+        for member in self.members:
+            self.results.append(TeamResult(member, state).get4table())
+        # print "self.results", self.results
         # initialize net
         self.net = "not implemented yet"
+        self.round_names = "not computed" # TODO make branch: get from params (if external scheme exists) OR compute in run()
 
     def __str__(self):
         return self.net
@@ -255,6 +262,8 @@ class Cup(League):
         """
         teams = self.getMember()
         teams_num = len(teams)
+        # clear results
+        self.results = {}
 
         # seeding
         # 14-team cup example
@@ -289,9 +298,7 @@ class Cup(League):
             qteams = qpairs * 2
             return pteamsI, qpairs
 
-        def cupRound(_teams_, roundN, pair_mode, print_matches = False):
-            # TODO if pair_mode -> Double Match, else one Matchs
-            # TODO playoff or not to params
+        def cupRound(_teams_, round_name, pair_mode, print_matches = False):
             """
             teams - only those teams that will play in that round
 
@@ -312,12 +319,14 @@ class Cup(League):
                 classname = M.Match
             for struggleN in range(struggles):
                 team1 = teams.pop(0) # favorite
-                team2 = teams.pop() # outsider
+                # team2 = teams.pop() # outsider
+                # TODO fix wild random! or at leat keep track of it to build self.net...
+                team2 = teams.pop(random.randrange(len(teams))) # outsider
                 pair = (team1, team2)
                 # print "%s :  %s" % (team1, team2)
                 # match_name = "%s %s. round %s. struggle %s"  \
-                match_name = "%s %s. round %s.%s"  \
-                                % (self.getName(), self.season, roundN, struggleN)
+                match_name = "%s %s. %s.%s"  \
+                                % (self.getName(), self.season, round_name, struggleN)
                 struggle = classname(pair, self.delta_coefs, match_name, playoff)
                 struggle.run()
                 if print_matches:
@@ -329,81 +338,87 @@ class Cup(League):
 
             return loosers
 
+
+        def RunRoundAndUpdate(round, pair_mode, results, teams):
+            # try:
+            #
+            # except:
+            #     pass
+            round_name = self.getRoundNames()[round]
+
+            loosers = cupRound(teams, round_name, pair_mode, print_matches)
+
+            # UPDATE RESULTS
+            # TODO choose results form and net form
+            # self.results.append(loosers)
+            res = dict(results)
+            res[round_name] = loosers
+
+            # if print_matches:
+            #     for stage, result in enumerate(self.results):
+            #         print "results (loosers) of stage %s len of %s : %s" % (stage, len(self.results[stage]), [team.getName() for team in self.results[stage]])
+
+            # return results, teams
+            return res, loosers
+
         # CALL HELPER FUNCTIONS
         try:
             # print "teams_num", teams_num
             self.p_rounds, self.q_rounds = self.rounds_count(teams_num)#self.rounds_count(teams_num)
+            # print "self.p_rounds %s, self.q_rounds %s" % (self.p_rounds, self.q_rounds)
         except:
             print "%s. need more teams to run cup" % teams_num
             raise AttributeError
         else:
             # convert number of round to round name (1/4, semi-final, etc.)
-            round_names = self.roundNames(self.p_rounds, self.q_rounds)
+            self.round_names = self.roundNames(self.p_rounds, self.q_rounds)
+            # print round_names
             all_rounds = self.p_rounds + self.q_rounds
 
             pteamsI, qpairs = PQplaces(self.p_rounds, self.q_rounds)
-            # print "%s. pteam_num % s, pteams %s, qpairs %s, qteams %s" % ( teams_num, pteam_num, pteams, qpairs, qteams)
 
-            # if print_matches:
-            #     print "run cup for %s teams: p_rounds = %s, pteamsI % s, qpairs %s (*2 = %s), sum = %s (%s)" % \
-            #       ( teams_num, self.p_rounds, pteamsI, qpairs, qpairs *2, qpairs *2 + pteamsI,
-            #         teams_num - (qpairs *2 + pteamsI))
 
+            # TODO: to support self.q_rounds > 1, need recompute qpairs and qteamsI with special logic: compute by
+            # TODO: rounds_count only if external schema does't exists (else get it from additional class parameters,
+            # TODO: UEFA is good example of that situation)
+
+            # QUALIFICATION FINAL
             qteamsI = teams[pteamsI:]
-            # TODO: to support self.q_rounds > 1, need recompute qpairs and qteamsI with special logic
-
-            # RUN QUALIFICATION ROUNDS
-            if print_matches and self.q_rounds:
-                print "Qualification"
-            for q_round in range(self.q_rounds):
-                round_name = q_round + 1
-                # if print_matches:
-                #     print "qualRound %s for %s teams (%s qpairs)" % (round_name, len(teams), qpairs)
-                loosers = cupRound(qteamsI, round_name, self.pair_mode, print_matches)
-
-                # UPDATE RESULTS
-                self.results.append(loosers)
-
-                # if print_matches:
-                #     for stage, result in enumerate(self.results):
-                #         print "results (loosers) of stage %s len of %s : %s" % (stage, len(self.results[stage]), [team.getName() for team in self.results[stage]])
-
+            for q_round in range(1, self.q_rounds + 1):
+                # print "len(teams) = %s", len(teams)
+                # print "q_round", q_round
+                self.results, loosers = RunRoundAndUpdate(q_round, self.pair_mode, self.results, qteamsI)
                 # UPDATE LIST OF REMAINING TEAMS
                 for looser in loosers:
                     teams.remove(looser)
+                    qteamsI.remove(looser)
 
 
-            # RUN PLAY-OFF ROUNDS
-            if print_matches:
-                print "Play-off"
-            for p_round in range(self.q_rounds, self.p_rounds + self.q_rounds):
-                # if print_matches:
-                #     print "p_round %s for %s teams" % (p_round, len(teams))
-                #     # print "p_round", p_round
-                #     print len(teams), "remaining teams %s" % [team.getName() for team in teams]
-                if p_round == self.p_rounds :
-                    # if print_matches:
-                    #     print "final round!"
-                    if self.pair_mode == 1:
-                        # if print_matches:
-                        #     print "switch pair_mode from 1 to 0 so it will be only one final match!"
-                        self.pair_mode = 0
-
-                p_roundN = p_round + 1
-                # TODO replace q_round and p_round to unified "ROUND", lastly I should compute words like "final, 1/4.. from it and add it to results
-                round_name = p_roundN
-                loosers = cupRound(teams, round_name, self.pair_mode, print_matches)
-
-                # UPDATE RESULTS
-                self.results.append(loosers)
-
-                # # print result for LAST round
-                # if print_matches:
-                #     print "results (loosers) of stage %s len of %s : %s" % (round_name, len(self.results[p_round]), [team.getName() for team in self.results[-1]])
-
-                # UPDATE LIST OF REMAINING TEAMS
+            # PLAY-OFF
+            for round in range(self.q_rounds + 1, all_rounds):
+                # print "len(teams) = %s", len(teams)
+                # round_name = round_names[round]
+                self.results, loosers = RunRoundAndUpdate(round, self.pair_mode, self.results, teams)
                 for looser in loosers:
                     teams.remove(looser)
+
+            # FINAL
+            #     print "final round!"
+            # print "len(teams) = %s", len(teams)
+            if self.pair_mode == 1:
+                # if print_matches:
+                #     print "switch pair_mode from 1 to 0 so it will be only one final match!"
+                pairmode = 0 # ONE MATCH FOR FINAL
+            else:
+                pairmode = self.pair_mode
+            # round_name = round_names[all_rounds]
+            self.results, loosers = RunRoundAndUpdate(all_rounds, pairmode, self.results, teams)
+            for looser in loosers:
+                teams.remove(looser)
+
+
+            # else:
+            #     self.results, teams = RunRoundAndUpdate(all_rounds + 1, self.pair_mode, self.results, teams)
 
             assert len(teams) == 1, "Cup ends with more than one winner!"
             self.winner = teams.pop()
@@ -413,6 +428,9 @@ class Cup(League):
         #     for stage, result in enumerate(self.results):
         #         print "results (loosers) of stage %s len of %s : %s" % (stage, len(self.results[stage]), [team.getName() for team in self.results[stage]])
         return self.winner
+
+    def getRoundNames(self):
+        return self.round_names
 
     def getWinner(self):
         return self.winner
@@ -427,6 +445,11 @@ class Cup(League):
         # print_matches = False
         self.run(print_matches)
         print "\nWinner:\n%s" % self.getWinner()
+        # print "\nresults:\n%s" % [(k, [team.getName() for team in self.results[k]] ) for k in self.results.keys()]
+        print "\nresults:"
+        for k in self.results.keys():
+            # TODO sort results ny round (maybe store them in list)
+            print k, [team.getName() for team in self.results[k]]
         print "\nFinal Net:\n", self, "\n"
 
         # ratings after league
