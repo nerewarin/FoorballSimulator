@@ -200,7 +200,7 @@ class Cup(League):
     def getNet(self):
         raise NotImplementedError
 
-    def rounds_count(self,teams_num):
+    def rounds_count(self, teams_num):
         """
          define rounds count
         """
@@ -223,6 +223,30 @@ class Cup(League):
         if rem_tn != 1.0:
             q_rounds += 1
         return p_rounds, q_rounds
+
+    def roundNames(self, p_rounds, q_rounds):
+        """
+        generate round names to store and print
+        (convert last round to final, last-1 to semifinal, etc.)
+        :param p_rounds: number playoff rounds                  #!# starts from round 1
+        :param q_rounds: numbers of qualification rounds        #!# starts from round 1
+        :return:
+        """
+        rounds = p_rounds + q_rounds
+        names = {}
+        # print "we have %s rounds in Cup %s (%s in qualification, %s in playoff" % (rounds, self.getName(), q_rounds, p_rounds)
+
+        names[rounds] = "Final"
+        names[rounds-1] = "Semi-Final"
+
+        for round in range(q_rounds + 1, rounds-1):
+            names[round] = "1/%s-Final" % (2**(rounds-round))
+
+        names[q_rounds] = "Qualification Final"
+        for round in range(1, q_rounds):
+            names[round] = "Qualification round %s" % round
+
+        return names
 
     def run(self, print_matches = False):
         """
@@ -313,6 +337,10 @@ class Cup(League):
             print "%s. need more teams to run cup" % teams_num
             raise AttributeError
         else:
+            # convert number of round to round name (1/4, semi-final, etc.)
+            round_names = self.roundNames(self.p_rounds, self.q_rounds)
+            all_rounds = self.p_rounds + self.q_rounds
+
             pteamsI, qpairs = PQplaces(self.p_rounds, self.q_rounds)
             # print "%s. pteam_num % s, pteams %s, qpairs %s, qteams %s" % ( teams_num, pteam_num, pteams, qpairs, qteams)
 
@@ -502,5 +530,5 @@ if __name__ == "__main__":
             Cup("testCup", "2015/2016", teams, coefs, pair_mode).test()
             # Cup("testCup", "2015/2016", teams, coefs, pair_mode).run()
 
-    Test("League", "Cup", team_num = 20)
-    # Test("Cup", team_num = 20)
+    # Test("League", "Cup", team_num = 20)
+    Test("Cup", team_num = 20)
