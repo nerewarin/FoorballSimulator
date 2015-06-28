@@ -325,6 +325,8 @@ class Cup(League):
             # TODO: to support self.q_rounds > 1, need recompute qpairs and qteamsI with special logic
 
             # RUN QUALIFICATION ROUNDS
+            if print_matches and self.q_rounds:
+                print "Qualification"
             for q_round in range(self.q_rounds):
                 round_name = q_round + 1
                 # if print_matches:
@@ -346,7 +348,7 @@ class Cup(League):
             # RUN PLAY-OFF ROUNDS
             if print_matches:
                 print "Play-off"
-            for p_round in range(self.p_rounds):
+            for p_round in range(self.q_rounds, self.p_rounds + self.q_rounds):
                 # if print_matches:
                 #     print "p_round %s for %s teams" % (p_round, len(teams))
                 #     # print "p_round", p_round
@@ -367,9 +369,9 @@ class Cup(League):
                 # UPDATE RESULTS
                 self.results.append(loosers)
 
-                # print result for LAST round
-                if print_matches:
-                    print "results (loosers) of stage %s len of %s : %s" % (p_round, len(self.results[p_round]), [team.getName() for team in self.results[-1]])
+                # # print result for LAST round
+                # if print_matches:
+                #     print "results (loosers) of stage %s len of %s : %s" % (round_name, len(self.results[p_round]), [team.getName() for team in self.results[-1]])
 
                 # UPDATE LIST OF REMAINING TEAMS
                 for looser in loosers:
@@ -384,7 +386,8 @@ class Cup(League):
         #         print "results (loosers) of stage %s len of %s : %s" % (stage, len(self.results[stage]), [team.getName() for team in self.results[stage]])
         return self.winner
 
-
+    def getWinner(self):
+        return self.winner
 
     def test(self, print_ratings = False):
         print "\nTEST CUP CLASS\n"
@@ -395,6 +398,7 @@ class Cup(League):
         print_matches = True
         # print_matches = False
         self.run(print_matches)
+        print "\nWinner:\n%s" % self.getWinner()
         print "\nFinal Net:\n", self, "\n"
 
         # ratings after league
@@ -487,6 +491,7 @@ if __name__ == "__main__":
         # # TEST LEAGUE CLASS
         if "League" in args:
             League("testLeague", "2015/2016", teams, coefs).test()
+            # League("testLeague", "2015/2016", teams, coefs).run()
 
 
         # TEST CUP CLASS
@@ -497,5 +502,5 @@ if __name__ == "__main__":
             Cup("testCup", "2015/2016", teams, coefs, pair_mode).test()
             # Cup("testCup", "2015/2016", teams, coefs, pair_mode).run()
 
-    # Test("League", "Cup", team_num = 20)
-    Test("Cup", team_num = 20)
+    Test("League", "Cup", team_num = 20)
+    # Test("Cup", team_num = 20)

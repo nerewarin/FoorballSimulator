@@ -110,7 +110,7 @@ class Match(object):
             if guestScore < 0:
                 guestScore = 0
 
-            self.result = (homeScore, guestScore)
+            self.result = [homeScore, guestScore]
 
             if self.playoff and homeScore == guestScore:
                 self.result[self.penalty_sequence()] += 1
