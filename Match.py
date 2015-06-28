@@ -66,7 +66,8 @@ class Match(object):
 
     def __str__(self):
         return "%s. %s %s %s" % \
-               (self.name, self.homeName, str(self.result[0])+ ":" + str(self.result[1]) ,self.guestName)
+               (self.name, self.homeName, str(self.getResult()).replace(",", ":") ,self.guestName)
+               # (self.name, self.homeName, str(self.result[0])+ ":" + str(self.result[1]) ,self.guestName)
 
     def getName(self):
         return self.name
@@ -184,6 +185,13 @@ class Match(object):
         # return self.winner
         return self.members[self.outcome]
 
+    def getResult(self):
+        """
+
+        :return: tuple match result for Match, tuple DoubleMatch result for DoubleMatch
+        """
+        return tuple(self.result)
+
     def getLooser(self):
         """
         return index of team in pair who had loosed. if Draw, returns self.result_format[2]
@@ -246,35 +254,22 @@ class DoubleMatch(Match):
         """
 
         super(DoubleMatch, self).__init__(members, deltaCoefs, name, playoff, result_format, mode)
-        # self.name = name
         self.playoff = playoff
-        # self.deltaCoefs = deltaCoefs
-        # self.result_format = result_format
-        #
-        # self.home  = members[0]
-        # self.guest = members[1]
-        #
-        # self.homeName   = self.home.getName()
-        # self.homeRating = self.home.getRating()
-        #
-        # self.guestName   = self.guest.getName()
-        # self.guestRating = self.guest.getRating()
-        # # print self.homeName, self.guestName
-        #
-        # if self.homeRating >= self.guestRating:
-        #     # mode index multiplier for searching in self.deltaCoefs
-        #     self.mim = 0 # "Favorite" #(Home)
-        # else:
-        #     # self.mode = "Outsider" #(Home)
-        #     self.mim = 1 #"Outsider" #(Home)
-
         self.result = ("not played",)#, ("not played",)
         self.matches_results = ("not played","not played"), ("not played","not played")
 
     def __str__(self):
+        cast_m2 = True
         return "%s. %s %s %s" % \
-               (self.name, self.homeName, str(self.result[0][0])+ ":" + str(self.result[0][1]) ,self.guestName)
-
+                     (self.name,
+                      self.homeName,
+                      str(self.getResult())[1:-1].replace(",", ":").replace(" ", "")
+                      # + " (" + str(self.getFirstMatchResult()[1:-1])
+                      + " (" + str(self.getFirstMatchResult())[1:-1].replace(",", ":").replace(" ", "") + ", "
+                      + str(self.getSecondMatchResult(cast_m2))[1:-1].replace(",", ":").replace(" ", "") + ")"
+                     ,self.guestName)
+               # (self.name, self.homeName, str(self.result[0][0])+ ":" + str(self.result[0][1]) ,self.guestName)
+               #  (self.name, self.homeName, str(self.getResult()).replace(",", ":") ,self.guestName)
     def run(self, update = True):
         # first digit - team1 goals, second - team2 goals
         # 1 - team1 , 2 - team2
@@ -343,9 +338,10 @@ class DoubleMatch(Match):
         self.result = pair_score #match1_score, match2_score
         self.matches_results = match1_score, match2_score
         # for getWinner
-        casted_match2 = [match2_score[1], match2_score[0]]
+        self.casted_match2 = [match2_score[1], match2_score[0]]
         # return self.result, match1_score, casted_match2
         return self.result#, match1_score, casted_match2
+
 
     def getMatchesResults(self):
         """
@@ -355,10 +351,22 @@ class DoubleMatch(Match):
         return self.matches_results
 
     def getFirstMatchResult(self):
-        return self.matches_results[0]
+        return tuple(self.matches_results[0])
 
-    def getSecondMatchResult(self):
-        return self.matches_results[1]
+    def getSecondMatchResult(self, casted = False):
+        """
+         put in casted = True for nice printing format (team1:team2, team1:team2)
+         if casted = False, home-guest match results will be like (team1:team2, team2:team1)
+        :param casted:
+        :return:
+        """
+        if casted:
+            return tuple(self.casted_match2)
+        return tuple(self.matches_results[1])
+
+    def saveData(self):
+        # TODO save data do DB (or prepare it for future save by __str__ method)
+        raise NotImplementedError
 
 # TEST
 if __name__ == "__main__":
@@ -398,7 +406,11 @@ if __name__ == "__main__":
                 #     winner = pair[testMatch.getWinner()]
                 # except:
                 #     winner = "Draw"
-                print testMatch, "winner = %s" % winner,"| updated ratings", team1.getRating(), team2.getRating()
+                # print testMatch, "winner = %s" % winner,"| updated ratings", team1.getRating(), team2.getRating()
+                print testMatch#, "winner = %s" % winner,"| updated ratings", team1.getRating(), team2.getRating()
+                    # print "%s: %s : %s, outcome = %s, pair_score %s m1 %s m2 %s" % \
+                    #       (test_DoubleMatch1.getName(), pair[0], pair[1], test_DoubleMatch1.getOutcome(), pair_result,
+                    #        test_DoubleMatch1.getFirstMatchResult(), test_DoubleMatch1.getSecondMatchResult())
 
                 # results[testMatch.getWinner()] += 1
                 # print "updated ratings", team1.getRating(), team2.getRating()
@@ -406,18 +418,22 @@ if __name__ == "__main__":
         if "DoubleMatch" in args:
             print "\nTEST DoubleMatch CLASS\n"
             for playoff in (True, False):
-                print
+                print ("playoff = %s") % playoff
                 for i in range(itearations):
                     # playoff = False # ERROR WILL BE RISEN cause DoubleMatch made only for playoff stages!
                     # playoff = True
 
                     pair = (team1, team2)
-                    test_DoubleMatch1 = DoubleMatch(pair, coefs, "testDoubleMatch_%s(playoff=%s)" % (2*i+1, playoff),playoff)
+                    test_DoubleMatch1 = DoubleMatch(pair, coefs, "testDoubleMatch_%s" % (2*i+1), playoff)
                     pair_result = test_DoubleMatch1.run()
                     # print "test_DoubleMatch%s: pair_score %s m1 %s m2 %s" % (i, result[0], result[1], result[2])
-                    print "%s: %s : %s, outcome = %s, pair_score %s m1 %s m2 %s" % \
-                          (test_DoubleMatch1.getName(), pair[0], pair[1], test_DoubleMatch1.getOutcome(), pair_result,
-                           test_DoubleMatch1.getFirstMatchResult(), test_DoubleMatch1.getSecondMatchResult())
+
+                    print test_DoubleMatch1
+                    # return "%s. %s %s %s" % \
+                    # (self.name, self.homeName, str(self.getResult()).replace(",", ":") ,self.guestName)
+                    # print "%s: %s : %s, outcome = %s, pair_score %s m1 %s m2 %s" % \
+                    #       (test_DoubleMatch1.getName(), pair[0], pair[1], test_DoubleMatch1.getOutcome(), pair_result,
+                    #        test_DoubleMatch1.getFirstMatchResult(), test_DoubleMatch1.getSecondMatchResult())
 
 
     ITERATIONS = 100000
