@@ -247,7 +247,9 @@ class Cup(League):
         # round 4 (qual 1)            8 9       4 13   5 12             7 10      3 14   6 11
         # // number = index in members + 1
 
+        # TODO save PQplaces in table for Cup-name. if not exists, compute it
 
+        # TODO save rounds name from rounds num for every Cup-name.
 
         def PQplaces(p_rounds, q_rounds):
             """
@@ -267,7 +269,7 @@ class Cup(League):
             qteams = qpairs * 2
             return pteamsI, qpairs
 
-        def cupRound(teams, roundN, pair_mode):
+        def cupRound(_teams_, roundN, pair_mode):
             # TODO if pair_mode -> Double Match, else one Matchs
             # TODO playoff or not to params
             """
@@ -275,72 +277,82 @@ class Cup(League):
 
             """
             # rem_teams = list(teams)
+            teams = list(_teams_)
             loosers = []
             # print "teams %s len of %s, qpairs %s" % (teams, len(teams), qpairs)
              # it may be match or doublematch, so struggle is a common name for it
             struggles = len(teams)/2
             matches = struggles * (pair_mode + 1)
 
+            # cause its Cup!
+            playoff = True
+
             if pair_mode: # Two Matches in struggle
-                for struggleN in range(struggles):
-                    # team1, team2 = teams.pop(0, -1)
-                    team1 = teams.pop(0) # favorite
-                    team2 = teams.pop() # outsider
-                    pair = (team1, team2)
-                    # print "%s :  %s" % (team1, team2)
-                    # print "team1 = %s : team2 = %s" % (team1, team2)
-                    match_name = "%s %s. round %s. struggle %s. "  \
-                                    % (self.getName(), self.season, roundN, struggleN)
-                    playoff = True
-                    struggle = M.DoubleMatch(pair, self.delta_coefs, match_name, playoff).run()
-                    # looser = pair[(pair_winner + 1) % 2]
-                    # self.results.append({roundN:pair[(pair_winner + 1) % 2]})
-                    loosers.append(looser)
-                    # TODO ALL CODE BELOW MUST GO AWAY! REFACTOR TO ABOVE!!!
-                    # TODO else.. (if not pair_mode)
-
-                # DOUBLE MATCH (home - guest)
-                # ablosute scores
-                # match1 = M.Match((team1, team2), self.delta_coefs, "%s %s. round %s. tour %s. match %s"  \
-                #                     % (self.getName(), self.season, "Qualification", roundN, struggleN))
-                match1_score = list(M.Match((team1, team2), self.delta_coefs, "tstcupmatch").run())
-                # common pair score # TODO delete logic, add onle match2_score =.. , pair score = ...
-                if pair_mode:
-                    match2_score = list(M.Match((team2, team1), self.delta_coefs, "tstcupmatch").run())
-                    pair_score =  [match1_score[0] + match2_score[1],  match1_score[1] + match2_score[0]]
-                else:
-                    pair_score = match1_score
-                # # not graphically
-                # # print match1_score, match2_score, pair_score
-                # # better way to print result is:
-                # print "match %s" % struggleN, match1_score, [match2_score[1], match2_score[0]], pair_score, team1, team2
-
-                if pair_score[0] > pair_score[1]:
-                    pair_winner = 0 # TODO replace as in match.getWinner(): result_format = {"Win" : 0, "Lose" : 1, "Draw" : 2})
-                elif pair_score[0] < pair_score[1]:
-                    pair_winner = 1
-                else: # sum of goals is equal
-                    if pair_mode:
-                        # rule of guest goal
-                        if match2_score[1] > match1_score[1]: # first team wins guest goal rule
-                            pair_winner = 0
-                        elif match2_score[1] < match1_score[1]:
-                            pair_winner = 1
-                        else:
-                            # penalty sequence
-                            pair_winner, match2_score, pair_score = penalty_sequence(match2_score, pair_score)
-                    else:
-                        # penalty sequence
-                        pair_winner, match1_score, pair_score = penalty_sequence(match1_score, pair_score)
-
-
-
-                # TODO update results
-                # print "pair_winner", pair_winner, '=', pair[pair_winner]
-                # rem_teams.remove()
-                looser = pair[(pair_winner + 1) % 2]
+                classname = M.DoubleMatch
+            else:
+                classname = M.Match
+            for struggleN in range(struggles):
+                # team1, team2 = teams.pop(0, -1)
+                team1 = teams.pop(0) # favorite
+                team2 = teams.pop() # outsider
+                pair = (team1, team2)
+                # print "%s :  %s" % (team1, team2)
+                # print "team1 = %s : team2 = %s" % (team1, team2)
+                match_name = "%s %s. round %s. struggle %s. "  \
+                                % (self.getName(), self.season, roundN, struggleN)
+                struggle = classname(pair, self.delta_coefs, match_name, playoff)
+                result = struggle.run()
+                # looser_ind = struggle.getLooser()
+                # looser = pair[looser_ind]
+                looser = struggle.getLooser()
+                # looser = pair[(pair_winner + 1) % 2]
                 # self.results.append({roundN:pair[(pair_winner + 1) % 2]})
                 loosers.append(looser)
+                # TODO ALL CODE BELOW MUST GO AWAY! REFACTOR TO ABOVE!!!
+                # TODO else.. (if not pair_mode)
+
+                # # DOUBLE MATCH (home - guest)
+                # # ablosute scores
+                # # match1 = M.Match((team1, team2), self.delta_coefs, "%s %s. round %s. tour %s. match %s"  \
+                # #                     % (self.getName(), self.season, "Qualification", roundN, struggleN))
+                # match1_score = list(M.Match((team1, team2), self.delta_coefs, "tstcupmatch").run())
+                # # common pair score # TODO delete logic, add onle match2_score =.. , pair score = ...
+                # if pair_mode:
+                #     match2_score = list(M.Match((team2, team1), self.delta_coefs, "tstcupmatch").run())
+                #     pair_score =  [match1_score[0] + match2_score[1],  match1_score[1] + match2_score[0]]
+                # else:
+                #     pair_score = match1_score
+                # # # not graphically
+                # # # print match1_score, match2_score, pair_score
+                # # # better way to print result is:
+                # # print "match %s" % struggleN, match1_score, [match2_score[1], match2_score[0]], pair_score, team1, team2
+                #
+                # if pair_score[0] > pair_score[1]:
+                #     pair_winner = 0 # TODO replace as in match.getWinner(): result_format = {"Win" : 0, "Lose" : 1, "Draw" : 2})
+                # elif pair_score[0] < pair_score[1]:
+                #     pair_winner = 1
+                # else: # sum of goals is equal
+                #     if pair_mode:
+                #         # rule of guest goal
+                #         if match2_score[1] > match1_score[1]: # first team wins guest goal rule
+                #             pair_winner = 0
+                #         elif match2_score[1] < match1_score[1]:
+                #             pair_winner = 1
+                #         else:
+                #             # penalty sequence
+                #             pair_winner, match2_score, pair_score = penalty_sequence(match2_score, pair_score)
+                #     else:
+                #         # penalty sequence
+                #         pair_winner, match1_score, pair_score = penalty_sequence(match1_score, pair_score)
+                #
+                #
+                #
+                # # TODO update results
+                # # print "pair_winner", pair_winner, '=', pair[pair_winner]
+                # # rem_teams.remove()
+                # looser = pair[(pair_winner + 1) % 2]
+                # # self.results.append({roundN:pair[(pair_winner + 1) % 2]})
+                # loosers.append(looser)
             print "%s struggles (%s matches) were played" % (struggles, matches)
 
             def print_winners():
@@ -391,11 +403,16 @@ class Cup(League):
 
                 # UPDATE RESULTS
                 # print "self.results", self.results
-                self.results.insert(0, loosers)
+                # self.results.insert(0, loosers)
+                self.results.append(loosers)
+
+                for stage, result in enumerate(self.results):
+                    # print "%s %s : %s" % ("results (loosers) of stage", stage, [team.getName() for team in self.results[stage]])
+                    print "results (loosers) of stage %s len of %s : %s" % (stage, len(self.results[stage]), [team.getName() for team in self.results[stage]])
                 # print "self.results", self.results
 
-                for round in self.results:
-                    print [team.getName() for team in round]
+                # for round in self.results:
+                #     print [team.getName() for team in round]
 
                 # UPDATE LIST OF REMAINING TEAMS
                 for looser in loosers:
@@ -403,10 +420,11 @@ class Cup(League):
 
 
             # RUN PLAY-OFF ROUNDS
-
+            print "Play-off"
             for p_round in range(self.p_rounds):
-                print "p_round", p_round
-                print len(teams), teams
+                print "p_round %s for %s teams" % (p_round, len(teams))
+                # print "p_round", p_round
+                print len(teams), "remaining teams %s" % [team.getName() for team in teams]
                 if p_round == self.p_rounds :
                     print "final round!"
                     if self.pair_mode == 1:
@@ -414,11 +432,28 @@ class Cup(League):
                         self.pair_mode = 0
 
                 p_roundN = p_round + 1
-                # TODO replace q_round and p_round to unified "ROUND", lastly I should compute words like "final, 1/4.. from it
+                # TODO replace q_round and p_round to unified "ROUND", lastly I should compute words like "final, 1/4.. from it and add it to results
                 round_name = p_roundN
                 loosers = cupRound(teams, round_name, self.pair_mode)
 
-                #
+                # UPDATE RESULTS
+                # print "self.results", self.results
+                # self.results.insert(0, loosers)
+                self.results.append(loosers)
+                for stage, result in enumerate(self.results):
+                    print "results (loosers) of stage %s len of %s : %s" % (stage, len(self.results[stage]), [team.getName() for team in self.results[stage]])
+                # print "self.results", self.results
+
+                # for round in self.results:
+                #     print [team.getName() for team in round]
+
+                # UPDATE LIST OF REMAINING TEAMS
+                for looser in loosers:
+                    teams.remove(looser)
+                print len(teams), "remaining teams after round %s" % [team.getName() for team in teams]
+
+            assert len(teams) == 1, "Cup ends with more than one winner!"
+            self.winner = teams.pop()
                 # # UPDATE RESULTS
                 # # print "self.results", self.results
                 # self.results.insert(0, loosers)
@@ -436,7 +471,7 @@ class Cup(League):
 
         # while rem_teams:
         #     # TODO create match, update results
-        return None
+        return self.winner
 
     def test(self, print_ratings = False):
         print "\nTEST CUP CLASS\n"

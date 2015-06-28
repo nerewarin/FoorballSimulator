@@ -173,24 +173,28 @@ class Match(object):
         """
         return index of team in pair who had won. if Draw, returns self.result_format[2]
         """
+
         # return self.winner
-        warnings.warn("getWinner Depricated!!! Use gewOutcome to get value of self.result_format[winner]")
-        if self.winner == self.result_format[2]:
-            warnings.warn("Call getWinner but return Tie")
-            # raise FutureWarning, "Call getWinner but return Tie"
-        # return self.members[self.winner]
-        return self.winner
+        if not self.playoff: # Draw allows!
+            warnings.warn("getWinner Depricated!!! Use gewOutcome to get value of self.result_format[winner]")
+            if self.outcome == self.result_format[2]:
+                warnings.warn("Call getWinner but return Tie")
+                # raise FutureWarning, "Call getWinner but return Tie"
+            # return self.members[self.winner]
+        # return self.winner
+        return self.members[self.outcome]
 
     def getLooser(self):
         """
         return index of team in pair who had loosed. if Draw, returns self.result_format[2]
         """
-        warnings.warn("getLooser Depricated!!! Use gewOutcome to get value of self.result_format[winner]")
-        if self.winner == self.result_format[2]:
-            warnings.warn("Call getLooser but return Tie")
+        if not self.playoff: # Draw allows!
+            warnings.warn("getLooser Depricated!!! Use gewOutcome to get value of self.result_format[winner]")
+            if self.outcome == self.result_format[2]:
+                warnings.warn("Call getLooser but return Tie")
         # return self.members[self.looser]
-        return self.looser
         # return self.looser
+        return self.members[(self.outcome + 1) %2]
 
     def getOutcome(self):
         """
@@ -401,16 +405,19 @@ if __name__ == "__main__":
 
         if "DoubleMatch" in args:
             print "\nTEST DoubleMatch CLASS\n"
-            for i in range(itearations):
-                playoff = False # ERROR WILL BE RISEN cause DoubleMatch made only for playoff stages!
-                # playoff = True
-                pair = (team1, team2)
-                test_DoubleMatch1 = DoubleMatch(pair, coefs, "testDoubleMatch_%s(playoff=%s)" % (2*i+1, playoff),playoff)
-                pair_result = test_DoubleMatch1.run()
-                # print "test_DoubleMatch%s: pair_score %s m1 %s m2 %s" % (i, result[0], result[1], result[2])
-                print "%s: %s : %s, outcome = %s, pair_score %s m1 %s m2 %s" % \
-                      (test_DoubleMatch1.getName(), pair[0], pair[1], test_DoubleMatch1.getOutcome(), pair_result,
-                       test_DoubleMatch1.getFirstMatchResult(), test_DoubleMatch1.getSecondMatchResult())
+            for playoff in (True, False):
+                print
+                for i in range(itearations):
+                    # playoff = False # ERROR WILL BE RISEN cause DoubleMatch made only for playoff stages!
+                    # playoff = True
+
+                    pair = (team1, team2)
+                    test_DoubleMatch1 = DoubleMatch(pair, coefs, "testDoubleMatch_%s(playoff=%s)" % (2*i+1, playoff),playoff)
+                    pair_result = test_DoubleMatch1.run()
+                    # print "test_DoubleMatch%s: pair_score %s m1 %s m2 %s" % (i, result[0], result[1], result[2])
+                    print "%s: %s : %s, outcome = %s, pair_score %s m1 %s m2 %s" % \
+                          (test_DoubleMatch1.getName(), pair[0], pair[1], test_DoubleMatch1.getOutcome(), pair_result,
+                           test_DoubleMatch1.getFirstMatchResult(), test_DoubleMatch1.getSecondMatchResult())
 
 
     ITERATIONS = 100000
