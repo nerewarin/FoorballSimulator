@@ -14,7 +14,7 @@ import xlrd # read Excel xls
 import psycopg2 as db
 import django
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-import os, operator, sys, time
+import os, operator, sys, time, warnings
 
 # CREATE EXCEL TABLE
 def createExcelTable(filename, teamsL):
@@ -125,14 +125,14 @@ def createDB(teamsL, storage = "Postgre"):
         # PRINT EXISTING TABLES
         trySQLquery(cur.execute, """SELECT table_name FROM information_schema.tables
                 WHERE table_schema = 'public'""")
-        print "tables of DB ", cur.fetchall()
+        print "tables of DB ", [tabletuple[0] for tabletuple in cur.fetchall()]
 
 
         # COUNTRIES COUNTER DICT
         countries = util.Counter()
         for team in teamsL:
             countries[team.getCountry()] +=1
-        print "countries", countries
+        print "countries:teams_num", countries
 
         # when sorted, we can define country_ID for team with maximum teams
         sorted_countries = sorted(countries.items(), key=operator.itemgetter(1), reverse=True)
@@ -143,35 +143,61 @@ def createDB(teamsL, storage = "Postgre"):
         # CREATE TABLE TeamInfo
         table_name = "TeamInfo"
          # print "isTeamInfo exists()?", exists(cur, "TeamInfo", dbname, schema)
-        recreating = True
+        recreating = False
+        # recreating = True
+        print
         # create table if it doesn't exists or need recreating
-        if not tableExists(cur, table_name) or recreating:
-            # print "%s exists but I think, its not complete, so recreating" % table_name
-            print "%s recreating" % table_name
-            # DROP AND RECREATE
-            # trySQLquery(cur, 'DROP TABLE RL_TeamCountries')
-            # query = 'DROP TABLE TeamInfo'
-            trySQLquery(cur.execute, 'DROP TABLE %s' % table_name)
-            # trySQLquery(cur, 'DROP TABLE Countries')
 
+        if not tableExists(cur, table_name):
+            print "%s\" not exists, creating" % table_name
+            createTable_TeamInfo(cur, con, table_name, team_count, countries, teamsL)
+
+        elif recreating:
+            print "%s recreating" % table_name
+            trySQLquery(cur.execute, 'DROP TABLE %s' % table_name)
             createTable_TeamInfo(cur, con, table_name, team_count, countries, teamsL)
         else:
             print "%s is already exists" % table_name
 
 
         # CREATE TABLE TeamCountries
-        # isTeamCountry = False
-        # isTeamCountry = True
         table_name = "Countries"
+        recreating = True
+        recreating = False
+        print
         if not tableExists(cur, table_name):
-            print "%s exists but I think, its not complete, so recreating" % table_name
+            print "%s\" not exists, creating" % table_name
+            createTable_Countries(cur, con, table_name, team_count, sorted_countries)
+        elif recreating:
+            print "%s exists but recreating enabled" % table_name
             # # DROP AND RECREATE
-            # cur.execute('DROP TABLE Countries')
             trySQLquery(cur.execute, 'DROP TABLE %s' % table_name)
-            # print "DROP table Countries ok"
+            con.commit()
+            print "DROP table Countries ok"
             createTable_Countries(cur, con, table_name, team_count, sorted_countries)
         else:
             print "%s is already exists" % table_name
+
+        # CREATE TABLE Tournaments
+        table_name = "Tournaments"
+        recreating = True
+        print
+        if not tableExists(cur, table_name) or recreating:
+            if recreating:
+                print "%s exists but recreating enabled" % table_name
+            else:
+                print "%s\" not exists, creating" % table_name
+            tournament_ID = "ID"
+            tournament_name = "name"
+            tournament_type = "type"
+            tournament_country = "country"
+            tournament_teams_count = "teams_count"
+            createTable_Tournaments(cur, con, recreating, table_name, tournament_ID, tournament_name, tournament_type, tournament_country, tournament_teams_count, sorted_countries)
+            # column_names = ["ID", "name", "type", "country"]
+            # createTable_Tournaments(cur, con, recreating, table_name, column_names)
+        else:
+            print "\n%s is already exists" % table_name
+
 
         # # CREATE TABLE RL_TeamCountries (relation between TeamInfo and Countries)
         # isTeamCountry = True # NO CREATING
@@ -182,6 +208,8 @@ def createDB(teamsL, storage = "Postgre"):
         #     createTable_RL_TeamCountries(cur, con, team_count, countries)
         # else:
         #     print "%s is already exists" % table_name
+
+
 
         # close connection to DB
         if con:
@@ -214,7 +242,15 @@ def trySQLquery(func, query, data = None):
     except db.DatabaseError, e:
         print e.pgerror.decode('utf8')
         sys.exit(1)
-
+#
+# def saveData(table, data):
+#     query =  "INSERT INTO %s (team_ID, team_Name, team_RuName, countryID) VALUES (%s, %s, %s, %s);"
+#     data = (table, teamID, teamName, teamRuName, data)
+#     # # data = (teamID, unicode_to_str(teamName), unicode_to_str(teamRuName), country_ID)
+#     # print "insert data", data, "to table TeamInfo"
+#     # trySQLquery(cur.execute, query, data)
+#     # trySQLquery( query =  "INSERT INTO TeamInfo (team_ID, team_Name, team_RuName, countryID) VALUES (%s, %s, %s, %s);"
+#     #         data = (teamID, teamName, teamRuName, country_ID))
 
 def createTable_TeamInfo(cur, con, table_name, team_count, sorted_countries, teamsL):
     try:
@@ -258,49 +294,110 @@ def createTable_Countries(cur, con, table_name, team_count, sorted_countries):
                     teams_count INTEGER\
                     )' % table_name)
         print "create table Countries ok"
+        con.commit()
 
         # INSERT TO TABLE Countries
         for ind, (country, teams_count) in enumerate(sorted_countries):
-            query =  "INSERT INTO %s (country_ID, country_name, teams_count) VALUES (%s, %s, %s);"
-            data = (table_name, ind+1, country, teams_count)
-            print "insert data", data, "to table Countries"
-            cur.execute(query, data)
-
+            # query =  "INSERT INTO %s (country_ID, country_name, teams_count) VALUES (%s, %s, %s);" % ("Countries", ind+1, country, teams_count)
+            query =  "INSERT INTO %s (country_ID, country_name, teams_count) VALUES ('%s', '%s', '%s');" % (table_name, ind+1, country, teams_count)
+            # data = (table_name, ind+1, country, teams_count)
+            # print "insert data", data, "to table Countries"
+            cur.execute(query)
+        print "inserted %s rows to %s" % (len(sorted_countries), table_name)
         con.commit()
+
     except db.DatabaseError, e:
         print e.pgerror.decode('utf8')
         sys.exit(1)
 
 
 def createTable_RL_TeamCountries(cur, con, team_count, countries):
-    try:
-        # CREATE TABLES
-        cur.execute('CREATE TABLE RL_TeamCountries(\
-                    team_ID INTEGER references TeamInfo(team_ID),\
-                    country_ID INTEGER references Countries(country_ID))')
-        print "create table RL_TeamCountries ok"
+    raise NotImplementedError, "we do not need this table until team_name exists in team_info explicitly. We'll need \
+                                it if we want to have 1st-normalized-DB"
+    # try:
+    #     # CREATE TABLES
+    #     cur.execute('CREATE TABLE RL_TeamCountries(\
+    #                 team_ID INTEGER references TeamInfo(team_ID),\
+    #                 country_ID INTEGER references Countries(country_ID))')
+    #     print "create table RL_TeamCountries ok"
+    #
+    #
+    #     # INSERT TO TABLE RL_TeamCountries
+    #     for ind in range(team_count):
+    #         team = teamsL[ind]
+    #         team_ID = ind + 1 # it will works still teamInfo is unmutable
+    #         # country_ID = countries[team]
+    #         print "here is problem! but we dont need RL between teams and counties cause this info is now in TeamInfo"
+    #         country_ID = countries[team]
+    #         query =  "INSERT INTO RL_TeamCountries (team_ID, country_ID) VALUES (%s, %s);"
+    #         data = (team_ID, country_ID)
+    #
+    #     # for ind, (country, teams_count) in enumerate(sorted_countries):
+    #     #     query =  "INSERT INTO Countries (country_ID, country_name, teams_count) VALUES (%s, %s, %s);"
+    #     #     data = (ind+1, country, teams_count)
+    #     #     print "insert data", data, "to table Countries"
+    #     #     cur.execute(query, data)
+    #
+    #     con.commit()
+    # except db.DatabaseError, e:
+    #     print e.pgerror.decode('utf8')
+    #     sys.exit(1)
 
 
-        # INSERT TO TABLE RL_TeamCountries
-        for ind in range(team_count):
-            team = teamsL[ind]
-            team_ID = ind + 1 # it will works still teamInfo is unmutable
-            # country_ID = countries[team]
-            print "here is problem! but we dont need RL between teams and counties cause this info is now in TeamInfo"
-            country_ID = countries[team]
-            query =  "INSERT INTO RL_TeamCountries (team_ID, country_ID) VALUES (%s, %s);"
-            data = (team_ID, country_ID)
+def createTable_Tournaments(cur, con, recreating, table_name, tournament_ID, tournament_name, tournament_type, tournament_country, tournament_teams_num, sorted_countries):#team_count, sorted_countries, teamsL):
+# def createTable_Tournaments(cur, con, recreating, table_name, column_names):#team_count, sorted_countries, teamsL):
+    # trySQLquery(cur.execute,  'CREATE TABLE Tournaments
+    if recreating:
+        trySQLquery(cur.execute, 'DROP TABLE %s' % table_name)
+        print "table %s dropped" % table_name
+    query = 'CREATE TABLE %s(\
+                    %s INTEGER PRIMARY KEY,\
+                    %s VARCHAR(30),\
+                    %s VARCHAR(15),\
+                    %s VARCHAR(4), \
+                    %s INTEGER)' % (table_name, tournament_ID, tournament_name, tournament_type, tournament_country, tournament_teams_num)
+                    # %s VARCHAR(3))" % (table_name, column_names[0], column_names[1], column_names[2], column_names[3])
+    trySQLquery(cur.execute, query)
+    print "create table %s ok" % table_name
 
-        # for ind, (country, teams_count) in enumerate(sorted_countries):
-        #     query =  "INSERT INTO Countries (country_ID, country_name, teams_count) VALUES (%s, %s, %s);"
-        #     data = (ind+1, country, teams_count)
-        #     print "insert data", data, "to table Countries"
-        #     cur.execute(query, data)
+    # columns = (tournament_ID, tournament_name, tournament_type, tournament_country)
+    # INSERT TO TABLE Tournaments
+    def insert_tournament_to_DB_table(t_id, t_name, t_type, t_country, t_teams_num):
+        query =  "INSERT INTO %s (%s, %s, %s, %s, %s) VALUES ('%s', '%s', '%s', '%s', '%s');" % \
+                 (table_name,
+                  tournament_ID, tournament_name, tournament_type, tournament_country, tournament_teams_num,
+                  t_id, t_name, t_type, t_country, t_teams_num)
+        trySQLquery(cur.execute, query)
 
-        con.commit()
-    except db.DatabaseError, e:
-        print e.pgerror.decode('utf8')
-        sys.exit(1)
+    t_id = 0
+    t_name = "UEFA Champions League" # error was because of %s instead of '%s' in SQL-query
+    t_type = "League+Cup"
+    t_country = "UEFA" # international
+    # t_pteams = 32
+    t_teams_num = 77
+    insert_tournament_to_DB_table(t_id, t_name, t_type, t_country, t_teams_num)
+
+    t_id += 1
+    t_name = "UEFA Europa League" # error was because of %s instead of '%s' in SQL-query
+    t_teams_num = 195
+    insert_tournament_to_DB_table(t_id, t_name, t_type, t_country, t_teams_num)
+
+    def gen_national_tournaments(start_id, t_type):
+        t_id = int(start_id)
+        for ind, (t_country, teams_count) in enumerate(sorted_countries):
+            t_id += 1
+            t_name = t_country + " " + t_type
+            insert_tournament_to_DB_table(t_id, t_name, t_type, t_country, teams_count)
+        return t_id
+
+    t_id = gen_national_tournaments(t_id, "League")
+    t_id = gen_national_tournaments(t_id, "Cup")
+
+    print "inserted %s rows to %s" % (t_id+1, table_name)
+
+    con.commit()
+
+
 
 def TestStorage(storage, teamsL):
     if storage == "Excel":
@@ -318,20 +415,27 @@ def TestStorage(storage, teamsL):
         print "Unknown storage type", storage
         sys.exit(1)
 
+
 if __name__ == "__main__":
-    print "DataStoring Test"
-    # create teams list
-    teamsL = DataParsing.createTeamsFromHTML()
-    # DataParsing.printParsedTable(teamsL)
+    # @util.timer
+    def Test():
+        print "DataStoring Test"
+        # create teams list
+        teamsL = DataParsing.createTeamsFromHTML()
+        # DataParsing.printParsedTable(teamsL)
 
-    STORAGES = ["Postgre", "Excel"]
-    DELAY_TIME = 1.5 # sec
-    delays = 0
-    start_time = time.time()
-    for storage_type in STORAGES:
-        print "\nTest storage_type = %s" % storage_type
-        time.sleep(DELAY_TIME)
-        delays += DELAY_TIME
-        TestStorage(storage_type, teamsL)
+        # STORAGES = ["Postgre", "Excel"]
+        STORAGES = ["Postgre"]
+        # DELAY_TIME = 1.5 # sec
+        DELAY_TIME = 0
+        delays = 0
+        start_time = time.time()
+        for storage_type in STORAGES:
+            print "\nTest storage_type = %s" % storage_type
+            time.sleep(DELAY_TIME)
+            delays += DELAY_TIME
+            TestStorage(storage_type, teamsL)
 
-    print time.time() - start_time - delays
+        print time.time() - start_time - delays
+
+    Test()
