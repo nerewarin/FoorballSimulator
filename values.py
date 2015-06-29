@@ -184,6 +184,16 @@ class Coefficients():
         # нуждо создать условия для догоняющих, ятобы их рейтинг в среднем за игру с фаворитом - рос. они ведь учаться у крутых)
         return divs
 
+# class Tournament_Schemas():
+#     """
+#     define schemas of all types of tournaments:
+#     """
+#     def __init__(self):
+#         self.sch = {
+#             "UEFA_Euro_L" :
+#             "UEFA_Champ_L"
+#         }
+
 if __name__ == "__main__":
     print "Test Values (coefficients to compute ratings)"
     test_versions = ["v1.0", "v1.1"]

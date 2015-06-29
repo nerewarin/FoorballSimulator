@@ -371,7 +371,7 @@ def createTable_Tournaments(cur, con, recreating, table_name, tournament_ID, tou
 
     t_id = 0
     t_name = "UEFA Champions League" # error was because of %s instead of '%s' in SQL-query
-    t_type = "League+Cup"
+    t_type = "UEFA_Champ_L"
     t_country = "UEFA" # international
     # t_pteams = 32
     t_teams_num = 77
@@ -379,6 +379,7 @@ def createTable_Tournaments(cur, con, recreating, table_name, tournament_ID, tou
 
     t_id += 1
     t_name = "UEFA Europa League" # error was because of %s instead of '%s' in SQL-query
+    t_type = "UEFA_Euro_L"
     t_teams_num = 195
     insert_tournament_to_DB_table(t_id, t_name, t_type, t_country, t_teams_num)
 
