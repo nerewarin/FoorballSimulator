@@ -274,22 +274,22 @@ def createTable_TeamInfo(cur, con, table_name, team_count, sorted_countries, tea
             teamName = util.unicode_to_str(team.getName())
             teamRuName = team.getRuName()
             teamCountry = team.getCountry()
-            # print "teamCountry =", teamCountry
-            # country_ID = countries[teamCountry] # NO!!!
-            # country_ID = sorted_countries[ind]
+            teamEmblem = open(DataParsing.EMBLEMS_STORAGE_FOLDER +  teamName + ".png", 'rb').read()
+
             cur.execute("""SELECT country_ID FROM Countries WHERE country_name = %s;""", (teamCountry, )) # ok
             country_ID = cur.fetchone()[0]
+            # TODO replace country by country_ID as attribute of Team class
 
-            # print "country_ID = ", country_ID, type(country_ID)
-            # teamRating = team.getRating()
-            # print ind, teamName
-            # if "/" in teamName:
-            #     print "AHAAAAA", teamName.replace("/", "-")
-            ## create table
-            query =  "INSERT INTO TeamInfo (team_ID, team_Name, team_RuName, countryID) VALUES (%s, %s, %s, %s);"
-            data = (teamID, teamName, teamRuName, country_ID)
+            # create table
+            query =  "INSERT INTO TeamInfo (team_ID, team_Name, team_RuName, countryID, team_emblem) VALUES (%s, %s, %s, %s, %s);"
+            # query =  "INSERT INTO TeamInfo (team_ID, team_Name, team_RuName, countryID) VALUES (%s, %s, %s, %s);"
+
+            # use psycopg2.Binary(binary) from http://iamtgc.com/using-python-to-load-binary-files-into-postgres/
+            data = (teamID, teamName, teamRuName, country_ID, db.Binary(teamEmblem), )
+            # data = (teamID, teamName, teamRuName, country_ID, teamEmblem, )
             # data = (teamID, unicode_to_str(teamName), unicode_to_str(teamRuName), country_ID)
-            print "insert data", data, "to table TeamInfo"
+            # print "insert data", data, "to table TeamInfo"
+            print "insert data to table TeamInfo"
             trySQLquery(cur.execute, query, data)
 
         con.commit()
