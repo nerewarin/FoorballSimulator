@@ -143,7 +143,7 @@ def createDB(teamsL, storage = "Postgre"):
         # CREATE TABLE TeamInfo
         table_name = "TeamInfo"
          # print "isTeamInfo exists()?", exists(cur, "TeamInfo", dbname, schema)
-        recreating = False
+        recreating = True
         # recreating = True
         print
         # create table if it doesn't exists or need recreating
@@ -254,7 +254,19 @@ def trySQLquery(func, query, data = None):
 
 def createTable_TeamInfo(cur, con, table_name, team_count, sorted_countries, teamsL):
     try:
-        cur.execute('CREATE TABLE %s(team_ID INTEGER PRIMARY KEY, team_Name VARCHAR(30), team_RuName VARCHAR(30), countryID VARCHAR(3))' % table_name)
+        # cur.execute('CREATE TABLE %s('
+        #             'team_ID INTEGER PRIMARY KEY, '
+        #             'team_Name VARCHAR(30), '
+        #             'team_RuName VARCHAR(30), '
+        #             'countryID VARCHAR(3))' % table_name)
+        cur.execute('CREATE TABLE %s('
+            'team_ID INTEGER PRIMARY KEY, '
+            'team_Name VARCHAR(30), '
+            'team_RuName VARCHAR(30), '
+            'countryID VARCHAR(3),'
+            'team_emblem bytea)' % table_name)
+
+
         print "create table %s ok" % table_name
         for ind in xrange(team_count):
             team = teamsL[ind]
@@ -270,7 +282,9 @@ def createTable_TeamInfo(cur, con, table_name, team_count, sorted_countries, tea
 
             # print "country_ID = ", country_ID, type(country_ID)
             # teamRating = team.getRating()
-
+            # print ind, teamName
+            # if "/" in teamName:
+            #     print "AHAAAAA", teamName.replace("/", "-")
             ## create table
             query =  "INSERT INTO TeamInfo (team_ID, team_Name, team_RuName, countryID) VALUES (%s, %s, %s, %s);"
             data = (teamID, teamName, teamRuName, country_ID)
@@ -423,6 +437,7 @@ if __name__ == "__main__":
         print "DataStoring Test"
         # create teams list
         teamsL = DataParsing.createTeamsFromHTML()
+        # teamsL = DataParsing.createTeamsFromHTML("creating")
         # DataParsing.printParsedTable(teamsL)
 
         # STORAGES = ["Postgre", "Excel"]

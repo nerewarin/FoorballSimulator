@@ -8,6 +8,9 @@ HTML parse
 import Team
 from lxml import html as html # http://habrahabr.ru/post/220125/
 import util
+import urllib, sys, os
+
+EMBLEMS_STORAGE_FOLDER = "resourses/images/team_emblems/"
 
 def createTeamsFromHTML(mode = "creating"):
     UEFA_club_ratingRU = "http://ru.uefa.com/memberassociations/uefarankings/club/"
@@ -24,32 +27,55 @@ def createTeamsFromHTML(mode = "creating"):
     team_xpath2 = "td[1]/span[3]/span[2]"
     country_xpath = "td[2]"
     UEFArating_xpath = "td[8]"
+    team_emblem_xpath1 = "td[1]/span[3]/span/a/img/@src"
+    team_emblem_xpath2 = "td[1]/span[3]/span[1]/img/@src"
 
-    # print rows_xpathRU[0].xpath(team_xpath1).pop().text_content()
+
     # MAKE DICT OF TEAMS (teamsD)
     teamsD = {}
     teamsL = []
+
     for i, tr in enumerate(rows_xpathEN):
         # print i
         try:
             teamName = tr.xpath(team_xpath1).pop().text_content()
+            team_emblem_src   = tr.xpath( team_emblem_xpath1 ).pop()
         except IndexError: # special for Betis
             teamName = tr.xpath(team_xpath2).pop().text_content()
+            team_emblem_src   = tr.xpath( team_emblem_xpath2 ).pop()
         # fix error from site
         if teamName == "1. FSV Mainz 05": teamName = "FSV Mainz 05"
         try:
             ruName   = rows_xpathRU[i].xpath(team_xpath1).pop().text_content()
         except IndexError: # special for Betis
             ruName   = rows_xpathRU[i].xpath(team_xpath2).pop().text_content()
+
+        teamName = teamName.replace("/", "-") # "/" is unsupported symbol for filename in windows
         country = tr.xpath(country_xpath).pop().text_content()
         UEFArating   = tr.xpath( UEFArating_xpath ).pop().text_content()
         UEFAposition = tr.xpath( UEFApos_xpath ).pop().text_content()
+
+
+        # save image to disc
+        # im_filename = team_emblem_src.split("/")[-1]
+        # TODO глянуть как успешно кодировали team.getName()? - вывести списком ...
+        im_filename = util.unicode_to_str(teamName) + ".png"
+        # print im_filename
+
+        if not os.path.isfile(EMBLEMS_STORAGE_FOLDER + im_filename):
+            print "image didn't found, creating..."
+            print i, im_filename, team_emblem_src
+            urllib.urlretrieve(team_emblem_src, EMBLEMS_STORAGE_FOLDER + im_filename)
+
+        else:
+            print "images found"
 
             # if site = UEFA_club_ratingEN
             # print str(i + 1) + ". " + unicode_to_str(team) + " " + country + " " + unicode_to_str(score)
         # print str(i + 1) + ". " + teamName + " " + country + " " + UEFArating
 
         # create teams
+
         teamObj = Team.Team(teamName, country, UEFArating, ruName, UEFAposition)
         teamsD[teamName] = teamObj
         teamsL.append(teamObj)
@@ -95,3 +121,6 @@ def printParsedTable(teamsL):
 
 # TODO
 # TEST SECTION
+
+
+createTeamsFromHTML()

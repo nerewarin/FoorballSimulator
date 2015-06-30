@@ -179,18 +179,21 @@ class Match(object):
         if not self.playoff: # Draw allows!
             warnings.warn("getWinner Depricated!!! Use gewOutcome to get value of self.result_format[winner]")
             if self.outcome == self.result_format[2]:
-                warnings.warn("Call getWinner but return Tie")
+                warnings.warn("Call getWinner but return Draw")
+                return "Draw" # or None
                 # raise FutureWarning, "Call getWinner but return Tie"
             # return self.members[self.winner]
         # return self.winner
+        # print "getWinner self.playoff %s" % self.playoff
         return self.members[self.outcome]
 
-    def getResult(self):
+    def getResult(self, *args, **kwargs):
         """
 
         :return: tuple match result for Match, tuple DoubleMatch result for DoubleMatch
         """
         return tuple(self.result)
+        # return tuple(self.result, )
 
     def getLooser(self):
         """
@@ -258,16 +261,19 @@ class DoubleMatch(Match):
         self.result = ("not played",)#, ("not played",)
         self.matches_results = ("not played","not played"), ("not played","not played")
 
-    def __str__(self):
+    def __str__(self, casted_m2 = True):
+        # print "AAA", str(self.getResult(0))[1:-1].replace(",", ":").replace(" ", "")
+        # print "AAA", str(self.getResult(0))
         cast_m2 = True
         return "%s. %s %s %s" % \
                      (self.name,
                       self.homeName,
-                      str(self.getResult())[1:-1].replace(",", ":").replace(" ", "")
-                      # + " (" + str(self.getFirstMatchResult()[1:-1])
+                      # str(self.getResult())[1:-1].replace(",", ":").replace(" ", "")
+                      str(self.getResult(0))[1:-1].replace(",", ":").replace(" ", "")
                       + " (" + str(self.getFirstMatchResult())[1:-1].replace(",", ":").replace(" ", "") + ", "
                       + str(self.getSecondMatchResult(cast_m2))[1:-1].replace(",", ":").replace(" ", "") + ")"
                      ,self.guestName)
+
                # (self.name, self.homeName, str(self.result[0][0])+ ":" + str(self.result[0][1]) ,self.guestName)
                #  (self.name, self.homeName, str(self.getResult()).replace(",", ":") ,self.guestName)
     def run(self, update = True):
@@ -342,6 +348,39 @@ class DoubleMatch(Match):
         # return self.result, match1_score, casted_match2
         return self.result#, match1_score, casted_match2
 
+    # def getResult(self, match = "all", casted = True):
+    def getResult(self, *args, **kwargs):
+        # for printing to net
+        # print "RESULTTT", self.result
+
+        # print "casted", casted
+        res = []
+        if "casted" in kwargs:
+            casted = kwargs["casted"]
+        else:
+            casted = True
+
+        results = (self.result, self.getFirstMatchResult(), self.getSecondMatchResult(casted))
+
+        if args:
+            if len(args) == 1:
+                return results[args[0]]
+
+            for index in args:
+                res.append(results[index])
+                # if res:
+                #     res.append(results[index])
+                # else:
+                #     res = results[index]
+                # # print "\nBBB", index, res, "\n"
+            return res
+        else:
+            return results
+        # return res
+        # if match == "all":
+        #     return results
+        # else: # if match = 0, return pair result, 1 - FirstMatchResult, 2 - SecondMatchResult
+        #     return results[match]
 
     def getMatchesResults(self):
         """
@@ -428,7 +467,7 @@ if __name__ == "__main__":
                     pair_result = test_DoubleMatch1.run()
                     # print "test_DoubleMatch%s: pair_score %s m1 %s m2 %s" % (i, result[0], result[1], result[2])
 
-                    print test_DoubleMatch1
+                    print test_DoubleMatch1, " [winner = %s]" % test_DoubleMatch1.getWinner()
                     # return "%s. %s %s %s" % \
                     # (self.name, self.homeName, str(self.getResult()).replace(",", ":") ,self.guestName)
                     # print "%s: %s : %s, outcome = %s, pair_score %s m1 %s m2 %s" % \
