@@ -434,7 +434,7 @@ def TestStorage(storage, teamsL):
 if __name__ == "__main__":
     # @util.timer
     def Test():
-        print "DataStoring Test"
+        print "DataStoring Test\n"
         # create teams list
         teamsL = DataParsing.createTeamsFromHTML()
         # teamsL = DataParsing.createTeamsFromHTML("creating")

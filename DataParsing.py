@@ -35,6 +35,8 @@ def createTeamsFromHTML(mode = "creating"):
     teamsD = {}
     teamsL = []
 
+    print "parsing UEFA site"
+
     for i, tr in enumerate(rows_xpathEN):
         # print i
         try:
@@ -57,10 +59,7 @@ def createTeamsFromHTML(mode = "creating"):
 
 
         # save image to disc
-        # im_filename = team_emblem_src.split("/")[-1]
-        # TODO глянуть как успешно кодировали team.getName()? - вывести списком ...
         im_filename = util.unicode_to_str(teamName) + ".png"
-        # print im_filename
 
         if not os.path.isfile(EMBLEMS_STORAGE_FOLDER + im_filename):
             print "image didn't found, creating..."
@@ -68,7 +67,8 @@ def createTeamsFromHTML(mode = "creating"):
             urllib.urlretrieve(team_emblem_src, EMBLEMS_STORAGE_FOLDER + im_filename)
 
         else:
-            print "images found"
+            pass
+            # print "images found"
 
             # if site = UEFA_club_ratingEN
             # print str(i + 1) + ". " + unicode_to_str(team) + " " + country + " " + unicode_to_str(score)
@@ -105,7 +105,7 @@ def printParsedTable(teamsL):
 # типа tbody
 # /tr - взять наследника tr (вложенный элемент)
 # /td - первая колонка
-# span - хуйня чтоб раскраситься html - там лежат три элемента разных, значек и т.д. имя команды - в третьем
+# span - штука нужная чтоб раскраситься html - там лежат три разных элемента, значек и т.д. имя команды - в третьем
 # a - текст является ссылкой
 
 
@@ -122,5 +122,9 @@ def printParsedTable(teamsL):
 # TODO
 # TEST SECTION
 
+if __name__ == "__main__":
+    @util.timer
+    def Test(*args, **kwargs):
+        createTeamsFromHTML()
 
-createTeamsFromHTML()
+    Test()
