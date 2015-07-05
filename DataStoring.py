@@ -80,20 +80,22 @@ def createDB(teamsL, storage = "Postgre"):
         # http://stackoverflow.com/questions/19426448/creating-a-postgresql-db-using-psycopg2
 
         dbuser = "postgres"
-        dbname="FootballSimDB"
         dbpassword = "1472258369"
-        team_count = DataParsing.createTeamsFromHTML("get count")
-        schema = 'public'
 
-        con = db.connect(dbname=dbname, user=dbuser, host = 'localhost', password=dbpassword)
+        # connect to default DB (is specific DB not exists)
+        con = db.connect(dbname='postgres', user=dbuser, host = 'localhost', password=dbpassword)
         con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         cur = con.cursor()
 
         cur.execute('SELECT version()')
         ver = cur.fetchone()
-        # print ver # ('PostgreSQL 9.4.4, compiled by Visual C++ build 1800, 64-bit',)
+        print ver # ('PostgreSQL 9.4.4, compiled by Visual C++ build 1800, 64-bit',)
 
-        # CREATE DB
+        # CREATE DB for this application
+        dbname="FootballSimDB".lower()
+        team_count = DataParsing.createTeamsFromHTML("get count")
+        schema = 'public'
+
         trySQLquery(cur.execute, 'SELECT exists(SELECT 1 from pg_catalog.pg_database where datname = %s)', (dbname,))
         isDB = cur.fetchone()[0]
         # print "BD exists?", isDB
@@ -108,14 +110,13 @@ def createDB(teamsL, storage = "Postgre"):
             print "Database %s found" % dbname
 
 
-        # CONNECT
-        # con = None
+
         try:
             con = db.connect(database=dbname, user=dbuser)
             cur = con.cursor()
             cur.execute('SELECT version()')
             ver = cur.fetchone()
-            # print "db ver = ", ver
+            print "db ver = ", ver
 
         except db.DatabaseError, e:
             print 'Error %s' % e
@@ -140,63 +141,58 @@ def createDB(teamsL, storage = "Postgre"):
         print "sorted_countries", sorted_countries
 
 
-        # CREATE TABLE TeamInfo
-        table_name = "TeamInfo"
-         # print "isTeamInfo exists()?", exists(cur, "TeamInfo", dbname, schema)
-        recreating = True
-        # recreating = True
-        print
-        # create table if it doesn't exists or need recreating
 
-        if not tableExists(cur, table_name):
-            print "%s\" not exists, creating" % table_name
-            createTable_TeamInfo(cur, con, table_name, team_count, countries, teamsL)
+        def create_db_table(recreating, cur, con, table_name, func, columns_info):
+            if not tableExists(cur, table_name):
+                print "%s\" not exists, creating" % table_name
+                func(cur, con, table_name, columns_info)
+            elif recreating:
+                print "%s exists but recreating enabled" % table_name
+                # # DROP AND RECREATE
+                trySQLquery(cur.execute, 'DROP TABLE %s' % table_name)
+                con.commit()
+                print "DROP table %s ok" %table_name
+                # createTable_Countries(cur, con, table_name, team_count, sorted_countries)
+                func(cur, con, table_name, columns_info)
+            else:
+                print "%s is already exists" % table_name
 
-        elif recreating:
-            print "%s recreating" % table_name
-            trySQLquery(cur.execute, 'DROP TABLE %s' % table_name)
-            createTable_TeamInfo(cur, con, table_name, team_count, countries, teamsL)
-        else:
-            print "%s is already exists" % table_name
+
 
 
         # CREATE TABLE TeamCountries
         table_name = "Countries"
         recreating = True
-        recreating = False
+        # recreating = False
         print
-        if not tableExists(cur, table_name):
-            print "%s\" not exists, creating" % table_name
-            createTable_Countries(cur, con, table_name, team_count, sorted_countries)
-        elif recreating:
-            print "%s exists but recreating enabled" % table_name
-            # # DROP AND RECREATE
-            trySQLquery(cur.execute, 'DROP TABLE %s' % table_name)
-            con.commit()
-            print "DROP table Countries ok"
-            createTable_Countries(cur, con, table_name, team_count, sorted_countries)
-        else:
-            print "%s is already exists" % table_name
+        columnsInfo = list(sorted_countries)
+        create_db_table(recreating, cur, con, table_name, createTable_Countries, columnsInfo)
+
+
+
+        # CREATE TABLE TeamInfo
+        table_name = "TeamInfo"
+        recreating = True
+        print
+        # create table if it doesn't exists or need recreating
+        columnsInfo = (team_count, sorted_countries, teamsL)
+        create_db_table(recreating, cur, con, table_name, createTable_TeamInfo, columnsInfo )
+
 
         # CREATE TABLE Tournaments
         table_name = "Tournaments"
         recreating = True
         print
-        if not tableExists(cur, table_name) or recreating:
-            if recreating:
-                print "%s exists but recreating enabled" % table_name
-            else:
-                print "%s\" not exists, creating" % table_name
-            tournament_ID = "ID"
-            tournament_name = "name"
-            tournament_type = "type"
-            tournament_country = "country"
-            tournament_teams_count = "teams_count"
-            createTable_Tournaments(cur, con, recreating, table_name, tournament_ID, tournament_name, tournament_type, tournament_country, tournament_teams_count, sorted_countries)
-            # column_names = ["ID", "name", "type", "country"]
-            # createTable_Tournaments(cur, con, recreating, table_name, column_names)
-        else:
-            print "\n%s is already exists" % table_name
+
+        tournament_ID = "ID"
+        tournament_name = "name"
+        tournament_type = "type"
+        tournament_country = "country"
+        tournament_teams_count = "teams_count"
+        columnsInfo = (tournament_ID, tournament_name, tournament_type, tournament_country, tournament_teams_count, sorted_countries)
+        create_db_table(recreating, cur, con, table_name, createTable_Tournaments, columnsInfo )
+
+
 
 
         # # CREATE TABLE RL_TeamCountries (relation between TeamInfo and Countries)
@@ -252,8 +248,9 @@ def trySQLquery(func, query, data = None):
 #     # trySQLquery( query =  "INSERT INTO TeamInfo (team_ID, team_Name, team_RuName, countryID) VALUES (%s, %s, %s, %s);"
 #     #         data = (teamID, teamName, teamRuName, country_ID))
 
-def createTable_TeamInfo(cur, con, table_name, team_count, sorted_countries, teamsL):
+def createTable_TeamInfo(cur, con, table_name, columnsInfo):
     try:
+        team_count, sorted_countries, teamsL = columnsInfo
         # cur.execute('CREATE TABLE %s('
         #             'team_ID INTEGER PRIMARY KEY, '
         #             'team_Name VARCHAR(30), '
@@ -289,9 +286,9 @@ def createTable_TeamInfo(cur, con, table_name, team_count, sorted_countries, tea
             # data = (teamID, teamName, teamRuName, country_ID, teamEmblem, )
             # data = (teamID, unicode_to_str(teamName), unicode_to_str(teamRuName), country_ID)
             # print "insert data", data, "to table TeamInfo"
-            print "insert data to table TeamInfo"
             trySQLquery(cur.execute, query, data)
 
+        print "inserted %s rows to %s" % (team_count, table_name)
         con.commit()
     except db.DatabaseError, e:
         # print 'Error %s' % e.pgerror.decode('utf8')
@@ -299,7 +296,7 @@ def createTable_TeamInfo(cur, con, table_name, team_count, sorted_countries, tea
         sys.exit(1)
 
 
-def createTable_Countries(cur, con, table_name, team_count, sorted_countries):
+def createTable_Countries(cur, con, table_name, sorted_countries):
     try:
         # CREATE TABLES
         cur.execute('CREATE TABLE %s(\
@@ -310,7 +307,8 @@ def createTable_Countries(cur, con, table_name, team_count, sorted_countries):
         print "create table Countries ok"
         con.commit()
 
-        # INSERT TO TABLE Countries
+
+        # INSERT TO TABLE Countries [table_name, team_count, sorted_countries]
         for ind, (country, teams_count) in enumerate(sorted_countries):
             # query =  "INSERT INTO %s (country_ID, country_name, teams_count) VALUES (%s, %s, %s);" % ("Countries", ind+1, country, teams_count)
             query =  "INSERT INTO %s (country_ID, country_name, teams_count) VALUES ('%s', '%s', '%s');" % (table_name, ind+1, country, teams_count)
@@ -358,12 +356,11 @@ def createTable_RL_TeamCountries(cur, con, team_count, countries):
     #     sys.exit(1)
 
 
-def createTable_Tournaments(cur, con, recreating, table_name, tournament_ID, tournament_name, tournament_type, tournament_country, tournament_teams_num, sorted_countries):#team_count, sorted_countries, teamsL):
+def createTable_Tournaments(cur, con, table_name, columnsInfo):#team_count, sorted_countries, teamsL):
 # def createTable_Tournaments(cur, con, recreating, table_name, column_names):#team_count, sorted_countries, teamsL):
-    # trySQLquery(cur.execute,  'CREATE TABLE Tournaments
-    if recreating:
-        trySQLquery(cur.execute, 'DROP TABLE %s' % table_name)
-        print "table %s dropped" % table_name
+
+    tournament_ID, tournament_name, tournament_type, tournament_country, tournament_teams_num, sorted_countries = columnsInfo
+
     query = 'CREATE TABLE %s(\
                     %s INTEGER PRIMARY KEY,\
                     %s VARCHAR(30),\
