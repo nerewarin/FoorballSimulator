@@ -8,8 +8,11 @@ import util
 import Match as M
 from values import Coefficients as C
 from operator import attrgetter, itemgetter
+from collections import defaultdict
 import random
 import time
+import numbers
+import math
 import os
 import warnings
 
@@ -18,7 +21,7 @@ class League(object):
     represents Football League
 
     """
-    def __init__(self, name, season, members, delta_coefs, state_params = ("P",	"W","D","L","GF","GA","GD","PTS")):
+    def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "rnd", state_params = ("P",	"W","D","L","GF","GA","GD","PTS")):
         """
 
         :param name: League name and year
@@ -42,6 +45,9 @@ class League(object):
         self.season = season
         self.members = members
         self.delta_coefs = delta_coefs
+        self.seeding = seeding
+        self.pair_mode = pair_mode
+
 
         state = {st:0 for st in state_params}
 
@@ -70,7 +76,7 @@ class League(object):
         return self.name
 
     def getMember(self, index = None):
-        if index:
+        if isinstance(index, int):
             return self.members[index]
         else:
             return self.members
@@ -79,10 +85,92 @@ class League(object):
         return self.table
 
     def getWinner(self):
-        return self.table.getTeam(0)["Team"]
+        if self.members:
+            return self.table.getTeam(0)["Team"]
+        else:
+            warnings.warn("call getWinner from League with no members!")
+            return "no winner cause no members"
 
     def getTeamByPosInTable(self, pos):
         return self.table.getTeam(pos)["Team"]
+
+
+    def RunMatchUpdateResults(self, tindxs, roundN, tour, tourN, match_ind, matchN, print_matches):
+        """
+        helper func
+        runs match and updates League result
+        """
+        # match = M.Match(pair, self.delta_coefs, "%s %s. round %s. tour %s(%s). match %s(%s)"  \
+        #     % (self.getName(), self.season,
+        #        roundN, tour+1, tourN+1,
+        #        match_ind+1, matchN+1))
+
+        # # define home and guest team
+        # v1 count home matches for everu team
+        # print "\self.home_mathes_count                                             ", self.home_mathes_count
+        # # print "\n\nself.home_mathes_count", self.home_mathes_count, "\n"
+        # if self.home_mathes_count[tindxs[0]] > self.home_mathes_count[tindxs[1]]:
+        #     home_ind = tindxs[1]
+        #     guest_ind = tindxs[0]
+        # else:
+        #     home_ind = tindxs[0]
+        #     guest_ind = tindxs[1]
+        # pair = (self.getMember(home_ind), self.getMember(guest_ind))
+
+        # v2 count matches for every pair
+        if tindxs in self.pair_host:
+            # swap home-guest to guest-home
+            home_ind = tindxs[1]
+            guest_ind = tindxs[0]
+        else:
+            home_ind = tindxs[0]
+            guest_ind = tindxs[1]
+
+        pair = (self.getMember(home_ind), self.getMember(guest_ind))
+        # check this pair config is new (there was not match with this teams with these home-guest roles)
+        if (home_ind, guest_ind) in self.pair_host:
+            raise Exception, "home-guest roles are not uniq for this pair!", pair
+
+        self.pair_host.add((home_ind, guest_ind))
+
+
+        # print self.getMember(home_ind)
+        # print self.getMember(guest_ind)
+        # print "pair",  pair
+
+        match = M.Match(pair, self.delta_coefs, "%s %s. round %s. tour %s. match %s"
+                        % (self.getName(), self.season, roundN, tourN+1, match_ind+1))
+        match_score = match.run()
+        self.home_mathes_count[home_ind] += 1
+
+        if print_matches:
+             print match
+
+        for i in range(len(pair)):
+            team_i = tindxs[i]
+            result = self.results[team_i]
+
+            # update results
+            result["P"] += 1
+
+            # if match.getWinner() == i: # WIN
+            if match.getOutcome() == i: # WIN
+                result["W"] += 1
+                result["PTS"] += 3
+
+            elif match.getOutcome() == 2: # DRAW
+                result["D"] += 1
+                result["PTS"] += 1
+
+            else:                        # LOSE
+                result["L"] += 1
+
+            gf =  match_score[i]
+            result["GF"] +=  gf      # goals of current team
+            ga = match_score[i-1]
+            result["GA"] +=  ga   # goals of opponent team
+            result["GD"] +=  (gf - ga)
+
 
     def run(self, print_matches = False):
         """
@@ -94,60 +182,98 @@ class League(object):
         teams_num = len(teams)
 
         tours = teams_num - 1
-        rounds = 2 # rounds of league
+
+        # rounds of league
+        rounds = 1
+        if self.pair_mode:
+            rounds += 1
+
+        # TODO fix odd number of terams in League
         matches_in_tour = teams_num // 2
-        # print "rounds = %s, teams_num = %s, matches_in_tour = %s" % (rounds, teams_num, matches_in_tour)
+        # m_in_tour = teams_num / 2.0
+        # matches_in_tour = int(m_in_tour)
+        # if (math.floor( m_in_tour ) == m_in_tour):
+        #     odd_match = False
+        # else:
+        #     # make additional logic
+        #     odd_match = True
+
+
+
+        # odd_pair is a list of rest teams (is teams num is odd) who did'nt meet a opponent in current tour
+        # to meet another rest in the next tour
+        odd_pair = []
+        matchN = 0
+        # make home teams count equal for every member
+        # count matches played at home for every team by int index of members list
+        self.home_mathes_count = {}
+        for tind in range(len(self.members)):
+            self.home_mathes_count[tind] = 0
+        # v2 after every match, add tuple (home, guest) indexes to store this config and do not repeat
+        # (swith home for next match of this pair)
+        self.pair_host = set([])
 
         # generate matches
         for round in range(rounds):
             for tour in range(tours):
+                if print_matches:
+                    print "tour %s" % (tour + tours*(round) + 1)
                 team_indexes = range(teams_num)
                 for match_ind in range(matches_in_tour):
 
                     team1_ind = team_indexes.pop(0) # tour % len(team_indexes)
                     team2_ind = team_indexes.pop( -1  - tour  % len(team_indexes)  )
 
+                    roundN = round + 1
+                    tourN = tour + tours*(round)
+                    # matchN = match_ind + 1 + (tourN - 1) * matches_in_tour
+                    #
                     # define home and guest team
-                    if not (tour % 2):
+                    if not (tourN % 2):
+                    # if not (matchN % 2):
                         tindxs = (team1_ind, team2_ind)
                     else:
                         tindxs = (team2_ind, team1_ind)
 
                     pair = (teams[tindxs[0]], teams[tindxs[1]])
 
-                    roundN = round + 1
-                    tourN = tour + tours*(round) + 1
-                    matchN = match_ind + 1 + (tourN - 1) * matches_in_tour
-                    match = M.Match(pair, self.delta_coefs, "%s %s. round %s. tour %s(%s). match %s(%s)"  \
-                                    % (self.getName(), self.season, roundN, tour+1, tourN, match_ind + 1, matchN))
-                    match_score = match.run()
-                    if print_matches:
-                         print match
+                    tindxs = (team1_ind, team2_ind)
 
-                    for i in range(len(pair)):
-                        team_i = tindxs[i]
-                        result = self.results[team_i]
+                    # match = M.Match(pair, self.delta_coefs, "%s %s. round %s. tour %s(%s). match %s(%s)"  \
+                    #                 % (self.getName(), self.season, roundN, tour+1, tourN, match_ind + 1, matchN))
+                    self.RunMatchUpdateResults(tindxs, roundN, tour, tourN, match_ind, matchN, print_matches)
+                    matchN += 1
 
-                        # update results
-                        result["P"] += 1
 
-                        # if match.getWinner() == i: # WIN
-                        if match.getOutcome() == i: # WIN
-                            result["W"] += 1
-                            result["PTS"] += 3
+                # print "TOUR_COMPLETE!"
+                # print "team_indexes %s" % team_indexes
+                odd_pair.extend(team_indexes)
+                if len(odd_pair) > 1:
+                    tindxs = (odd_pair.pop(), odd_pair.pop())
+                    # pair = (teams[tindxs[0]], teams[tindxs[1]])
+                    self.RunMatchUpdateResults(tindxs, roundN, tour+1, tourN, match_ind + 1, matchN, print_matches)
+                    matchN += 1
 
-                        elif match.getOutcome() == 2: # DRAW
-                            result["D"] += 1
-                            result["PTS"] += 1
+                elif len(odd_pair) > 2:
+                    raise Exception, "ERROR in League.run - odd_pair list should not include more then two teams!"
 
-                        else:                        # LOSE
-                            result["L"] += 1
 
-                        gf =  match_score[i]
-                        result["GF"] +=  gf      # goals of current team
-                        ga = match_score[i-1]
-                        result["GA"] +=  ga   # goals of opponent team
-                        result["GD"] +=  (gf - ga)
+                # # make additional match if len(members) is odd
+                # if odd_match and (tour % 2):
+                #     print "need odd_match!"
+                #     # print "team_indexes %s" % team_indexes
+
+
+        # check all values are the same, i.e.
+        # all teams played exactly the same count of home matches
+        # solution from http://stackoverflow.com/questions/17821079/how-to-check-if-two-keys-in-dict-hold-the-same-value
+        dd = defaultdict(set)
+        for k, v in self.home_mathes_count.items():
+            dd[v].add(k)
+        dd = { k : v for k, v in dd.items() if len(v) > 1 }
+        if len(dd.keys()) != 1:
+            print self.home_mathes_count
+            raise Exception, "not all teams played exactly the same count of home matches, see above"
 
         # update and return table
         return self.table.update(self.results)
@@ -247,8 +373,12 @@ if __name__ == "__main__":
 
         teams = []
         team_num = kwargs["team_num"]
+        print_matches = kwargs["print_matches"]
+        print_ratings = kwargs["print_ratings"]
+
         for i in range(team_num):
-            teamN = i + 1
+            # teamN = i + 1
+            teamN = i
             rating = team_num - i
             uefa_pos = teamN
             teams.append(Team.Team("FC team%s" % teamN, "RUS", rating, "Команда%s" % teamN, uefa_pos))
@@ -256,42 +386,13 @@ if __name__ == "__main__":
         # # TEST LEAGUE CLASS
         if "League" in args:
 
-            print_matches = False
-            # print_matches = True
-
-            print_ratings = False
-            # print_ratings = True
-
             League("testLeague", "2015/2016", teams, coefs).test(print_matches, print_ratings)
             # League("testLeague", "2015/2016", teams, coefs).run()
 
 
-        # TEST CUP CLASS
-        if "Cup" in args:
+    team_num = 9
+    Test("League", team_num = team_num, print_matches = True, print_ratings = False)
+    # for team_num in range(102):
+    #     Test("League", team_num = team_num, print_matches = True, print_ratings = False)
 
-            # for seeding in Cup.getSeedings(Cup):
-            #     print seeding
-            # pair_mode = 0 # one match
-            pair_mode = 1 # home + guest every match but the final
-            # pair_mode = 2 # home + guest every match
-
-            print_matches = False
-            # print_matches = True
-
-            print_ratings = False
-            # print_ratings = True
-
-            s =  Cups.Cup("no Cup, just getSeedings", "", teams, coefs, pair_mode)
-            seedings = s.getSeedings()
-            # print "seedings", seedings
-            for seeding in seedings:
-                # print seeding , "seeding"
-                # print "teams, coefs, pair_mode, seeding", teams, coefs, pair_mode, seeding
-                tstcp = Cups.Cup("testCup", "2015/2016", teams, coefs, pair_mode, seeding)
-                tstcp.test(print_matches, print_ratings)
-            # # Cup("testCup", "2015/2016", teams, coefs, pair_mode).run()
-
-
-    # Test("League", "Cup", team_num = 20)
-    Test("League", team_num = 101)
     # Test("Cup", team_num = 20)
