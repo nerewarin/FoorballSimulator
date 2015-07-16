@@ -428,14 +428,14 @@ if __name__ == "__main__":
     # for pair_mode in range(2):
     #     Test("League", team_num = team_num, pair_mode = pair_mode, print_matches = True, print_ratings = False)
 
-    start_num = 10
-    end_num = 11
+    start_num = 20
+    end_num = 21
     step = 1
     # pair_modes = (0, )
     pair_modes = (1, )
     # pair_modes = (0, 1)
-    print_matches = True
-    # print_matches = False
+    # print_matches = True
+    print_matches = False
     print_ratings = False
     for t_num in range(start_num, end_num, 1):
         for pair_mode in pair_modes:
