@@ -176,12 +176,12 @@ class Coefficients():
 
         # Закон Стабильности сдерживает Энтропию по времени, чтобы лидер терял позиций слишком быстро!
         # assert divs[2] > -0.026, "version %s violates the Law of Stability" % self.version
-        assert divs[2] > -0.026, "version %s violates the Law of Stability" % self.version
+        assert divs[2] > -0.026, "version %s violates the Law of Stability" % version
         # assert divs[2] > 0, "violate the law of entropy"
         # v1 original
         #[0.5007112, -0.44338260000000007, 0.05732860000000002, 0.44338260000000007, -0.5007112, -0.05732860000000002]
         # главные числа - общая дельта рейтинга фаворита за игру дома+в гостях + 0.05732860000000002
-        # нуждо создать условия для догоняющих, ятобы их рейтинг в среднем за игру с фаворитом - рос. они ведь учаться у крутых)
+        # нуждо создать условия для догоняющих, чтобы их рейтинг в среднем за игру с фаворитом - рос. они ведь учаться у крутых)
         return divs
 
 # class Tournament_Schemas():
@@ -194,12 +194,172 @@ class Coefficients():
 #             "UEFA_Champ_L"
 #         }
 
+class TournamentSchemas(object):
+    """
+    defines how to collect members of UEFA tournaments
+
+    for example
+    UEFA_CL = { stage : { tourn_type, pair_mode, list of
+    {round of stage : {country_indexes or "CL": pos_of_league_result if int, or "cup winner" or if "CL" round from CL
+
+    to print match, round should include stage+round of stage
+    """
+    def __init__(self):
+        """
+
+        :return:
+        """
+        # 77 members (32 members in groups)
+        self.UEFA_Champions_League = {
+            # stage
+            "Qualification" : {
+                    # type of tournament and number of sub-tournaments of this type in this stage
+                    "tourn_type" : ("Cup", 1),
+                    # 0 - one match in pair, 1 - home & guest but the final , 2 - always home & guest
+                    "pair_mode" : 2,
+                    # every tour is a row of dict {round name : dict{country ind : team pos of national league*}}
+                    # * - if int, from league, is string and == "cupwinner" - so its winner from national cups
+                    "tindx_in_round" : [
+                       # 1 round
+                       # 6 champions of leagues 49-54
+                       {1 : {tuple(range(49,55,1)) : 0}},
+                       # 2 round
+                       # 31 champions of leagues 17-48 and 3 winners of prev round # TODO exclude Lichtenstein
+                       {2 : {tuple(range(17,49,1)) : 0}},
+                       # 3 round
+                       # 3 champions of 14-16, 9 silver of 7-15, 1 bronze of 6 and 17 winners of prev
+                       {3 : {tuple(range(14,17)) : 0, tuple(range(7,16)) : 1, (6,) : 2}},
+                       # final of Play-Off round
+                       # 2 bronze 4-5, 3 fourth of 1-3, and 15 winners of prev
+                       {4 : {(4,5) : 2, (1,2,3) : 3}}
+                    ]
+            },
+
+            "Group" : {
+                    # split members to four groups
+                    "tourn_type" : (4, "League"),
+                    "pair_mode" : 2,
+                    "tindx_in_round" : [
+                        # 13 champions of 1-13, 6 silver 1-6, 3 bronze 1-3   and 15 winners of qualification
+                        # no name or None -named round (cause its exclusive)
+                        {"" : {tuple(range(1,14,1)) : 0, tuple(range(1,7,1)) : 1, tuple(range(1,4,1)) : 2 }}
+                    ]
+            },
+
+            "Play-Off" : {
+                    "tourn_type" : (1, "Cup"),
+                    "pair_mode" : 1, # one match in final
+                    "tindx_in_round" : [
+                        # simple cup of 16 winners of groups
+                    ]
+            }
+        }
+
+        # 195 members (48 members in groups)
+        self.UEFA_Europa_League = {
+            # stage
+            "Qualification" : {
+                    # type of tournament and number of sub-tournaments of this type in this stage
+                    "tourn_type" : ("Cup", 1),
+                    # 0 - one match in pair, 1 - home & guest but the final , 2 - always home & guest
+                    "pair_mode" : 2,
+                    # every tour is a row of dict {round name : dict{country ind : team pos of national league}}
+                    "tindx_in_round" : [
+                        # 1 round
+                        # 20 cup winners 35-54, 26 silver of 27-53 # TODO exclude Lichtenstein or not when teams already parsed
+                        # 29 bronze 22-51, 3 "FairPlay"
+                        {1 : {tuple(range(35,55)) : "cupwinner",  tuple(range(27,53)) : 1, tuple(range(22,52)) : 2, (0,1,2) : "FairPlay"}},
+                        # 2 round
+                         # 15 cup winners 20-34, 11 silver 16-26, 6 bronze 16-21, 6 fourth 10-15, 3 fifth 7-9,
+                         # and 38 winners of prev
+                        {2 : {tuple(range(20,35)) : "cupwinner",  tuple(range(16,27)) : 1, tuple(range(16,22)) : 2,
+                               tuple(range(10,16)) : 3,  tuple(range(7,10)) : 4}},
+                        # 3 round
+                         # 3 cup winners 17-19, 6 bronze 10-15, 3 fourth 7-9, 3 fifth 4-6, 3 sixth 1-3,
+                        # # TODO if sixth from ENG of FRANCE, use cup winners of special national "League Cup"
+                         # and 38 winners of prev
+                        {3 : {tuple(range(17,20)) : "cupwinner",  tuple(range(10,16)) : 2, tuple(range(7,10)) : 3,
+                               tuple(range(4,7)) : 4,  tuple(range(1,4)) : 5}}, # or league cup see todo above
+                        # Play-Off round
+                         # 9 cup winners 8-16, 3 bronze 7-9, 3 fourth 4-6, 3 fifth 1-3,
+                         # 15 from 3th qualification round of champions league
+                         # and 38 winners of prev
+                        {4 : {tuple(range(8,17)) : "cupwinner",  tuple(range(7,10)) : 2, tuple(range(4,7)) : 3,
+                               tuple(range(1,4)) : 4,   "CL" : 3}}
+                        # TODO groupUefa support
+                         ]
+            },
+
+            "Group" : {
+                    # split members to four groups
+                    "tourn_type" : (12, "League"),
+                    "pair_mode" : 2,
+                    "tindx_in_round" : [
+                        # champion of prev Europe League
+                        #  TODO implement shifting rest teams if champion was already qualified to CL or EL
+                        # else:
+                        # 7 cup winners
+                        # 10 from 4th qualification round of champions league
+                        # and 31 winners of prev (Qualification)
+                        {"" : {tuple(range(1,8)) : "cupwinner", "CL" : 4}}
+                    ]
+            },
+
+            "Play-Off" : {
+                    "tourn_type" : (1, "Cup"),
+                    "pair_mode" : 1, # one match in final
+                    "tindx_in_round" : [
+                        # simple cup of
+                        # 24 winners of prev
+                        # 8 from Group round of champions league (3th places)
+                        {"CL" : "Group"}
+                    ]
+            }
+
+        }
+
+
+
+    def get_CL_schema(self):
+        """
+
+        :return: schema of UEFA Champions League Tournament
+        """
+        return self.UEFA_Champions_League
+
+
+    def get_EL_schema(self):
+        """
+
+        :return: schema of UEFA Champions League Tournament
+        """
+        return self.UEFA_Europa_League
+
+
+
 if __name__ == "__main__":
-    print "Test Values (coefficients to compute ratings)"
-    test_versions = ["v1.0", "v1.1"]
-    for version in test_versions:
-        test_Coef = Coefficients(version)
-        test_Coef.check(version)
-        print version
-        print test_Coef.getRatingUpdateCoefs()
-        print test_Coef.check(version)
+    def TestCoefficients():
+        print "Test Values (coefficients to compute ratings)"
+        test_versions = ["v1.0", "v1.1"]
+        print                               {tuple(range(49,55,1))  : 0}
+                                       # champions of leagues 17-48
+        print                               {tuple(range(17,49,1))  : 0}, len(tuple(range(17,49,1)) )
+        for version in test_versions:
+            test_Coef = Coefficients(version)
+            test_Coef.check(version)
+            print version
+            print test_Coef.getRatingUpdateCoefs()
+            print test_Coef.check(version)
+
+    def Test_Tournament_schemas():
+        print "Test Tournament Schemas"
+        schems = TournamentSchemas()
+        CL_schema =  schems.get_CL_schema()
+        for stageK, stageV in CL_schema.iteritems():
+            print stageK, stageV
+        # print schems.get_EL_schema()
+
+        print ""
+
+    # TestCoefficients()
+    Test_Tournament_schemas()

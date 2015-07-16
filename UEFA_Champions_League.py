@@ -33,7 +33,6 @@ class UEFA_Champ_L(Cup):
         """
 
         super(Cup, self).__init__(name, season, members, delta_coefs, state_params)#(self, name, season, members, delta_coefs)
-        self.pair_mode = pair_mode
 
         # self.results - empty list. after run() it will be filled as following:
         # [team_champion, team_finished_in_final, teams_finished_in_semi-final, ... , teams_finished_in_qualRoundn, ...
@@ -48,6 +47,17 @@ class UEFA_Champ_L(Cup):
         # initialize net
         self.net = "not implemented yet"
         self.round_names = "not computed" # TODO make branch: get from params (if external scheme exists) OR compute in run()
+
+schema
+
+    def setMembers(self):
+        """
+        defines members for every round
+        :return:
+        """
+        self.members = []
+        for
+
 
     def test(self, print_matches = False, print_ratings = False):
         print "\nTEST CUP CLASS\n"
