@@ -210,9 +210,9 @@ class TournamentSchemas(object):
         :return:
         """
         # 77 members (32 members in groups)
-        self.UEFA_Champions_League = {
+        self.UEFA_Champions_League = [
             # stage
-            "Qualification" : {
+            {"Qualification" : {
                     # type of tournament and number of sub-tournaments of this type in this stage
                     "tourn_type" : ("Cup", 1),
                     # 0 - one match in pair, 1 - home & guest but the final , 2 - always home & guest
@@ -233,32 +233,36 @@ class TournamentSchemas(object):
                        # 2 bronze 4-5, 3 fourth of 1-3, and 15 winners of prev
                        {4 : {(4,5) : 2, (1,2,3) : 3}}
                     ]
+                }
             },
 
-            "Group" : {
+            {"Group" : {
                     # split members to four groups
-                    "tourn_type" : (4, "League"),
+                    "tourn_type" : ("League", 4),
                     "pair_mode" : 2,
                     "tindx_in_round" : [
                         # 13 champions of 1-13, 6 silver 1-6, 3 bronze 1-3   and 15 winners of qualification
                         # no name or None -named round (cause its exclusive)
                         {"" : {tuple(range(1,14,1)) : 0, tuple(range(1,7,1)) : 1, tuple(range(1,4,1)) : 2 }}
                     ]
+                }
             },
 
-            "Play-Off" : {
-                    "tourn_type" : (1, "Cup"),
+            {"Play-Off" : {
+                    "tourn_type" : ("Cup", 1),
                     "pair_mode" : 1, # one match in final
                     "tindx_in_round" : [
                         # simple cup of 16 winners of groups
+
                     ]
+                }
             }
-        }
+        ]
 
         # 195 members (48 members in groups)
-        self.UEFA_Europa_League = {
+        self.UEFA_Europa_League = [
             # stage
-            "Qualification" : {
+            {"Qualification" : {
                     # type of tournament and number of sub-tournaments of this type in this stage
                     "tourn_type" : ("Cup", 1),
                     # 0 - one match in pair, 1 - home & guest but the final , 2 - always home & guest
@@ -288,11 +292,12 @@ class TournamentSchemas(object):
                                tuple(range(1,4)) : 4,   "CL" : 3}}
                         # TODO groupUefa support
                          ]
+            }
             },
 
-            "Group" : {
+            {"Group" : {
                     # split members to four groups
-                    "tourn_type" : (12, "League"),
+                    "tourn_type" : ("League", 12),
                     "pair_mode" : 2,
                     "tindx_in_round" : [
                         # champion of prev Europe League
@@ -302,21 +307,23 @@ class TournamentSchemas(object):
                         # 10 from 4th qualification round of champions league
                         # and 31 winners of prev (Qualification)
                         {"" : {tuple(range(1,8)) : "cupwinner", "CL" : 4}}
-                    ]
+                                        ]
+                    }
             },
 
-            "Play-Off" : {
-                    "tourn_type" : (1, "Cup"),
+            {"Play-Off" : {
+                    "tourn_type" : ("Cup", 1),
                     "pair_mode" : 1, # one match in final
                     "tindx_in_round" : [
                         # simple cup of
                         # 24 winners of prev
                         # 8 from Group round of champions league (3th places)
-                        {"CL" : "Group"}
-                    ]
+                        {"" : {"CL" : "Group"}}
+                                        ]
+                        }
             }
 
-        }
+        ]
 
 
 
@@ -355,11 +362,35 @@ if __name__ == "__main__":
         print "Test Tournament Schemas"
         schems = TournamentSchemas()
         CL_schema =  schems.get_CL_schema()
-        for stageK, stageV in CL_schema.iteritems():
-            print stageK, stageV
-        # print schems.get_EL_schema()
+        EL_schema =  schems.get_EL_schema()
+        for schema in (CL_schema, EL_schema):
+            print "\n"
+            for stage in schema:
+                # print stage
+                for stage_name, stageV in stage.iteritems():
+                    print stage_name
+                    # print stage_name, stageV
+                    for attrK, attrV in stageV.iteritems():
+                        if isinstance(attrV, list):
+                            print attrK, "... (contains external members, not added from previous round"
+                            for round in attrV:
+                                # pass
+                                for roundname, members_schema in round.iteritems():
+                                    print "round = %s" % roundname#, members_schema
+                                    for members_source, pos in members_schema.iteritems():
+                                        print members_source, pos
 
-        print ""
+                                # print round
+                                # for where, pos in round:
+                                #     print where, pos
+                                # # print roundname #, roundmembers
+                        else:
+                            print attrK, attrV
+                # stage_name = CL_schema[]
+            # for stage_name, stageV in CL_schema.iteritems():
+            #     print stageK, stageV
+            # print schems.get_EL_schema()
+
 
     # TestCoefficients()
     Test_Tournament_schemas()
