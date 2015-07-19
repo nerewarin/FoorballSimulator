@@ -41,7 +41,7 @@ def createExcelTable(filename, teamsL):
     book.save(filename)
 
 
-def createTeamsFromExcelTable(excelFilename = "Rating.xls"):
+def createTeamsFromExcelTable(excelFilename = "initial rating.xls"):
     """
     create list of Team objects, sorted by rating
     :param excelFilename: table that stores all ratings
@@ -57,12 +57,14 @@ def createTeamsFromExcelTable(excelFilename = "Rating.xls"):
     for rownum in range(1, sheet.nrows): # exclude 1 cause there are headers
         row = sheet.row_values(rownum)
         # print row#.encode('utf8')
-        name = row[1]
+        name = row[1].replace("\'", "").replace("/", "-")
+        print "creating teamsL", util.unicode_to_str(name)
         country = row[3]
         rating = row[4]
         ruName = row[2]
         uefaPos = row[0]
-        teamsL.append(Team.Team(name, country, rating, ruName, uefaPos))
+        countryID = "undefined"
+        teamsL.append(Team.Team(name, country, rating, ruName, uefaPos, countryID))
         # print name, country, rating, ruName, uefaPos
     # print to console all teams
     return teamsL
@@ -93,7 +95,8 @@ def createDB(teamsL, storage = "Postgre"):
 
         # CREATE DB for this application
         dbname="FootballSimDB".lower()
-        team_count = DataParsing.createTeamsFromHTML("get count")
+        # team_count = DataParsing.createTeamsFromHTML("get count")
+        team_count = len(teamsL)
         schema = 'public'
 
         trySQLquery(cur.execute, 'SELECT exists(SELECT 1 from pg_catalog.pg_database where datname = %s)', (dbname,))
@@ -154,52 +157,66 @@ def createDB(teamsL, storage = "Postgre"):
                 print "DROP table %s ok" %table_name
                 # createTable_Countries(cur, con, table_name, team_count, sorted_countries)
                 func(cur, con, table_name, columns_info)
+            # elif recreating == "refill":
+            #     # delete content not dropping table
+            #     print "refill %s" % table_name
+            #     trySQLquery(cur.execute, 'DELETE FROM %s' % table_name)
+            #     func(cur, con, table_name, columns_info)
             else:
                 print "%s is already exists" % table_name
+                if recreating != "only inserting":
+                    print "refill %s" % table_name
+                    # trySQLquery(cur.execute, 'DELETE FROM %s' % table_name)
+                func(cur, con, table_name, columns_info)
             print
+
+
+        # TODO DANGEROUS SECTION
+        print "\nCLEARING ALL ROWS OF Countries, Team_Info, Tournaments"
+        # trySQLquery(cur.execute, 'DELETE FROM %s' % "Team_Info")
+        # trySQLquery(cur.execute, 'TRUNCATE \'%s\', \'%s\', \'%s\' RESTART IDENTITY', ("Team_Info", "Countries", "Tournaments"))
+        trySQLquery(cur.execute, 'TRUNCATE Countries, Team_Info, Tournaments RESTART IDENTITY CASCADE')
+        print "ok\n"
 
         # CREATE TABLE TeamCountries
         table_name = "Countries"
         recreating = True
         recreating = False
         columnsInfo = list(sorted_countries)
-        create_db_table(recreating, cur, con, table_name, createTable_Countries, columnsInfo)
+        create_db_table(recreating, cur, con, table_name, fill_countries, columnsInfo)
 
+
+        def assign_country_to_teams():
+            # now we must set CountryID to teams objects
+            for team in teamsL:
+                # trySQLquery(cur.execute, "SELECT id FROM Countries WHERE name = %s", (team.getName(), ))
+                # country_id = cur.fetchone()[0]
+                teamCountry = team.getCountry()
+                country_ID = select_country_id(cur, teamCountry)
+                team.setCountryID(country_ID)
+
+        assign_country_to_teams()
 
         # CREATE TABLE TeamInfo
-        table_name = "TeamInfo"
+        table_name = "Team_Info"
         recreating = True
         recreating = False
         # create table if it doesn't exists or need recreating
         columnsInfo = (team_count, sorted_countries, teamsL)
-        create_db_table(recreating, cur, con, table_name, createTable_TeamInfo, columnsInfo )
+        create_db_table(recreating, cur, con, table_name, fill_TeamInfo, columnsInfo )
 
 
         # CREATE TABLE Tournaments
         table_name = "Tournaments"
         recreating = True
         recreating = False
-        tournament_ID = "ID"
+        # tournament_ID = "ID"
         tournament_name = "name"
         tournament_type = "type"
-        tournament_country = "country"
+        tournament_country = "id_country"
         # tournament_teams_count = "teams_count"
-        columnsInfo = (tournament_ID, tournament_name, tournament_type, tournament_country, sorted_countries)
-        create_db_table(recreating, cur, con, table_name, createTable_Tournaments, columnsInfo )
-
-
-        # UNNESECCARY!!!
-        # # CREATE TABLE RL_TeamCountries (relation between TeamInfo and Countries)
-        # isTeamCountry = True # NO CREATING
-        # if not isTeamCountry:
-        #     # # DROP AND RECREATE
-        #     # cur.execute('DROP TABLE RL_TeamCountries')
-        #     # print "DROP table Countries ok"
-        #     createTable_RL_TeamCountries(cur, con, team_count, countries)
-        # else:
-        #     print "%s is already exists" % table_name
-
-
+        columnsInfo = (tournament_name, tournament_type, tournament_country, sorted_countries)
+        create_db_table(recreating, cur, con, table_name, fill_tournaments, columnsInfo )
 
         # close connection to DB
         if con:
@@ -223,13 +240,27 @@ def tableExists(cur, table_name):
         sys.exit(1)
 
 
+def select_country_id(cur, country_name):
+    """
+    converts string name to id by using
+     select id from table "Countries"
+    :param country_name:
+    :return:
+    """
+    cur.execute("""SELECT id FROM Countries WHERE name = %s;""", (country_name, )) # ok
+    country_ID = cur.fetchone()[0]
+    return country_ID
+
+
 # def trySQLquery(cur, func, query, data = None):
 def trySQLquery(func, query, data = None):
     try:
-        # print query, data
+        # print "query = \n %s" % query, type(query)
+        # print "data = ", data
         return func(query, data)
 
     except db.DatabaseError, e:
+        print "error when executing trySQLquery"
         print e.pgerror.decode('utf8')
         sys.exit(1)
 #
@@ -242,45 +273,56 @@ def trySQLquery(func, query, data = None):
 #     # trySQLquery( query =  "INSERT INTO TeamInfo (team_ID, team_Name, team_RuName, countryID) VALUES (%s, %s, %s, %s);"
 #     #         data = (teamID, teamName, teamRuName, country_ID))
 
-def createTable_TeamInfo(cur, con, table_name, columnsInfo):
+def fill_TeamInfo(cur, con, table_name, columnsInfo):
     try:
         team_count, sorted_countries, teamsL = columnsInfo
+
         # cur.execute('CREATE TABLE %s('
-        #             'team_ID INTEGER PRIMARY KEY, '
-        #             'team_Name VARCHAR(30), '
-        #             'team_RuName VARCHAR(30), '
-        #             'countryID VARCHAR(3))' % table_name)
-        cur.execute('CREATE TABLE %s('
-            'team_ID INTEGER PRIMARY KEY, '
-            'team_Name VARCHAR(30), '
-            'team_RuName VARCHAR(30), '
-            'countryID VARCHAR(3),'
-            'team_emblem bytea)' % table_name)
+        #     'team_ID INTEGER PRIMARY KEY, '
+        #     'team_Name VARCHAR(30), '
+        #     'team_RuName VARCHAR(30), '
+        #     'countryID VARCHAR(3),'
+        #     'team_emblem bytea)' % table_name)
+        #
+        #
+        # print "create table %s ok" % table_name
 
-
-        print "create table %s ok" % table_name
         for ind in xrange(team_count):
             team = teamsL[ind]
-            teamID = ind+1
             teamName = util.unicode_to_str(team.getName())
-            teamRuName = team.getRuName()
+            # avoiding problem to "u witk points" in Bayern Munchen
+            teamName = util.unicode_to_str(team.getName()).replace("\'", "")
+            # teamRuName = team.getRuName()
+            teamRuName = util.unicode_to_str(team.getRuName())
             teamCountry = team.getCountry()
-            teamEmblem = open(DataParsing.EMBLEMS_STORAGE_FOLDER +  teamName + ".png", 'rb').read()
+            print teamName
+            if teamName == "College Europa FC":
+                teamEmblem = open(DataParsing.EMBLEMS_STORAGE_FOLDER +  "Europa FC" + ".png", 'rb').read()
+            else:
+                teamEmblem = open(DataParsing.EMBLEMS_STORAGE_FOLDER +  teamName + ".png", 'rb').read()
 
-            cur.execute("""SELECT country_ID FROM Countries WHERE country_name = %s;""", (teamCountry, )) # ok
-            country_ID = cur.fetchone()[0]
-            # TODO replace country by country_ID as attribute of Team class
+            # cur.execute("""SELECT id FROM Countries WHERE name = %s;""", (teamCountry, )) # ok
+            # country_ID = cur.fetchone()[0]
+            country_ID = team.getCountryID()
 
-            # create table
-            query =  "INSERT INTO TeamInfo (team_ID, team_Name, team_RuName, countryID, team_emblem) VALUES (%s, %s, %s, %s, %s);"
+            # fill table
+            # data = (table_name, str(teamName), teamRuName, country_ID, db.Binary(teamEmblem))
+            data = (table_name, str(teamName), teamRuName, country_ID)
+            # data = (table_name, str(teamName), country_ID)
+            # print data
+            # query =  "INSERT INTO %s (name, runame, id_country, team_emblem) VALUES ('%s', '%s', '%s', '%s');" % data
+            query =  "INSERT INTO %s (name, runame, id_country) VALUES ('%s', '%s', '%s');" % data
+            # query =  "INSERT INTO %s (name, id_country) VALUES ('%s', '%s');" % data
             # query =  "INSERT INTO TeamInfo (team_ID, team_Name, team_RuName, countryID) VALUES (%s, %s, %s, %s);"
 
             # use psycopg2.Binary(binary) from http://iamtgc.com/using-python-to-load-binary-files-into-postgres/
-            data = (teamID, teamName, teamRuName, country_ID, db.Binary(teamEmblem), )
+            # data = (str(table_name), teamName, teamRuName, country_ID, db.Binary(teamEmblem), )
             # data = (teamID, teamName, teamRuName, country_ID, teamEmblem, )
             # data = (teamID, unicode_to_str(teamName), unicode_to_str(teamRuName), country_ID)
             # print "insert data", data, "to table TeamInfo"
-            trySQLquery(cur.execute, query, data)
+            # trySQLquery(cur.execute, query, data)
+            trySQLquery(cur.execute, query)
+            con.commit()
 
         print "inserted %s rows to %s" % (team_count, table_name)
         con.commit()
@@ -290,7 +332,7 @@ def createTable_TeamInfo(cur, con, table_name, columnsInfo):
         sys.exit(1)
 
 
-def createTable_Countries(cur, con, table_name, sorted_countries):
+def fill_countries(cur, con, table_name, sorted_countries):
     try:
         # # CREATE TABLES
         # cur.execute('CREATE TABLE %s(\
@@ -304,7 +346,7 @@ def createTable_Countries(cur, con, table_name, sorted_countries):
         # INSERT TO TABLE Countries [table_name, team_count, sorted_countries]
         for ind, (country, teams_count) in enumerate(sorted_countries):
             # query =  "INSERT INTO %s (country_ID, country_name, teams_count) VALUES (%s, %s, %s);" % ("Countries", ind+1, country, teams_count)
-            query =  "INSERT INTO %s (country_ID, country_name, teams_count) VALUES ('%s', '%s', '%s');" % (table_name, ind+1, country, teams_count)
+            query =  "INSERT INTO %s (name, teams_count) VALUES ('%s', '%s');" % (table_name, country, teams_count)
             # data = (table_name, ind+1, country, teams_count)
             # print "insert data", data, "to table Countries"
             cur.execute(query)
@@ -316,10 +358,18 @@ def createTable_Countries(cur, con, table_name, sorted_countries):
         sys.exit(1)
 
 
-def createTable_Tournaments(cur, con, table_name, columnsInfo):#team_count, sorted_countries, teamsL):
+def fill_tournaments(cur, con, table_name, columnsInfo):#team_count, sorted_countries, teamsL):
+    """
+    fill all needed tournament info to database table
+    :param cur:
+    :param con:
+    :param table_name:
+    :param columnsInfo:
+    :return:
+    """
 # def createTable_Tournaments(cur, con, recreating, table_name, column_names):#team_count, sorted_countries, teamsL):
 
-    tournament_ID, tournament_name, tournament_type, tournament_country, sorted_countries = columnsInfo
+    tournament_name, tournament_type, tournament_country, sorted_countries = columnsInfo
 
     # query = 'CREATE TABLE %s(\
     #                 %s INTEGER PRIMARY KEY,\
@@ -333,39 +383,52 @@ def createTable_Tournaments(cur, con, table_name, columnsInfo):#team_count, sort
 
     # columns = (tournament_ID, tournament_name, tournament_type, tournament_country)
     # INSERT TO TABLE Tournaments
-    def insert_tournament_to_DB_table(t_id, t_name, t_type, t_country, t_teams_num):
-        query =  "INSERT INTO %s (%s, %s, %s, %s, %s) VALUES ('%s', '%s', '%s', '%s');" % \
-                 (table_name,
-                  tournament_ID, tournament_name, tournament_type, tournament_country,
-                  t_id, t_name, t_type, t_country, t_teams_num)
+    def insert_tournament_to_DB_table(t_name, t_type, t_country = None):#, t_teams_num):
+        # for national tournaments
+        if t_country:
+            query =  "INSERT INTO %s (%s, %s, %s) VALUES ('%s', '%s', '%s');" % \
+                     (table_name,
+                      tournament_name, tournament_type, tournament_country,
+                      t_name, t_type, t_country) #t_teams_num)
+        # for international tournaments
+        else:
+            query =  "INSERT INTO %s (%s, %s) VALUES ('%s', '%s');" % \
+                     (table_name,
+                      tournament_name, tournament_type,
+                      t_name, t_type)
+        # print tournament_name, tournament_type, tournament_country, t_name, t_type, t_country
         trySQLquery(cur.execute, query)
+        con.commit()
 
-    t_id = 0
     t_name = "UEFA Champions League" # error was because of %s instead of '%s' in SQL-query
-    t_type = "UEFA_Champ_L"
-    t_country = "UEFA" # international
+    t_type = "UEFA_CL"
+    # t_country = "UEFA" # international
     # t_pteams = 32
     t_teams_num = 77
-    insert_tournament_to_DB_table(t_id, t_name, t_type, t_country, t_teams_num)
+    # insert_tournament_to_DB_table(t_name, t_type, t_country)#, t_teams_num)
+    insert_tournament_to_DB_table(t_name, t_type)#, t_teams_num)
 
-    t_id += 1
     t_name = "UEFA Europa League" # error was because of %s instead of '%s' in SQL-query
-    t_type = "UEFA_Euro_L"
+    t_type = "UEFA_EL"
     t_teams_num = 195
-    insert_tournament_to_DB_table(t_id, t_name, t_type, t_country, t_teams_num)
+    insert_tournament_to_DB_table(t_name, t_type)#, t_teams_num)
+    # insert_tournament_to_DB_table(t_name, t_type, t_country)#, t_teams_num)
 
-    def gen_national_tournaments(start_id, t_type):
-        t_id = int(start_id)
-        for ind, (t_country, teams_count) in enumerate(sorted_countries):
-            t_id += 1
+    def gen_national_tournaments(t_type):
+        counter = 0
+        for t_country, teams_count in sorted_countries:
             t_name = t_country + " " + t_type
-            insert_tournament_to_DB_table(t_id, t_name, t_type, t_country, teams_count)
-        return t_id
+            country_ID = select_country_id(cur, t_country)
+            # insert_tournament_to_DB_table(t_name, t_type, t_country)#, teams_count)
+            insert_tournament_to_DB_table(t_name, t_type, country_ID)#, teams_count)
+            counter += 1
+        return counter
 
-    t_id = gen_national_tournaments(t_id, "League")
-    t_id = gen_national_tournaments(t_id, "Cup")
+    counter = 2
+    counter += gen_national_tournaments("League")
+    counter += gen_national_tournaments("Cup")
 
-    print "inserted %s rows to %s" % (t_id+1, table_name)
+    print "inserted %s rows to %s" % (counter, table_name)
 
     con.commit()
 
@@ -373,7 +436,7 @@ def createTable_Tournaments(cur, con, table_name, columnsInfo):#team_count, sort
 
 def TestStorage(storage, teamsL):
     if storage == "Excel":
-        excelFilename = "Rating.xls"
+        excelFilename = "initial rating.xls"
         # # read from Excel table (create it if not exists)
         # teamsL = createTeamsFromExcelTable(teamsL, excelFilename)
         createExcelTable(excelFilename, teamsL)
@@ -390,12 +453,19 @@ def TestStorage(storage, teamsL):
 
 if __name__ == "__main__":
     # @util.timer
-    def Test():
+    def Test(data_source):
         print "DataStoring Test\n"
         # create teams list
-        teamsL = DataParsing.createTeamsFromHTML()
-        # teamsL = DataParsing.createTeamsFromHTML("creating")
-        # DataParsing.printParsedTable(teamsL)
+        if data_source == "actual":
+            teamsL = DataParsing.createTeamsFromHTML()
+            # teamsL = DataParsing.createTeamsFromHTML("creating")
+        elif data_source == "may 2015":
+            # collect data from previously saved ratings
+            teamsL = createTeamsFromExcelTable()
+        else:
+            raise Exception, "unknown argument to test function! Use \"actual\" to download info from UEFA site" \
+                             " or \"may 2015\" to use fixed stored data"
+        DataParsing.printParsedTable(teamsL)
 
         # STORAGES = ["Postgre", "Excel"]
         STORAGES = ["Postgre"]
@@ -411,4 +481,4 @@ if __name__ == "__main__":
 
         print time.time() - start_time - delays
 
-    Test()
+    Test("may 2015")

@@ -30,7 +30,8 @@ class Cup(League):
         :return:
         """
         # super(self.__class__, self).__init__(name, season, members, delta_coefs)#(self, name, season, members, delta_coefs)
-        super(Cup, self).__init__(name, season, members, delta_coefs, state_params)#(self, name, season, members, delta_coefs)
+        # super(Cup, self).__init__(name, season, members, delta_coefs, state_params)#(self, name, season, members, delta_coefs)
+        super(Cup, self).__init__(name, season, members, delta_coefs, pair_mode, seeding, state_params)
         self.pair_mode = pair_mode
 
         # self.results - empty list. after run() it will be filled as following:
@@ -97,7 +98,7 @@ class Cup(League):
         """
         return (
             "David&Goliaf", # in every round first index of remaining teams - with las index of remaining teams
-            "rnd", # first index of remaining teams - with random choise of the rest rem.teams
+            "rnd", # first index of remaining teams - with random choice of the rest rem.teams
             # "A1_B16" # hardcoded rule: winner of pair A1-B16 will play with winner of A16-B1 and etc. # TODO implement
         )
 

@@ -1,5 +1,6 @@
-__author__ = 'NereWARin'
+# !/usr/bin/python
 # -*- coding: utf-8 -*-
+__author__ = 'NereWARin'
 
 """
 HTML parse

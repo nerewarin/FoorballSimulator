@@ -7,15 +7,26 @@ from Cups import Cup
 import util
 from Leagues import League, TeamResult
 import Match as M
-from values import Coefficients as C
+from values import Coefficients as C, TournamentSchemas as schemas
 from operator import attrgetter, itemgetter
 import random
 import time
 import os
 import warnings
+# from DataStoring import trySQLquery, connectDB
+# TODO func here aboid importing - delete it if DB is installed on executable env
+def trySQLquery(a,b,c):
+    return a
 
-class UEFA_Champ_L(Cup):
-    def __init__(self, name, season, members, delta_coefs, schema, pair_mode = 1, state_params = ("final_stage", )):
+def connectDB(a="",b="",c="",d=""):
+    return a,cur()
+
+class cur():
+    def execute(self):
+        return None
+
+class UEFA_League(Cup):
+    def __init__(self, name, season, members, delta_coefs, pair_mode, seeding, state_params = ("final_stage", )):
         """
         UEFA_Champ_L is a tournament, implemented as three tournaments:
         Qualification Cup, Group League, Play-Off Cup.
@@ -32,8 +43,12 @@ class UEFA_Champ_L(Cup):
         :return:
         """
 
-        super(Cup, self).__init__(name, season, members, delta_coefs, state_params)#(self, name, season, members, delta_coefs)
-        self.pair_mode = pair_mode
+        self.seeding = seeding
+        self.setMembers()
+        self.members = self.getMember()
+
+        super(Cup, self).__init__(name, season, self.members, delta_coefs, state_params)#(self, name, season, members, delta_coefs)
+
 
         # self.results - empty list. after run() it will be filled as following:
         # [team_champion, team_finished_in_final, teams_finished_in_semi-final, ... , teams_finished_in_qualRoundn, ...
@@ -46,8 +61,88 @@ class UEFA_Champ_L(Cup):
             self.results.append(L.TeamResult(member, state).get4table())
         # print "self.results", self.results
         # initialize net
-        self.net = "not implemented yet"
+        # self.net = "not implemented yet"
+        self.net = {}
         self.round_names = "not computed" # TODO make branch: get from params (if external scheme exists) OR compute in run()
+
+
+    def setMembers(self):
+        """
+        defines members for every round
+        convert indexes of countries, from what championships members are getting, to indexes of self.members for every team
+
+        :return:
+        """
+        con, cur = connectDB()
+        self.members = []
+        # define only those members, that are independent of results in
+        self.members_by_round = []
+
+        # parsing stored in schema values
+        self.stages = []
+
+        for stage in self.seeding:
+            # print stage
+            stage_members = []
+            for stage_name, stageV in stage.iteritems():
+                print "stage_name %s" %stage_name
+                # print stage_name, stageV
+                for attrK, attrV in stageV.iteritems():
+                    print "attrK, attrV", attrK, attrV
+                    # if isinstance(attrV, list):
+                    if attrK == "tourn_type":
+                        stage_type = attrV
+                        # print "tourn_type = ", attrV
+                    elif attrK == "pair_mode":
+                        stage_pair_mode = attrV
+                    elif attrK == "tindx_in_round":
+                        print attrK, "... (contains external members, not added from previous round"
+                        for round in attrV:
+                            # pass
+                            for roundname, members_schema in round.iteritems():
+                                print "round = %s" % roundname#, members_schema
+                                for members_source, pos in members_schema.iteritems():
+                                    print members_source, pos
+                                    if isinstance(members_source, tuple):
+                                        print "From country"
+                                        for country_id in members_source:
+                                            # TODO select pos from Tournaments type = League national = country_id of current season
+                                            query = "SELECT ... "
+                                            data = ""
+                                            team = trySQLquery(cur.execute, query, data)
+                                            stage_members.append(team)
+                                    # elif isinstance(members_source, str) and members_source == "CL":
+                                    elif members_source == "CL":
+                                        # get 3 / 4 round / group loosers
+                                        # TODO select from Tournaments type = CL national = international, round looser = pos (get from CL results) of current season
+                                        pass
+
+                            # print round
+                            # for where, pos in round:
+                            #     print where, pos
+                            # # print roundname #, roundmembers
+                    else:
+
+                        print attrK, attrV
+                # print  "stage_type__" , stage_type
+                if not stage_type:
+                    raise Exception, "undefined stage_type"
+                if not stage_pair_mode:
+                    raise Exception, "undefined stage_pair_mode"
+                self.stages.append((stage_name, stage_type, stage_pair_mode))
+
+            if roundname:
+                print roundname
+            # round = stage_name + roundname
+            self.members_by_round.append(stage_members)
+
+    def run(self, print_matches = False):
+        for stage in self.stages:
+            stage_name, stage_type, stage_pair_mode = stage
+            print stage
+
+
+
 
     def test(self, print_matches = False, print_ratings = False):
         print "\nTEST CUP CLASS\n"
@@ -97,7 +192,7 @@ if __name__ == "__main__":
         # TEST CUP CLASS
         if "ChL" in args:
 
-            schema =
+            # schema =
             # for seeding in Cup.getSeedings(Cup):
             #     print seeding
             # pair_mode = 0 # one match
@@ -111,17 +206,17 @@ if __name__ == "__main__":
             # print_ratings = True
 
             s =  Cup("no Cup, just getSeedings", "", teams, coefs, pair_mode)
-            seedings = s.getSeedings()
+            # seedings = s.getSeedings()
             # print "seedings", seedings
-            for seeding in seedings:
-                # print seeding , "seeding"
-                # print "teams, coefs, pair_mode, seeding", teams, coefs, pair_mode, seeding
-                tstcp = Cup("test UEFA Champions league", "2015/2016", teams, coefs, pair_mode, seeding)
-                tstcp.test(print_matches, print_ratings)
+
+            # seeding schema schemas().get_CL_schema()
+            seeding = schemas().get_CL_schema()
+            tstcp = UEFA_League("test UEFA Champions league", "2015/2016", teams, coefs, pair_mode, seeding)
+            # tstcp.test(print_matches, print_ratings)
             # # Cup("testCup", "2015/2016", teams, coefs, pair_mode).run()
 
 
-    Test("ChL", team_num = 100)
+    Test("ChL", team_num = 300)
 
 
 

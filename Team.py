@@ -14,12 +14,13 @@ class Team():
     """
     represents team
     """
-    def __init__(self, name, country, rating, ruName, uefaPos):
+    def __init__(self, name, country, rating, ruName, uefaPos, countryID):
         self.name = name
         self.country = country
         self.rating = rating
         self.ruName = ruName
         self.uefaPos = uefaPos
+        self.countryID = countryID
         self.methods = ["getUefaPos", "getName", "getRuName", "getCountry", "getRating"]
 
     def __str__(self):
@@ -37,6 +38,9 @@ class Team():
     def getCountry(self):
         return self.country
 
+    def getCountryID(self):
+        return self.countryID
+
     def getRating(self):
         """
         points in UEFA rating table
@@ -48,6 +52,16 @@ class Team():
 
     def setRating(self, rating):
         self.rating = rating
+
+    def setCountryID(self, countryID):
+        """
+        first, teams are created with empty country_ID
+        then, table of DB "Countries" is created where country_ID are born
+        and then they can be assigned to teams
+        :param countryID:
+        :return:
+        """
+        self.countryID = countryID
 
     def attrib(self, func_index):
         return getattr(self, self.methods[func_index])
