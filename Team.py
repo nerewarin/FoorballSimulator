@@ -14,13 +14,14 @@ class Team():
     """
     represents team
     """
-    def __init__(self, name, country, rating, ruName, uefaPos, countryID):
+    def __init__(self, name, country, rating, ruName, uefaPos, countryID, UEFAratings = []):
         self.name = name
         self.country = country
         self.rating = rating
         self.ruName = ruName
         self.uefaPos = uefaPos
         self.countryID = countryID
+        self.last_ratings = UEFAratings
         self.methods = ["getUefaPos", "getName", "getRuName", "getCountry", "getRating"]
 
     def __str__(self):
@@ -47,10 +48,15 @@ class Team():
         """
         return self.rating
 
+    def getLast5Ratings(self):
+        return self.last_ratings
+
     def getRuName(self):
         return self.ruName
 
     def setRating(self, rating):
+        print "RATING WAS UPDATED!!!!!!!!"
+        # TODO after every season i should shift actual rating to previous and so on
         self.rating = rating
 
     def setCountryID(self, countryID):

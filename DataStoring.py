@@ -16,27 +16,44 @@ import django
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import os, operator, sys, time, warnings
 
+
+# CONSTANTS
+TEAMINFO_TABLENAME = "Team_Info"
+SEASONS_TABLENAME = "seasons"
+TEAM_RATINGS_TABLENAME = "team_ratings"
+COUNTRY_RATINGS_TABLENAME = "country_ratings"
+
 # CREATE EXCEL TABLE
-def createExcelTable(filename, teamsL):
+def createExcelTable(filename, teamsL, overwrite = False):
     # create Excel table, if not exists
     if os.path.isfile(filename):
-         print "initial xls was already created, see", filename
-         return
+        if overwrite:
+            print "overwritting %s" % filename
+        else:
+            print "initial xls was already created, see", filename
+            return
 
     print "creating Excel Table", filename
     book = xlwt.Workbook(encoding="utf-8")
 
     sheet1 = book.add_sheet("Sheet 1")
 
-    headers = ["№", "teamName", "ruName", "country", "rating 2014/2015"]
+    headers = ["№", "teamName", "ruName", "country", "rating 2014/2015", "10/11", "11/12", "12/13", "13/14", "14/15"]
     # attributes = ["getName", "getCountry", "getRating", "getRuName"]
 
     for j, header in enumerate(headers):
         # print 0, j, header
         sheet1.write(0, j, header)
     for i, team  in enumerate(teamsL):
+        last_ratings = team.getLast5Ratings()
         for j in range(len(headers)):
-            sheet1.write(i+1, j, team.attrib(j)())
+            if j > 4:
+                data = last_ratings.pop()
+            else:
+                data = team.attrib(j)()
+            sheet1.write(i+1, j, data)
+        #TODO add info about the last 5 season ratings of every team and country
+
 
     book.save(filename)
 
@@ -171,7 +188,7 @@ def createDB(teamsL, storage = "Postgre"):
             print
 
 
-        # TODO DANGEROUS SECTION
+        # TODO REMEMBER ABOUT DANGEROUS SECTION BELOW, THAT DELETES ALL ROWS IN ALL TABLES AND RECREATES ALL
         print "\nCLEARING ALL ROWS OF Countries, Team_Info, Tournaments"
         # trySQLquery(cur.execute, 'DELETE FROM %s' % "Team_Info")
         # trySQLquery(cur.execute, 'TRUNCATE \'%s\', \'%s\', \'%s\' RESTART IDENTITY', ("Team_Info", "Countries", "Tournaments"))
@@ -189,21 +206,18 @@ def createDB(teamsL, storage = "Postgre"):
         def assign_country_to_teams():
             # now we must set CountryID to teams objects
             for team in teamsL:
-                # trySQLquery(cur.execute, "SELECT id FROM Countries WHERE name = %s", (team.getName(), ))
-                # country_id = cur.fetchone()[0]
                 teamCountry = team.getCountry()
-                country_ID = select_country_id(cur, teamCountry)
+                country_ID = get_country_id(cur, teamCountry)
                 team.setCountryID(country_ID)
 
         assign_country_to_teams()
 
         # CREATE TABLE TeamInfo
-        table_name = "Team_Info"
         recreating = True
         recreating = False
         # create table if it doesn't exists or need recreating
         columnsInfo = (team_count, sorted_countries, teamsL)
-        create_db_table(recreating, cur, con, table_name, fill_TeamInfo, columnsInfo )
+        create_db_table(recreating, cur, con, TEAMINFO_TABLENAME, fill_TeamInfo, columnsInfo )
 
 
         # CREATE TABLE Tournaments
@@ -218,6 +232,29 @@ def createDB(teamsL, storage = "Postgre"):
         columnsInfo = (tournament_name, tournament_type, tournament_country, sorted_countries)
         create_db_table(recreating, cur, con, table_name, fill_tournaments, columnsInfo )
 
+
+        # FILL TEAMS AND COUNTRIES RATINGS FROM PREVIOUSLY PLAYED SEASONS
+        seasons = []
+        year = 2014
+        initial_seasons = 5
+        for ind in range(initial_seasons):
+            season = str(year) + "/" + str(year+1)
+            year -= 1
+            # print "ses", season
+            seasons.append(season)
+
+        seasons = reversed(seasons)
+        save_ratings(con, cur, seasons, teamsL)
+
+        # # TODO check normalized sum of teams rating equals country_rating in every season
+        # for country_name, teams_count in sorted_countries:
+        #     country_ID = get_country_id(cur, country_name)
+        #     print "country_ID", country_ID
+        #     # teams_of_country =
+        #     # actual_rating = select from
+        #     cur.execute("""SELECT %s FROM %s WHERE name = %s;""", (actual_rating, TEAMINFO_TABLENAME, country_name, )) # ok
+        #     country_ID = cur.fetchall()
+
         # close connection to DB
         if con:
             con.close()
@@ -225,14 +262,12 @@ def createDB(teamsL, storage = "Postgre"):
         if cur:
             cur.close()
 
+
 # def exists(cur, table_name, dbname, schema):
 def tableExists(cur, table_name):
    try:
         cur.execute("select exists(select * from information_schema.tables where table_name=%s)", (table_name.lower(),))
         isTeamInfo = cur.fetchone()[0]
-        # another way
-        # cur.execute("select * from information_schema.tables where table_name=%s", (table_name.lower(),))
-        # isTeamInfo = bool(cur.rowcount)
         return isTeamInfo
 
    except db.DatabaseError, e:
@@ -240,7 +275,7 @@ def tableExists(cur, table_name):
         sys.exit(1)
 
 
-def select_country_id(cur, country_name):
+def get_country_id(cur, country_name):
     """
     converts string name to id by using
      select id from table "Countries"
@@ -251,6 +286,19 @@ def select_country_id(cur, country_name):
     country_ID = cur.fetchone()[0]
     return country_ID
 
+def get_id_from_value(cur, table_name, column, value):
+    """
+    converts value to id
+    :param cur:
+    :param table:
+    :param column:
+    :param value:
+    :return:
+    """
+    print "table_name, column, value =", table_name, column, value
+    cur.execute("""SELECT id FROM %s WHERE %s = '%s';""", (table_name, column, value)) # ok
+    id = cur.fetchone()[0]
+    return id
 
 # def trySQLquery(cur, func, query, data = None):
 def trySQLquery(func, query, data = None):
@@ -263,39 +311,87 @@ def trySQLquery(func, query, data = None):
         print "error when executing trySQLquery"
         print e.pgerror.decode('utf8')
         sys.exit(1)
-#
-# def saveData(table, data):
-#     query =  "INSERT INTO %s (team_ID, team_Name, team_RuName, countryID) VALUES (%s, %s, %s, %s);"
-#     data = (table, teamID, teamName, teamRuName, data)
-#     # # data = (teamID, unicode_to_str(teamName), unicode_to_str(teamRuName), country_ID)
-#     # print "insert data", data, "to table TeamInfo"
-#     # trySQLquery(cur.execute, query, data)
-#     # trySQLquery( query =  "INSERT INTO TeamInfo (team_ID, team_Name, team_RuName, countryID) VALUES (%s, %s, %s, %s);"
-#     #         data = (teamID, teamName, teamRuName, country_ID))
+
+def save_ratings(con, cur, seasons, teamsL):
+    """
+
+    :param con: connection
+    :param cur: cursor
+    :param seasons:
+    :param teamsL:
+    :return:
+    """
+    print "save ratings for seasons", seasons
+
+    last5ratings = [team.getLast5Ratings() for team in teamsL]
+    print "last5ratings", last5ratings
+
+    # FILL SEASON NAMES
+    for ind, season in enumerate(seasons):
+        print "season", season
+
+        # DONE
+        # if want to fill again, use truncate before it
+        # fill_season(con, cur, season)
+
+        ratings = [team_ratings[ind] for team_ratings in last5ratings]
+        fill_countries_ratings(con, cur, season, teamsL, ratings)
+        # TODO countries and teams REATINGS
+        # use data pparsing new functions!
+
+
+def fill_season(con, cur, season):
+    """
+    add new row (id-name) to SEASONS_TABLENAME
+    :param con:
+    :param cur:
+    :param season:
+    :return:
+    """
+    data = (SEASONS_TABLENAME, season)
+    trySQLquery(cur.execute, "INSERT INTO %s (name) VALUES ('%s');" % data)
+    con.commit()
+
+def fill_countries_ratings(con, cur, season, teamsL, ratings):
+    """
+    add new row to
+    :param con:
+    :param cur:
+    :param season:
+    :return:
+    """
+    # TODO compute country rating and position
+    # print "table_name, column, value =", table_name, column, value
+    # it not works i dont know why
+    # id_season = get_id_from_value(cur, SEASONS_TABLENAME, "name", season)
+    # it works
+    cur.execute("""SELECT id FROM seasons WHERE name = %s;""", (str(season),)) # ok
+    id_season = cur.fetchone()[0]
+
+    # TODO its coll for team_ratoings! for country_ratings we need smth else
+    teams = len(teamsL)
+    for ind in range(teams):
+        team_id = ind + 1
+        rating = ratings[ind]
+        print "id_season" , id_season, "team_id", team_id, "rating", rating
+
+    # data = (COUNTRY_RATINGS_TABLENAME, id_season, id_country, rating, position)
+    # trySQLquery(cur.execute, "INSERT INTO %s (id_season, id_country, rating, position) VALUES ('%s', '%s','%s','%s');" % data)
+    # con.commit()
+
 
 def fill_TeamInfo(cur, con, table_name, columnsInfo):
     try:
         team_count, sorted_countries, teamsL = columnsInfo
 
-        # cur.execute('CREATE TABLE %s('
-        #     'team_ID INTEGER PRIMARY KEY, '
-        #     'team_Name VARCHAR(30), '
-        #     'team_RuName VARCHAR(30), '
-        #     'countryID VARCHAR(3),'
-        #     'team_emblem bytea)' % table_name)
-        #
-        #
-        # print "create table %s ok" % table_name
-
         for ind in xrange(team_count):
             team = teamsL[ind]
-            teamName = util.unicode_to_str(team.getName())
-            # avoiding problem to "u witk points" in Bayern Munchen
+            # teamName = util.unicode_to_str(team.getName())
+            # avoiding problem with "'s" in Saint Patrick's Athletic FC
             teamName = util.unicode_to_str(team.getName()).replace("\'", "")
             # teamRuName = team.getRuName()
             teamRuName = util.unicode_to_str(team.getRuName())
             teamCountry = team.getCountry()
-            print teamName
             if teamName == "College Europa FC":
                 teamEmblem = open(DataParsing.EMBLEMS_STORAGE_FOLDER +  "Europa FC" + ".png", 'rb').read()
             else:
@@ -334,20 +430,9 @@ def fill_TeamInfo(cur, con, table_name, columnsInfo):
 
 def fill_countries(cur, con, table_name, sorted_countries):
     try:
-        # # CREATE TABLES
-        # cur.execute('CREATE TABLE %s(\
-        #             country_ID INTEGER PRIMARY KEY,\
-        #             country_name VARCHAR(3),\
-        #             teams_count INTEGER\
-        #             )' % table_name)
-        # print "create table Countries ok"
-        # con.commit()
-
         # INSERT TO TABLE Countries [table_name, team_count, sorted_countries]
         for ind, (country, teams_count) in enumerate(sorted_countries):
-            # query =  "INSERT INTO %s (country_ID, country_name, teams_count) VALUES (%s, %s, %s);" % ("Countries", ind+1, country, teams_count)
             query =  "INSERT INTO %s (name, teams_count) VALUES ('%s', '%s');" % (table_name, country, teams_count)
-            # data = (table_name, ind+1, country, teams_count)
             # print "insert data", data, "to table Countries"
             cur.execute(query)
         print "inserted %s rows to %s" % (len(sorted_countries), table_name)
@@ -367,21 +452,8 @@ def fill_tournaments(cur, con, table_name, columnsInfo):#team_count, sorted_coun
     :param columnsInfo:
     :return:
     """
-# def createTable_Tournaments(cur, con, recreating, table_name, column_names):#team_count, sorted_countries, teamsL):
-
     tournament_name, tournament_type, tournament_country, sorted_countries = columnsInfo
 
-    # query = 'CREATE TABLE %s(\
-    #                 %s INTEGER PRIMARY KEY,\
-    #                 %s VARCHAR(30),\
-    #                 %s VARCHAR(15),\
-    #                 %s VARCHAR(4), \
-    #                 %s INTEGER)' % (table_name, tournament_ID, tournament_name, tournament_type, tournament_country, tournament_teams_num)
-    #                 # %s VARCHAR(3))" % (table_name, column_names[0], column_names[1], column_names[2], column_names[3])
-    # trySQLquery(cur.execute, query)
-    # print "create table %s ok" % table_name
-
-    # columns = (tournament_ID, tournament_name, tournament_type, tournament_country)
     # INSERT TO TABLE Tournaments
     def insert_tournament_to_DB_table(t_name, t_type, t_country = None):#, t_teams_num):
         # for national tournaments
@@ -390,7 +462,7 @@ def fill_tournaments(cur, con, table_name, columnsInfo):#team_count, sorted_coun
                      (table_name,
                       tournament_name, tournament_type, tournament_country,
                       t_name, t_type, t_country) #t_teams_num)
-        # for international tournaments
+        # for international tournaments (all but country_ID will be inserted)
         else:
             query =  "INSERT INTO %s (%s, %s) VALUES ('%s', '%s');" % \
                      (table_name,
@@ -400,6 +472,7 @@ def fill_tournaments(cur, con, table_name, columnsInfo):#team_count, sorted_coun
         trySQLquery(cur.execute, query)
         con.commit()
 
+    counter = 0 # just for printing
     t_name = "UEFA Champions League" # error was because of %s instead of '%s' in SQL-query
     t_type = "UEFA_CL"
     # t_country = "UEFA" # international
@@ -407,24 +480,25 @@ def fill_tournaments(cur, con, table_name, columnsInfo):#team_count, sorted_coun
     t_teams_num = 77
     # insert_tournament_to_DB_table(t_name, t_type, t_country)#, t_teams_num)
     insert_tournament_to_DB_table(t_name, t_type)#, t_teams_num)
+    counter += 1
 
     t_name = "UEFA Europa League" # error was because of %s instead of '%s' in SQL-query
     t_type = "UEFA_EL"
     t_teams_num = 195
     insert_tournament_to_DB_table(t_name, t_type)#, t_teams_num)
     # insert_tournament_to_DB_table(t_name, t_type, t_country)#, t_teams_num)
+    counter += 1
 
     def gen_national_tournaments(t_type):
         counter = 0
         for t_country, teams_count in sorted_countries:
             t_name = t_country + " " + t_type
-            country_ID = select_country_id(cur, t_country)
+            country_ID = get_country_id(cur, t_country)
             # insert_tournament_to_DB_table(t_name, t_type, t_country)#, teams_count)
             insert_tournament_to_DB_table(t_name, t_type, country_ID)#, teams_count)
             counter += 1
         return counter
 
-    counter = 2
     counter += gen_national_tournaments("League")
     counter += gen_national_tournaments("Cup")
 
@@ -434,12 +508,12 @@ def fill_tournaments(cur, con, table_name, columnsInfo):#team_count, sorted_coun
 
 
 
-def TestStorage(storage, teamsL):
+def TestStorage(storage, teamsL, overwrite = False):
     if storage == "Excel":
         excelFilename = "initial rating.xls"
         # # read from Excel table (create it if not exists)
         # teamsL = createTeamsFromExcelTable(teamsL, excelFilename)
-        createExcelTable(excelFilename, teamsL)
+        createExcelTable(excelFilename, teamsL, overwrite)
         teamsL = createTeamsFromExcelTable(excelFilename)
         DataParsing.printParsedTable(teamsL)
 
@@ -456,10 +530,10 @@ if __name__ == "__main__":
     def Test(data_source):
         print "DataStoring Test\n"
         # create teams list
-        if data_source == "actual":
+        if data_source == "HTML":
             teamsL = DataParsing.createTeamsFromHTML()
             # teamsL = DataParsing.createTeamsFromHTML("creating")
-        elif data_source == "may 2015":
+        elif data_source == "Excel":
             # collect data from previously saved ratings
             teamsL = createTeamsFromExcelTable()
         else:
@@ -468,8 +542,11 @@ if __name__ == "__main__":
         DataParsing.printParsedTable(teamsL)
 
         # STORAGES = ["Postgre", "Excel"]
+        # STORAGES = ["Excel"]
         STORAGES = ["Postgre"]
         # DELAY_TIME = 1.5 # sec
+        OVERWRITE = True
+
         DELAY_TIME = 0
         delays = 0
         start_time = time.time()
@@ -477,8 +554,10 @@ if __name__ == "__main__":
             print "\nTest storage_type = %s" % storage_type
             time.sleep(DELAY_TIME)
             delays += DELAY_TIME
-            TestStorage(storage_type, teamsL)
+            TestStorage(storage_type, teamsL, OVERWRITE)
 
         print time.time() - start_time - delays
 
-    Test("may 2015")
+    data_source = "HTML"
+    # data_source = "Excel"
+    Test(data_source)

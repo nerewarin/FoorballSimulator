@@ -13,9 +13,29 @@ import urllib, sys, os
 
 EMBLEMS_STORAGE_FOLDER = "resourses/images/team_emblems/"
 
-def createTeamsFromHTML(mode = "creating"):
-    UEFA_club_ratingRU = "http://ru.uefa.com/memberassociations/uefarankings/club/"
-    UEFA_club_ratingEN = "http://www.uefa.com/memberassociations/uefarankings/club/"
+def createTeamsFromHTML(season = "2014/2015", mode = "creating"):
+    """
+    parses UEFA site, stores all data to list of Team object (every object stores name, rating, country, uefa_pos)
+    :param mode:
+    :return:
+    """
+
+    if season == "actual":
+        UEFA_club_ratingRU = "http://ru.uefa.com/memberassociations/uefarankings/club/"
+        UEFA_club_ratingEN = "http://www.uefa.com/memberassociations/uefarankings/club/"
+
+    elif "20" in season:
+        last_year = season.split("/")[1]
+        UEFA_club_ratingRU = "http://ru.uefa.com/memberassociations/uefarankings/club/season=%s/index.html" % last_year
+        UEFA_club_ratingEN = "http://www.uefa.com/memberassociations/uefarankings/club/season=%s/index.html" % last_year
+        # for example if season = "2014/2015"
+        # UEFA_club_ratingRU = "http://ru.uefa.com/memberassociations/uefarankings/club/season=2015/index.html"
+        # UEFA_club_ratingEN = "http://www.uefa.com/memberassociations/uefarankings/club/season=2015/index.html"
+
+
+    else:
+        raise Exception, "season must contains \"20\" like \"2014/2015\" or be \"actual\""
+
     UEFAsiteEN = html.parse(UEFA_club_ratingEN)
     UEFAsiteRU = html.parse(UEFA_club_ratingRU)
     rows_xpathEN = UEFAsiteEN.xpath("//table[@id=\"clubrank\"]/tbody/tr")
@@ -28,9 +48,9 @@ def createTeamsFromHTML(mode = "creating"):
     team_xpath2 = "td[1]/span[3]/span[2]"
     country_xpath = "td[2]"
     UEFArating_xpath = "td[8]"
+    td_last_rating = 7 # "td[7]"
     team_emblem_xpath1 = "td[1]/span[3]/span/a/img/@src"
     team_emblem_xpath2 = "td[1]/span[3]/span[1]/img/@src"
-
 
     # MAKE DICT OF TEAMS (teamsD)
     teamsD = {}
@@ -43,7 +63,7 @@ def createTeamsFromHTML(mode = "creating"):
         try:
             teamName = tr.xpath(team_xpath1).pop().text_content()
             team_emblem_src   = tr.xpath( team_emblem_xpath1 ).pop()
-        except IndexError: # special for Betis
+        except IndexError: # special for Betis - is has special format on UEFA site
             teamName = tr.xpath(team_xpath2).pop().text_content()
             team_emblem_src   = tr.xpath( team_emblem_xpath2 ).pop()
         # fix error from site
@@ -55,6 +75,20 @@ def createTeamsFromHTML(mode = "creating"):
 
         teamName = teamName.replace("/", "-") # "/" is unsupported symbol for filename in windows
         country = tr.xpath(country_xpath).pop().text_content()
+        UEFArating = float(tr.xpath( UEFArating_xpath ).pop().text_content())
+
+        # list of team ratings for last 5 seasons
+        UEFAratings   = [float(tr.xpath( "td[%s]" % (td_last_rating - ind) ).pop().text_content()) for ind in range(5)]
+        # # actual = 0
+        # # for season_rating in UEFAratings
+        # #     actual += float(season_rating)
+        # print "teamName", util.unicode_to_str(teamName)
+        # print "UEFAratings", UEFAratings
+        # print "sum of         ", sum(UEFAratings)
+        # print "check from site", UEFArating
+        tolerance = 0.1
+        assert (UEFArating - tolerance) < sum(UEFAratings) or (UEFArating + tolerance) > sum(UEFAratings), "unequal!"
+
         UEFArating   = tr.xpath( UEFArating_xpath ).pop().text_content()
         UEFAposition = tr.xpath( UEFApos_xpath ).pop().text_content()
 
@@ -76,8 +110,8 @@ def createTeamsFromHTML(mode = "creating"):
         # print str(i + 1) + ". " + teamName + " " + country + " " + UEFArating
 
         # create teams
-
-        teamObj = Team.Team(teamName, country, UEFArating, ruName, UEFAposition)
+        country_ID = None
+        teamObj = Team.Team(teamName, country, UEFArating, ruName, UEFAposition, country_ID, UEFAratings)
         teamsD[teamName] = teamObj
         teamsL.append(teamObj)
 
@@ -93,6 +127,7 @@ def createTeamsFromHTML(mode = "creating"):
 def printParsedTable(teamsL):
     for i, team in enumerate(teamsL):
         print str(i+1) + ".", util.unicode_to_str(team.getName()), "(" + team.getRuName() + ")" , team.getCountry(), team.getRating()
+
 
 
 
