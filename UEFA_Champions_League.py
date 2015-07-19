@@ -14,7 +14,6 @@ import time
 import os
 import warnings
 
-
 class UEFA_Champ_L(Cup):
     def __init__(self, name, season, members, delta_coefs, schema, pair_mode = 1, state_params = ("final_stage", )):
         """
@@ -33,8 +32,8 @@ class UEFA_Champ_L(Cup):
         :return:
         """
 
-        self.members = self.setMembers()
-        super(Cup, self).__init__(name, season, self.members, delta_coefs, state_params)#(self, name, season, members, delta_coefs)
+        super(Cup, self).__init__(name, season, members, delta_coefs, state_params)#(self, name, season, members, delta_coefs)
+        self.pair_mode = pair_mode
 
         # self.results - empty list. after run() it will be filled as following:
         # [team_champion, team_finished_in_final, teams_finished_in_semi-final, ... , teams_finished_in_qualRoundn, ...
@@ -49,16 +48,6 @@ class UEFA_Champ_L(Cup):
         # initialize net
         self.net = "not implemented yet"
         self.round_names = "not computed" # TODO make branch: get from params (if external scheme exists) OR compute in run()
-
-
-    def setMembers(self):
-        """
-        defines members for every round
-        :return:
-        """
-        self.members = []
-        # for
-
 
     def test(self, print_matches = False, print_ratings = False):
         print "\nTEST CUP CLASS\n"
@@ -108,7 +97,7 @@ if __name__ == "__main__":
         # TEST CUP CLASS
         if "ChL" in args:
 
-            # schema =
+            schema =
             # for seeding in Cup.getSeedings(Cup):
             #     print seeding
             # pair_mode = 0 # one match
