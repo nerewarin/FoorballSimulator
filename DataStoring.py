@@ -19,7 +19,20 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import os, operator, sys, time, warnings
 
 
-# CONSTANTS
+### CONSTANTS ###
+
+# database info
+DBNAME ="FootballSimDB".lower()
+DBUSER = "postgres"
+DBHOST = 'localhost'
+DBPASSWORD = "GameDB"
+SCHEMA = 'public'
+
+# season that ratings will be filled as initial (defines only name of field "name" in season - data will be parsed
+# from default "2014/2015" season
+START_SEASON = "2014/2015"
+
+# table names
 TEAMINFO_TABLENAME = "Team_Info"
 COUNTRIES_TABLENAME = "Countries"
 TOURNAMENTS_TABLENAME = "Tournaments"
@@ -28,6 +41,9 @@ SEASONS_TABLENAME = "seasons"
 TEAM_RATINGS_TABLENAME = "team_ratings"
 COUNTRY_RATINGS_TABLENAME = "country_ratings"
 PREDEFINED_TABLES = (SEASONS_TABLENAME, TEAM_RATINGS_TABLENAME, COUNTRY_RATINGS_TABLENAME)
+
+
+
 
 # CREATE EXCEL TABLE
 def createExcelTable(filename, teamsL, overwrite = False):
@@ -91,9 +107,15 @@ def createTeamsFromExcelTable(excelFilename = "initial rating.xls"):
     # print to console all teams
     return teamsL
 
+def connectGameDB(dbname=DBNAME, user=DBUSER, host = DBHOST, password=DBPASSWORD):
+    con = db.connect(dbname=dbname, user=user, host = host, password=password)
+    con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+    cur = con.cursor()
+    return con, cur
+
 
 # CREATE DATABASE AND TABLES
-def createDB(teamsL, storage = "Postgre"):
+def createDB(teamsL, storage = "Postgre", overwrite = False):
     if storage == "Postgre":
         # https://www.ibm.com/developerworks/ru/library/l-python_part_11/
         django_ver = django.VERSION
@@ -103,41 +125,36 @@ def createDB(teamsL, storage = "Postgre"):
         db_threadsafety = db.threadsafety
         # http://stackoverflow.com/questions/19426448/creating-a-postgresql-db-using-psycopg2
 
-        dbuser = "postgres"
-        dbpassword = "1472258369"
-
         # connect to default DB (is specific DB not exists)
-        con = db.connect(dbname='postgres', user=dbuser, host = 'localhost', password=dbpassword)
-        con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-        cur = con.cursor()
+        con, cur = connectGameDB(dbname='postgres', user=DBUSER, host = 'localhost', password=DBPASSWORD)
 
         cur.execute('SELECT version()')
         ver = cur.fetchone()
         print ver # ('PostgreSQL 9.4.4, compiled by Visual C++ build 1800, 64-bit',)
 
-        # CREATE DB for this application
-        dbname="FootballSimDB".lower()
+
+
         # team_count = DataParsing.createTeamsFromHTML("get count")
         team_count = len(teamsL)
-        schema = 'public'
 
-        trySQLquery(cur.execute, 'SELECT exists(SELECT 1 from pg_catalog.pg_database where datname = %s)', (dbname,))
+        # CREATE DB for this application
+        trySQLquery(cur.execute, 'SELECT exists(SELECT 1 from pg_catalog.pg_database where datname = %s)', (DBNAME,))
         isDB = cur.fetchone()[0]
         # print "BD exists?", isDB
         if not isDB:
-            print "Database %s not found, creating" % dbname
+            print "Database %s not found, creating" % DBNAME
             try:
-                cur.execute('CREATE DATABASE ' + dbname)
+                cur.execute('CREATE DATABASE ' + DBNAME)
             except db.DatabaseError, x:
                 print x.pgerror.decode('utf8')
             con.commit()
         else:
-            print "Database %s found" % dbname
+            print "Database %s found" % DBNAME
 
 
 
         try:
-            con = db.connect(database=dbname, user=dbuser)
+            con = db.connect(database=DBNAME, user=DBUSER)
             cur = con.cursor()
             cur.execute('SELECT version()')
             ver = cur.fetchone()
@@ -166,7 +183,6 @@ def createDB(teamsL, storage = "Postgre"):
         print "sorted_countries", sorted_countries
 
 
-
         def create_db_table(recreating, cur, con, table_name, func, columns_info):
             if not tableExists(cur, table_name):
                 print "%s\" not exists, creating" % table_name
@@ -193,20 +209,18 @@ def createDB(teamsL, storage = "Postgre"):
             print
 
 
-        # TODO REMEMBER ABOUT DANGEROUS SECTION BELOW, THAT DELETES ALL ROWS IN ALL TABLES AND RECREATES ALL
+        if overwrite:
+            # delete all data from constant and predefined tables and later fill again
+            tables = ""
+            for table in (CONSTANT_TABLES + PREDEFINED_TABLES):
+                tables += (table + ", ")
+            tables = tables[:-2]
+            truncate_query = 'TRUNCATE ' + tables + ' RESTART IDENTITY CASCADE;'
 
-        # trySQLquery(cur.execute, 'DELETE FROM %s' % "Team_Info")
-        # trySQLquery(cur.execute, 'TRUNCATE \'%s\', \'%s\', \'%s\' RESTART IDENTITY', ("Team_Info", "Countries", "Tournaments"))
-        tables = ""
-        for table in (CONSTANT_TABLES + PREDEFINED_TABLES):
-            tables += (table + ", ")
-        tables = tables[:-2]
-        truncate_query = 'TRUNCATE ' + tables + ' RESTART IDENTITY CASCADE;'
+            print "\nTRUNCATING ALL ROWS OF tables %s" % tables
 
-        print "\nCLEARING ALL ROWS OF tables %s" % tables
-
-        trySQLquery(cur.execute, truncate_query)
-        print "ok\n"
+            trySQLquery(cur.execute, truncate_query)
+            print "ok\n"
 
         # CREATE TABLE TeamCountries
         table_name = "Countries"
@@ -245,29 +259,10 @@ def createDB(teamsL, storage = "Postgre"):
         columnsInfo = (tournament_name, tournament_type, tournament_country, sorted_countries)
         create_db_table(recreating, cur, con, table_name, fill_tournaments, columnsInfo )
 
+        if overwrite:
+            # FILL TEAMS AND COUNTRIES RATINGS FROM ONE PREVIOUSLY PLAYED "Basic" SEASON
+            save_ratings(con, cur, [START_SEASON], teamsL)
 
-        # # FILL TEAMS AND COUNTRIES RATINGS FROM FIVE PREVIOUSLY PLAYED SEASONS
-        # seasons = []
-        # year = 2014
-        # initial_seasons = 5
-        # for ind in range(initial_seasons):
-        #     season = str(year) + "/" + str(year+1)
-        #     year -= 1
-        #     # print "ses", season
-        #     seasons.append(season)
-        # seasons = reversed(seasons)
-        # FILL TEAMS AND COUNTRIES RATINGS FROM ONE PREVIOUSLY PLAYED "Basic" SEASON
-        START_SEASON = "2014/2015"
-        save_ratings(con, cur, [START_SEASON], teamsL)
-
-        # # TODO check normalized sum of teams rating equals country_rating in every season
-        # for country_name, teams_count in sorted_countries:
-        #     country_ID = get_country_id(cur, country_name)
-        #     print "country_ID", country_ID
-        #     # teams_of_country =
-        #     # actual_rating = select from
-        #     cur.execute("""SELECT %s FROM %s WHERE name = %s;""", (actual_rating, TEAMINFO_TABLENAME, country_name, )) # ok
-        #     country_ID = cur.fetchall()
 
         # close connection to DB
         if con:
@@ -331,7 +326,7 @@ def save_ratings(con, cur, seasons, teamsL):
 
     :param con: connection
     :param cur: cursor
-    :param seasons:
+    :param seasons:  string like "2014/2015"
     :param teamsL:
     :return:
     """
@@ -341,8 +336,17 @@ def save_ratings(con, cur, seasons, teamsL):
     for ind, season in enumerate(seasons):
         # print "season", season
 
-        # if want to fill again, use truncate before it
         season_id = fill_season(con, cur, season)
+        # if isinstance(season, str):
+        #     # convert season year to ID
+        #     season_id = fill_season(con, cur, season)
+        #
+        # elif isinstance(season, int):
+        #     # or use it implicitly
+        #     season_id = int(season)
+        #
+        # else:
+        #     raise TypeError, "unknown season type"
 
         fill_teams_ratings(con, cur, season_id, teamsL)
 
@@ -528,24 +532,9 @@ def fill_tournaments(cur, con, table_name, columnsInfo):#team_count, sorted_coun
     :return:
     """
     tournament_name, tournament_type, tournament_country, sorted_countries = columnsInfo
+    columns = table_name, tournament_name, tournament_type
 
     # INSERT TO TABLE Tournaments
-    def insert_tournament_to_DB_table(t_name, t_type, t_country = None):#, t_teams_num):
-        # for national tournaments
-        if t_country:
-            query =  "INSERT INTO %s (%s, %s, %s) VALUES ('%s', '%s', '%s');" % \
-                     (table_name,
-                      tournament_name, tournament_type, tournament_country,
-                      t_name, t_type, t_country) #t_teams_num)
-        # for international tournaments (all but country_ID will be inserted)
-        else:
-            query =  "INSERT INTO %s (%s, %s) VALUES ('%s', '%s');" % \
-                     (table_name,
-                      tournament_name, tournament_type,
-                      t_name, t_type)
-        # print tournament_name, tournament_type, tournament_country, t_name, t_type, t_country
-        trySQLquery(cur.execute, query)
-        con.commit()
 
     counter = 0 # just for printing
     t_name = "UEFA Champions League" # error was because of %s instead of '%s' in SQL-query
@@ -554,33 +543,54 @@ def fill_tournaments(cur, con, table_name, columnsInfo):#team_count, sorted_coun
     # t_pteams = 32
     t_teams_num = 77
     # insert_tournament_to_DB_table(t_name, t_type, t_country)#, t_teams_num)
-    insert_tournament_to_DB_table(t_name, t_type)#, t_teams_num)
+    insert_tournament_to_DB_table(con, cur, columns, t_name, t_type)#, t_teams_num)
     counter += 1
 
     t_name = "UEFA Europa League" # error was because of %s instead of '%s' in SQL-query
     t_type = "UEFA_EL"
     t_teams_num = 195
-    insert_tournament_to_DB_table(t_name, t_type)#, t_teams_num)
+    insert_tournament_to_DB_table(con, cur, columns, t_name, t_type)#, t_teams_num)
     # insert_tournament_to_DB_table(t_name, t_type, t_country)#, t_teams_num)
     counter += 1
 
-    def gen_national_tournaments(t_type):
-        counter = 0
-        for t_country, teams_count in sorted_countries:
-            t_name = t_country + " " + t_type
-            country_ID = get_country_id(cur, t_country)
-            # insert_tournament_to_DB_table(t_name, t_type, t_country)#, teams_count)
-            insert_tournament_to_DB_table(t_name, t_type, country_ID)#, teams_count)
-            counter += 1
-        return counter
-
-    counter += gen_national_tournaments("League")
-    counter += gen_national_tournaments("Cup")
+    columns = table_name, tournament_name, tournament_type, tournament_country
+    counter += gen_national_tournaments(con, cur, columns, "League", sorted_countries)
+    counter += gen_national_tournaments(con, cur, columns, "Cup", sorted_countries)
 
     print "inserted %s rows to %s" % (counter, table_name)
 
     con.commit()
 
+
+def insert_tournament_to_DB_table(con, cur, columns, t_name, t_type, t_country = None):#, t_teams_num):
+    # for national tournaments
+    if t_country:
+        table_name, tournament_name, tournament_type, tournament_country = columns
+        query =  "INSERT INTO %s (%s, %s, %s) VALUES ('%s', '%s', '%s');" % \
+                 (table_name,
+                  tournament_name, tournament_type, tournament_country,
+                  t_name, t_type, t_country) #t_teams_num)
+    # for international tournaments (all but country_ID will be inserted)
+    else:
+        table_name, tournament_name, tournament_type = columns
+        query =  "INSERT INTO %s (%s, %s) VALUES ('%s', '%s');" % \
+                 (table_name,
+                  tournament_name, tournament_type,
+                  t_name, t_type)
+    # print tournament_name, tournament_type, tournament_country, t_name, t_type, t_country
+    trySQLquery(cur.execute, query)
+    con.commit()
+
+
+def gen_national_tournaments(con, cur, columns, t_type, sorted_countries):
+    counter = 0
+    for t_country, teams_count in sorted_countries:
+        t_name = t_country + " " + t_type
+        country_ID = get_country_id(cur, t_country)
+        # insert_tournament_to_DB_table(t_name, t_type, t_country)#, teams_count)
+        insert_tournament_to_DB_table(con, cur, columns, t_name, t_type, country_ID)#, teams_count)
+        counter += 1
+    return counter
 
 
 def TestStorage(storage, teamsL, overwrite = False):
@@ -593,7 +603,7 @@ def TestStorage(storage, teamsL, overwrite = False):
         DataParsing.printParsedTable(teamsL)
 
     elif storage == "Postgre":
-        createDB(teamsL, "Postgre")
+        createDB(teamsL, "Postgre", overwrite)
 
     else:
         print "Unknown storage type", storage
@@ -621,6 +631,7 @@ if __name__ == "__main__":
         STORAGES = ["Postgre"]
         # DELAY_TIME = 1.5 # sec
         OVERWRITE = True
+        # OVERWRITE = False # if false, all data will be added as additional rows to the end of tables
 
         DELAY_TIME = 0
         delays = 0
