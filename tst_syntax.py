@@ -67,13 +67,29 @@ def testCounter():
         print country_ratings[team]# = (country_ratings[team][0] + team, country_ratings[team][1] + 1)
     print country_ratings
 
+
+def testStrings():
+    TEAMINFO_TABLENAME = "Team_Info"
+    COUNTRIES_TABLENAME = "Countries"
+    TOURNAMENTS_TABLENAME = "Tournaments"
+    CONSTANT_TABLES = (TEAMINFO_TABLENAME, COUNTRIES_TABLENAME, TOURNAMENTS_TABLENAME)
+    SEASONS_TABLENAME = "seasons"
+    TEAM_RATINGS_TABLENAME = "team_ratings"
+    COUNTRY_RATINGS_TABLENAME = "country_ratings"
+    PREDEFINED_TABLES = (SEASONS_TABLENAME, TEAM_RATINGS_TABLENAME, COUNTRY_RATINGS_TABLENAME)
+    tables = ""
+    for table in (CONSTANT_TABLES + PREDEFINED_TABLES):
+        tables += (table + ", ")
+    print tables[:-2]
+
+
 """ test code """
 if __name__ == '__main__':
     # test_roundRobin()
     # TestSortTeamL()
     # TestAddLists()
-    testCounter()
-    pass
+    # testCounter()
+    testStrings()
 
 # TestSortTeamL()
 

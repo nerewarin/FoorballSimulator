@@ -76,21 +76,14 @@ def createTeamsFromHTML(season = "2014/2015", mode = "creating"):
         teamName = teamName.replace("/", "-") # "/" is unsupported symbol for filename in windows
         country = tr.xpath(country_xpath).pop().text_content()
         UEFArating = float(tr.xpath( UEFArating_xpath ).pop().text_content())
-
+        UEFAposition = int(tr.xpath( UEFApos_xpath ).pop().text_content())
         # list of team ratings for last 5 seasons
         UEFAratings   = [float(tr.xpath( "td[%s]" % (td_last_rating - ind) ).pop().text_content()) for ind in range(5)]
-        # # actual = 0
-        # # for season_rating in UEFAratings
-        # #     actual += float(season_rating)
-        # print "teamName", util.unicode_to_str(teamName)
-        # print "UEFAratings", UEFAratings
-        # print "sum of         ", sum(UEFAratings)
-        # print "check from site", UEFArating
-        tolerance = 0.1
-        assert (UEFArating - tolerance) < sum(UEFAratings) or (UEFArating + tolerance) > sum(UEFAratings), "unequal!"
 
-        UEFArating   = tr.xpath( UEFArating_xpath ).pop().text_content()
-        UEFAposition = tr.xpath( UEFApos_xpath ).pop().text_content()
+        # check sum is actual
+        tolerance = 0.1
+        assert (UEFArating - tolerance) < sum(UEFAratings) or (UEFArating + tolerance) > sum(UEFAratings), \
+            "unequal sum of ratings of last 5 year and actual rating!"
 
 
         # save image to disc
@@ -111,6 +104,7 @@ def createTeamsFromHTML(season = "2014/2015", mode = "creating"):
 
         # create teams
         country_ID = None
+        # print "UEFArating", UEFArating, type(UEFArating)
         teamObj = Team.Team(teamName, country, UEFArating, ruName, UEFAposition, country_ID, UEFAratings)
         teamsD[teamName] = teamObj
         teamsL.append(teamObj)
