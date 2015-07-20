@@ -1,5 +1,7 @@
-__author__ = 'NereWARin'
+# !/usr/bin/python
 # -*- coding: utf-8 -*-
+__author__ = 'NereWARin'
+
 
 """
 create storage from HTML to Excel or Database
@@ -19,6 +21,8 @@ import os, operator, sys, time, warnings
 
 # CONSTANTS
 TEAMINFO_TABLENAME = "Team_Info"
+COUNTRIES_TABLENAME = "Countries"
+TOURNAMENTS_TABLENAME = "Tournaments"
 SEASONS_TABLENAME = "seasons"
 TEAM_RATINGS_TABLENAME = "team_ratings"
 COUNTRY_RATINGS_TABLENAME = "country_ratings"
@@ -52,7 +56,6 @@ def createExcelTable(filename, teamsL, overwrite = False):
             else:
                 data = team.attrib(j)()
             sheet1.write(i+1, j, data)
-        #TODO add info about the last 5 season ratings of every team and country
 
 
     book.save(filename)
@@ -189,10 +192,10 @@ def createDB(teamsL, storage = "Postgre"):
 
 
         # TODO REMEMBER ABOUT DANGEROUS SECTION BELOW, THAT DELETES ALL ROWS IN ALL TABLES AND RECREATES ALL
-        print "\nCLEARING ALL ROWS OF Countries, Team_Info, Tournaments"
+        print "\nCLEARING ALL ROWS OF Countries, Team_Info, Tournaments, seasons"
         # trySQLquery(cur.execute, 'DELETE FROM %s' % "Team_Info")
         # trySQLquery(cur.execute, 'TRUNCATE \'%s\', \'%s\', \'%s\' RESTART IDENTITY', ("Team_Info", "Countries", "Tournaments"))
-        trySQLquery(cur.execute, 'TRUNCATE Countries, Team_Info, Tournaments RESTART IDENTITY CASCADE')
+        trySQLquery(cur.execute, 'TRUNCATE Countries, Team_Info, Tournaments, seasons RESTART IDENTITY CASCADE')
         print "ok\n"
 
         # CREATE TABLE TeamCountries
@@ -204,12 +207,12 @@ def createDB(teamsL, storage = "Postgre"):
 
 
         def assign_country_to_teams():
-            # now we must set CountryID to teams objects
             for team in teamsL:
                 teamCountry = team.getCountry()
                 country_ID = get_country_id(cur, teamCountry)
                 team.setCountryID(country_ID)
 
+        # now we must set CountryID to teams objects
         assign_country_to_teams()
 
         # CREATE TABLE TeamInfo
@@ -233,18 +236,19 @@ def createDB(teamsL, storage = "Postgre"):
         create_db_table(recreating, cur, con, table_name, fill_tournaments, columnsInfo )
 
 
-        # FILL TEAMS AND COUNTRIES RATINGS FROM PREVIOUSLY PLAYED SEASONS
-        seasons = []
-        year = 2014
-        initial_seasons = 5
-        for ind in range(initial_seasons):
-            season = str(year) + "/" + str(year+1)
-            year -= 1
-            # print "ses", season
-            seasons.append(season)
-
-        seasons = reversed(seasons)
-        save_ratings(con, cur, seasons, teamsL)
+        # # FILL TEAMS AND COUNTRIES RATINGS FROM FIVE PREVIOUSLY PLAYED SEASONS
+        # seasons = []
+        # year = 2014
+        # initial_seasons = 5
+        # for ind in range(initial_seasons):
+        #     season = str(year) + "/" + str(year+1)
+        #     year -= 1
+        #     # print "ses", season
+        #     seasons.append(season)
+        # seasons = reversed(seasons)
+        # FILL TEAMS AND COUNTRIES RATINGS FROM ONE PREVIOUSLY PLAYED "Basic" SEASON
+        START_SEASON = "2014/2015"
+        save_ratings(con, cur, [START_SEASON], teamsL)
 
         # # TODO check normalized sum of teams rating equals country_rating in every season
         # for country_name, teams_count in sorted_countries:
@@ -323,19 +327,23 @@ def save_ratings(con, cur, seasons, teamsL):
     """
     print "save ratings for seasons", seasons
 
-    last5ratings = [team.getLast5Ratings() for team in teamsL]
-    print "last5ratings", last5ratings
+    # last5ratings = [team.getLast5Ratings() for team in teamsL]
+    # print "last5ratings", last5ratings
+
+    # ratings = [team.getRating() for team in teamsL]
 
     # FILL SEASON NAMES
     for ind, season in enumerate(seasons):
         print "season", season
 
-        # DONE
         # if want to fill again, use truncate before it
-        # fill_season(con, cur, season)
+        # TODO get last season ID
+        season_id = fill_season(con, cur, season)
 
-        ratings = [team_ratings[ind] for team_ratings in last5ratings]
-        fill_countries_ratings(con, cur, season, teamsL, ratings)
+        # ratings = [team_ratings[ind] for team_ratings in last5ratings]
+        fill_teams_ratings(con, cur, season_id, teamsL)
+
+        fill_countries_ratings(con, cur, season_id, teamsL)
         # TODO countries and teams REATINGS
         # use data pparsing new functions!
 
@@ -351,8 +359,38 @@ def fill_season(con, cur, season):
     data = (SEASONS_TABLENAME, season)
     trySQLquery(cur.execute, "INSERT INTO %s (name) VALUES ('%s');" % data)
     con.commit()
+    # get last season ID (from last row)
+    cur.execute("""SELECT id FROM seasons WHERE name = %s;""", (str(season),)) # ok
+    season_id = cur.fetchone[0]
+    con.commit()
+    return season_id
 
-def fill_countries_ratings(con, cur, season, teamsL, ratings):
+def fill_teams_ratings(con, cur, season_id, teamsL):
+    """
+    add new rows to (id, season, teamID, rating, uefa_pos)
+
+    :param con:
+    :param cur:
+    :param season_id:
+    :param teamsL:  must be already sorted by rating and ind = UEFApos + 1 for teamsl[ind]
+    :return:
+    """
+
+    for ind, team in enumerate(teamsL):
+        # team_id = get_id_from_value(cur, TEAMINFO_TABLENAME, "name", team.getName())
+        team_id = ind
+        rating = team.getRating() #works but we already got it as parameter
+        # rating = ratings[ind]
+        position = team_id + 1
+        print "team_id %s, season %s, rating %s, position %s" % (team_id, season_id, rating, position)
+        columns = ("id_season", "id_team", "rating", "position")
+        values = (season_id, team_id, rating, position)
+        # data = (TEAMINFO_TABLENAME, "id_season", "id_team", "rating", "position", )
+        print "len", len([TEAMINFO_TABLENAME] + columns + values)
+        trySQLquery(cur.execute, "INSERT INTO %s (%s %s %s %s) VALUES ('%s', '%s', '%s', '%s');" % ([TEAMINFO_TABLENAME] + columns + values))
+        con.commit()
+
+def fill_countries_ratings(con, cur, season_id, teamsL, ratings):
     """
     add new row to
     :param con:
@@ -365,19 +403,68 @@ def fill_countries_ratings(con, cur, season, teamsL, ratings):
     # it not works i dont know why
     # id_season = get_id_from_value(cur, SEASONS_TABLENAME, "name", season)
     # it works
-    cur.execute("""SELECT id FROM seasons WHERE name = %s;""", (str(season),)) # ok
-    id_season = cur.fetchone()[0]
+    # cur.execute("""SELECT id FROM seasons WHERE name = %s;""", (str(season),)) # ok
+    # id_season = cur.fetchone()[0]
 
-    # TODO its coll for team_ratoings! for country_ratings we need smth else
-    teams = len(teamsL)
-    for ind in range(teams):
-        team_id = ind + 1
-        rating = ratings[ind]
-        print "id_season" , id_season, "team_id", team_id, "rating", rating
+    # TODO get all teams of country and normalize sum of its ratings
+            # # TODO check normalized sum of teams rating equals country_rating in every season
+        # for country_name, teams_count in sorted_countries:
+        #     country_ID = get_country_id(cur, country_name)
+        #     print "country_ID", country_ID
+        #     # teams_of_country =
+        #     # actual_rating = select from
+        #     cur.execute("""SELECT %s FROM %s WHERE name = %s;""", (actual_rating, TEAMINFO_TABLENAME, country_name, )) # ok
+        #     country_ID = cur.fetchall()
+    # cur.execute("""SELECT %s FROM %s""", ("id", COUNTRIES_TABLENAME))
+    # countries_ID = cur.fetchall()
 
-    # data = (COUNTRY_RATINGS_TABLENAME, id_season, id_country, rating, position)
-    # trySQLquery(cur.execute, "INSERT INTO %s (id_season, id_country, rating, position) VALUES ('%s', '%s','%s','%s');" % data)
-    # con.commit()
+
+    country_ratings = {}
+    for team in teamsL:
+        # sum of all team ratings
+        if not country_ratings[team.getCountryID()]:
+            country_ratings[team.getCountryID()] = [0, 0]
+        # increase sum of ratings
+        country_ratings[team.getCountryID()][0] +=  team.getRating()
+        # increment teams_count
+        country_ratings[team.getCountryID()][1] +=  1
+    print "country_ratings", country_ratings
+
+    # normalize sums by teams_count
+    for country_id, (sum_of_teams_ratings, teams_count) in country_ratings.iteritems():
+        # teams_count = trySQLquery(cur, con, ".............")
+        country_ratings[country_id] = float(sum_of_teams_ratings) / teams_count
+        print "normalized rating for ", country_id, " = ", country_ratings[country_id]
+
+    # country_ratings.items() in a list of sorted tuples (id, rating)
+    position = 0
+    for ind, country_id, country_rating in enumerate(country_ratings.items()):
+        position = ind + 1
+        # insert to database
+        columns = ("id_season", "id_country", "rating", "position")
+        values = (season_id, country_id, country_rating, position)
+        trySQLquery(cur.execute, "INSERT INTO %s (%s %s %s %s) VALUES ('%s', '%s', '%s', '%s');" % ([COUNTRY_RATINGS_TABLENAME] + columns + values))
+        print "ok inserting to countries_rating"
+    print "inserted %s rows to %s" % (position, COUNTRY_RATINGS_TABLENAME)
+    con.commit()
+
+
+    # for country in countries_ID:
+    #     country_rating = "...."
+    #
+    # for ind, team in enumerate(teamsL):
+    #     # team_id = get_id_from_value(cur, TEAMINFO_TABLENAME, "name", team.getName())
+    #     team_id = ind
+    #     rating = team.getRating() #works but we already got it as parameter
+    #     # rating = ratings[ind]
+    #     position = team_id + 1
+    #     print "team_id %s, season %s, rating %s, position %s" % (team_id, season_id, rating, position)
+    #     columns = ("id_season", "id_team", "rating", "position")
+    #     values = (season_id, team_id, rating, position)
+    #     # data = (TEAMINFO_TABLENAME, "id_season", "id_team", "rating", "position", )
+    #     print "len", len([TEAMINFO_TABLENAME] + columns + values)
+    #     trySQLquery(cur.execute, "INSERT INTO %s (%s %s %s %s) VALUES ('%s', '%s', '%s', '%s');" % ([TEAMINFO_TABLENAME] + columns + values))
+    #     con.commit()
 
 
 def fill_TeamInfo(cur, con, table_name, columnsInfo):

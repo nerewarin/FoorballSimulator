@@ -1,6 +1,10 @@
 __author__ = 'NereWARin'
 # -*- coding: utf-8 -*-
-import Team, Match, Leagues, DataParsing, DataStoring
+# import Team
+import Match
+# import Leagues
+# import DataParsing
+import DataStoring
 
 class Simulation():
     def __init__(self, teams, ObjectClassName, iterations):
