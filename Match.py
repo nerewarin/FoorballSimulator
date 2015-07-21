@@ -21,14 +21,15 @@ import DataStoring as db
 
 
 class Match(object):
-    def __init__(self, members, deltaCoefs, tournament = "friendly", round = "no round", playoff = False,
-        result_format = [0,1,2], mode = "dice original"):
+    def __init__(self, members, deltaCoefs, tournament = 0, round = "no round", playoff = False,
+        result_format = [0,1,2], mode = "dice original", save_to_db = True):
         # result_format = {"Win" : 0, "Lose" : 1, "Draw" : 2}, mode = "dice original"):
         """
 
         :param members: tuple of 2 teams objects
         :param deltaCoefs: coefficients to compute tearing changes after match
-        :param tournament: string match tournament (league/cup, season, round, etc)
+        :param tournament: tournament id
+        :param round: string (qualification 1....final)
         :param playoff: Draw result available (for league) or not (for Cup play-offs and finals)
         :param result_format: what getWinner will return
         :param mode: computing match result logic
@@ -37,13 +38,14 @@ class Match(object):
         """
         self.tournament = tournament
         self.round = str(round)
-        self.name = self.tournament + " " + self.round
+        self.name = str(self.tournament) + " " + self.round
 
         self.members = members
         self.playoff = playoff
         self.deltaCoefs = deltaCoefs
         self.result_format = result_format
         self.mode = mode
+        self.save_to_db = save_to_db
 
         self.home  = self.members[0]
         self.guest = self.members[1]
@@ -151,6 +153,9 @@ class Match(object):
             if update:
                 self.updateRatings()
 
+
+            if self.save_to_db:
+                self.saveToDB()
             return self.result
         else:
             raise NotImplementedError, "unknown mode \"%s\"" % (self.mode)
@@ -246,11 +251,33 @@ class Match(object):
         else:
             raise FutureWarning, "Error in updateRatings! self.result = %s, self.getWinner() = %s" % (self.result, self.getWinner())
 
+
+    def saveToDB(self):
+        """
+        saving match result to database
+        :return:
+        """
+        self.homeID = self.home.getID()
+        self.guestID = self.guest.getID()
+        # columns = db.trySQLquery(CUR.execute())"id" "SELECT * FROM %s LIMIT 0" % db.MATCHES_TABLE
+        columns = db.select(table_names=db.MATCHES_TABLE, fetch="colnames", suffix = " LIMIT 0")
+        print "Matches columns are ", columns
+        columns = columns[1:]
+        print "Matches columns (exclusive id) are ", columns
+        values = [self.tournament, self.round, self.homeID, self.guestID, self.getResult()[0], self.getResult()[1]]
+        print "values are ", values
+        db.insert(db.MATCHES_TABLE, columns, values)
+       #  return "%s. %s %s %s" % \
+       # (self.tournament, self.homeName, str(self.getResult())[1:-1].replace(",", ":").replace(" ", "") ,self.guestName)
+       # # (self.tournament, self.homeName, str(self.result[0])+ ":" + str(self.result[1]) ,self.guestName)
+        print
+
+
 class DoubleMatch(Match):
     """
     represents two matches (home - guest) for pair (useful in Cups)
     """
-    def __init__(self, members, deltaCoefs, tournament = "friendly",  round = "no round", playoff = False, result_format = [0, 1, 2], mode = "dice original"):
+    def __init__(self, members, deltaCoefs, tournament = 0,  round = "no round", playoff = False, result_format = [0, 1, 2], mode = "dice original", save_to_db = True):
         """
          :param members: tuple of 2 teams objects
          :param deltaCoefs: coefficients to compute tearing changes after match
@@ -260,7 +287,7 @@ class DoubleMatch(Match):
          :return:
         """
 
-        super(DoubleMatch, self).__init__(members, deltaCoefs, tournament, round, playoff, result_format, mode)
+        super(DoubleMatch, self).__init__(members, deltaCoefs, tournament, round, playoff, result_format, mode, save_to_db)
         self.playoff = playoff
         self.result = ("not played",)#, ("not played",)
         self.matches_results = ("not played","not played"), ("not played","not played")
@@ -282,10 +309,14 @@ class DoubleMatch(Match):
                #  (self.tournament, self.homeName, str(self.getResult()).replace(",", ":") ,self.guestName)
     def run(self, update = True):
         # first digit - team1 goals, second - team2 goals
-        # 1 - team1 , 2 - team2
-        match1_score = list(Match((self.home, self.guest), self.deltaCoefs, self.tournament, self.round + " 1", False, self.result_format, self.mode).run())
-        # 1 - team2 , 2 - team1
-        match2_score = list(Match((self.guest, self.home), self.deltaCoefs, self.tournament, self.round + " 2", False, self.result_format, self.mode).run())
+        # forward: 1 - team1 , 2 - team2
+        match1_score = list(Match((self.home, self.guest), self.deltaCoefs, self.tournament, self.round + " 1", False,
+                                  self.result_format, self.mode, save_to_db = self.save_to_db).run())
+
+        # reversed: 1 - team2 , 2 - team1
+        match2_score = list(Match((self.guest, self.home), self.deltaCoefs, self.tournament, self.round + " 2", False,
+                                  self.result_format, self.mode, save_to_db = self.save_to_db).run())
+
         # like in match1_score, first digit - team1 goals, second - team2 result
         # 1 - team1 , 2 - team2
         # casted_match2 = list(reversed(match2_score))
@@ -350,8 +381,6 @@ class DoubleMatch(Match):
         # for getWinner
         self.casted_match2 = [match2_score[1], match2_score[0]]
         # return self.result, match1_score, casted_match2
-        # TODO save in database probe
-        self.saveToDB()
         return self.result#, match1_score, casted_match2
 
 
@@ -410,22 +439,6 @@ class DoubleMatch(Match):
             return tuple(self.casted_match2)
         return tuple(self.matches_results[1])
 
-    def saveToDB(self):
-        """
-        saving match result to database
-        :return:
-        """
-        self.homeID = self.home.getID()
-        self.guestID = self.guest.getID()
-        # columns = db.trySQLquery(CUR.execute())"id" "SELECT * FROM %s LIMIT 0" % db.MATCHES_TABLE
-        columns = db.select(table_names=db.MATCHES_TABLE, fetch="colnames", where = " LIMIT 0")[1:]
-        print "Matches columns are ", columns
-        values = [self.tournament, self.round, self.homeID, self.guestID, self.getFirstMatchResult()[0], self.getFirstMatchResult()[1]]
-        print "values are ", values
-        db.insert(db.MATCHES_TABLE, columns, values)
-       #  return "%s. %s %s %s" % \
-       # (self.tournament, self.homeName, str(self.getResult())[1:-1].replace(",", ":").replace(" ", "") ,self.guestName)
-       # # (self.tournament, self.homeName, str(self.result[0])+ ":" + str(self.result[1]) ,self.guestName)
 
 
 # TEST
@@ -437,23 +450,45 @@ if __name__ == "__main__":
     # v1.0 coefs
     # coefs = C("v1.0").getRatingUpdateCoefs("list")
 
-    def Test(itearations, *args, **kwargs):
-        team1 = Team.Team("Manchester City FC", "ENG", 87.078, "Манчестер Сити", 17)
-        team2 = Team.Team("FC Shakhtar Donetsk", "UKR", 85.899, "Шахтер Донецк", 18)
+    def Test(iterations, pre_truncate, post_truncate, save_to_db, *args, **kwargs):
+        """
+
+        run matches and store in database (if new-styled)
+
+        :param iterations:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+
+        # # old-styled
+        # team1 = Team.Team("Manchester City FC", "ENG", 87.078, "Манчестер Сити", 17)
+        # team2 = Team.Team("FC Shakhtar Donetsk", "UKR", 85.899, "Шахтер Донецк", 18)
+        # new-styled
+        team1_id = random.randint(1, 454)
+        team1 = Team.Team(team1_id)
+        team2_id = random.randint(1, 454)
+        while team2_id == team1_id:
+             team2_id = random.randint(1, 454)
+        team2 = Team.Team(team2_id)
         # teams = (team1, team2)
 
+        if pre_truncate:
+            db.truncate(db.MATCHES_TABLE)
+
+        print "self.save_to_db", save_to_db
         if "Match" in args:
             print "\nTEST MATCH CLASS\n"
-            for i in range(itearations):
+            for i in range(iterations):
                 # if i > ITERATIONS*0.5 - 1:
                 if not i % 2:
                     pair = (team2, team1)
-                    testMatch = Match(pair, coefs, "testMatch%s" % (i + 1))
                 else:
                     pair = (team1, team2)
-                    testMatch = Match(pair, coefs, "testMatch%s" % (i + 1))
-                testMatch.run()
+                # testMatch = Match(pair, coefs, "testMatch%s" % (i + 1))
+                testMatch = Match(pair, coefs, round = "friendly%s" % (i + 1), save_to_db = save_to_db)
 
+                testMatch.run()
                 # print testMatch.printResult(), "updated ratings", team1.getRating(), team2.getRating()
                 # if not i % 1000:
                 # or print every iteration
@@ -479,12 +514,12 @@ if __name__ == "__main__":
             print "\nTEST DoubleMatch CLASS\n"
             for playoff in (True, False):
                 print ("playoff = %s") % playoff
-                for i in range(itearations):
+                for i in range(iterations):
                     # playoff = False # ERROR WILL BE RISEN cause DoubleMatch made only for playoff stages!
                     # playoff = True
 
                     pair = (team1, team2)
-                    test_DoubleMatch1 = DoubleMatch(pair, coefs, "friendly", "testDoubleMatch_%s" % (2*i+1), playoff)
+                    test_DoubleMatch1 = DoubleMatch(pair, coefs, tournament = 1, round = "_m%s" % (2*i+1), playoff = playoff, save_to_db = save_to_db)
                     pair_result = test_DoubleMatch1.run()
                     # print "test_DoubleMatch%s: pair_score %s m1 %s m2 %s" % (i, result[0], result[1], result[2])
 
@@ -495,8 +530,20 @@ if __name__ == "__main__":
                     #       (test_DoubleMatch1.getName(), pair[0], pair[1], test_DoubleMatch1.getOutcome(), pair_result,
                     #        test_DoubleMatch1.getFirstMatchResult(), test_DoubleMatch1.getSecondMatchResult())
 
+        if post_truncate:
+            db.truncate(db.MATCHES_TABLE)
 
-    ITERATIONS = 100000
+
+    # for every iteration will be played 1 match and 1 double-matches
+    ITERATIONS = 100
+
     # Test(ITERATIONS, "Match")
     # Test(int(ITERATIONS*0.001), "DoubleMatch")
-    Test(int(ITERATIONS*0.001), "Match", "DoubleMatch")
+
+    # RESET ALL MATCHES DATA BEFORE TEST
+    PRE_TRUNCATE = True
+    # RESET ALL MATCHES DATA AFTER TEST
+    POST_TRUNCATE = False
+    # SAVE TO DB - to avoid data integrity (if important data in table exists), turn it off
+    SAVE_TO_DB = False
+    Test(ITERATIONS, PRE_TRUNCATE, POST_TRUNCATE, SAVE_TO_DB, "Match", "DoubleMatch")

@@ -195,14 +195,16 @@ def createDB(teamsL, storage = "Postgre", overwrite = False):
             # delete all data from constant and predefined tables and later fill again
             tables = ""
             for table in (CONSTANT_TABLES + PREDEFINED_TABLES):
-                tables += (table + ", ")
-            tables = tables[:-2]
-            truncate_query = 'TRUNCATE ' + tables + ' RESTART IDENTITY CASCADE;'
-
-            print "\nTRUNCATING ALL ROWS OF tables %s" % tables
-
-            trySQLquery(cur.execute, truncate_query)
-            print "ok\n"
+                truncate(table)
+            # for table in (CONSTANT_TABLES + PREDEFINED_TABLES):
+            #     tables += (table + ", ")
+            # tables = tables[:-2]
+            # truncate_query = 'TRUNCATE ' + tables + ' RESTART IDENTITY CASCADE;'
+            #
+            # print "\nTRUNCATING ALL ROWS OF tables %s" % tables
+            #
+            # trySQLquery(cur.execute, truncate_query)
+            # print "ok\n"
 
 
         def create_db_table(recreating, cur, con, table_name, func, columns_info):
@@ -283,7 +285,7 @@ def createDB(teamsL, storage = "Postgre", overwrite = False):
 
 
 
-def select(what, table_names, where = "", columns = "", sign = "", values = "", suffix = "", fetch = "one"):
+def select(what = "*", table_names = "", where = "", columns = "", sign = "", values = "", suffix = "", fetch = "one"):
 
     inputs = (what, table_names, columns, values)
     outputs = []
@@ -301,7 +303,7 @@ def select(what, table_names, where = "", columns = "", sign = "", values = "", 
     _what, tables, cols, vals = outputs
     select_query = 'SELECT '+ _what + ' FROM ' + tables + where + cols + sign + vals + suffix + ';'
     # select_query = 'SELECT * FROM ' + tables + ' WHERE '  + cols + " = " + vals + ';'
-    print select_query
+    print "select_query = ", select_query
 
 
     trySQLquery(CUR.execute, select_query)
@@ -324,23 +326,54 @@ def insert(table, columns, values):
     :param fetch:
     :return:
     """
+    # vals  = (', '.join('"' + item + '"' for item in values if isinstance(item, str)))
+    # vals = ""
+    # for val in values:
+    #     if isinstance(val, str)):
+    #         vals +=
+    # print "vals", vals
+    # inputs = (columns, vals)
+
     inputs = (columns, values)
     outputs = []
-    for input in inputs:
+    for ind, input in enumerate(inputs):
 
         if isinstance(input, list):
             output = ""
             for input_part in input:
-                output += (str(input_part) + ", ")
+                # if ind == 1 and isinstance(input_part, str):  # only for string values!
+                if ind == 1 : #only for  values!
+                    # if isinstance(input_part, str):
+                #     # add additional quotes to format values as ('%s', ..)
+                #     print "AHAA"
+                    output += ("'" + str(input_part) + "', ")
+                    # output += ("\'" + str(input_part) + "\', ")
+                    # else:
+
+                else:
+                    output += (str(input_part) + ", ")
+                # output += (str(input_part) + ", ")
+                # print "output", output
             output = output[:-2]
+
         else:
             output = str(input)
         outputs.append(output)
 
     cols, vals = outputs
-    select_query = 'INSERT INTO ' + table + '(' + cols + ') VALUES ' + vals + ';'
-    print select_query
-    return
+
+    # print "sting vals", vals
+
+    insert_query = 'INSERT INTO ' + table + ' (' + cols + ') VALUES (' + vals + ');'
+    print insert_query
+    trySQLquery(CUR.execute, insert_query)
+
+
+def truncate(table):
+    print "\nTRUNCATING ALL ROWS OF table %s" % table
+    truncate_query = 'TRUNCATE ' + table + ' RESTART IDENTITY CASCADE;'
+    trySQLquery(query=truncate_query)
+    print "ok\n"
 
 
 # def exists(cur, table_name, dbname, schema):
@@ -382,7 +415,7 @@ def get_id_from_value(cur, table_name, column, value):
     return id
 
 # def trySQLquery(cur, func, query, data = None):
-def trySQLquery(func, query, data = None):
+def trySQLquery(func = CUR.execute, query = None, data = None):
     try:
         # print "query = \n %s" % query, type(query)
         # print "data = ", data

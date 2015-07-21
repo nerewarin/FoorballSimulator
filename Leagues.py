@@ -463,9 +463,14 @@ if __name__ == "__main__":
 
         # # TEST LEAGUE CLASS
         if "League" in args:
+    # def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "rnd", state_params = ("P",	"W","D","L","GF","GA","GD","PTS")):
 
-            League("testLeague", "2015/2016", teams, coefs, pair_mode).test(print_matches, print_ratings)
-            # League("testLeague", "2015/2016", teams, coefs).run()
+            # old-styled
+            # League("testLeague", "2015/2016", teams, coefs, pair_mode).test(print_matches, print_ratings)
+            # new-styled
+            league_id = 3
+            season = 1
+            League(league_id, season, teams, coefs, pair_mode).test(print_matches, print_ratings)
 
         if "roundRobin" in args:
             print "TEST roundRobin"
