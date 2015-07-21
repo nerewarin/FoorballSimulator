@@ -67,8 +67,6 @@ class Team():
         return self.ruName
 
     def setRating(self, rating):
-        # print "RATING WAS UPDATED!!!!!!!!"
-        # TODO after every season i should (*OR NOT? IF USE ONLY ACTUAL RATING AAS RIGHT NOW) shift actual rating to previous and so on
         self.rating = rating
 
     def setCountryID(self, countryID):
