@@ -543,7 +543,7 @@ if __name__ == "__main__":
     # RESET ALL MATCHES DATA BEFORE TEST
     PRE_TRUNCATE = True
     # RESET ALL MATCHES DATA AFTER TEST
-    POST_TRUNCATE = False
+    POST_TRUNCATE = True
     # SAVE TO DB - to avoid data integrity (if important data in table exists), turn it off
-    SAVE_TO_DB = False
+    SAVE_TO_DB = True
     Test(ITERATIONS, PRE_TRUNCATE, POST_TRUNCATE, SAVE_TO_DB, "Match", "DoubleMatch")

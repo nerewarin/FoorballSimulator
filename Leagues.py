@@ -25,7 +25,7 @@ class League(object):
     represents Football League
 
     """
-    def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "rnd", state_params = ("P",	"W","D","L","GF","GA","GD","PTS")):
+    def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "rnd", state_params = ("P",	"W","D","L","GF","GA","GD","PTS"), save_to_db = True):
         """
 
         :param name: League tournament id
@@ -51,7 +51,7 @@ class League(object):
         self.delta_coefs = delta_coefs
         self.seeding = seeding
         self.pair_mode = pair_mode
-
+        self.save_to_db = save_to_db
 
         state = {st:0 for st in state_params}
 
@@ -63,7 +63,7 @@ class League(object):
 
         # check self is League (not a subclass Cup)
         if "PTS" in state_params:
-            print "\nWELCOME TO LEAGUE ***", name.upper(), season, "***"
+            # print "\nWELCOME TO LEAGUE ***", name.upper(), season, "***"
             # initialize table
             for member in self.members:
                 self.results.append(TeamResult(member, state).get4table())
@@ -116,17 +116,13 @@ class League(object):
 
         pair = (self.getMember(home_ind), self.getMember(guest_ind))
 
-        # for now self.pair_host uses in another way...
-        # # check this pair config is new (there was not match with this teams with these home-guest roles)
-        # if (home_ind, guest_ind) in self.pair_host:
-        #     print "pair = ", [team.getName() for team in pair]
-        #     # raise Exception, "home-guest roles are not uniq for this pair!"
-        #     raise Exception, "home-guest roles are not uniq for this pair!"
-        #
-        # # self.pair_host.add((home_ind, guest_ind))
+        # # old-style
+        # match = M.Match(pair, self.delta_coefs, "%s %s. round %s. tour %s. match %s"
+        #                 % (self.getName(), self.season, roundN, tourN+1, match_ind+1))
 
-        match = M.Match(pair, self.delta_coefs, "%s %s. round %s. tour %s. match %s"
-                        % (self.getName(), self.season, roundN, tourN+1, match_ind+1))
+        # new-style
+        match = M.Match(pair, self.delta_coefs, self.name, tourN+1, save_to_db=self.save_to_db)
+
         match_score = match.run()
         self.home_mathes_count[home_ind] += 1
 
@@ -297,15 +293,16 @@ class League(object):
         columns = db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="colnames", suffix = " LIMIT 0")[1:]
         print "TOURNAMENTS_PLAYED_TABLE columns are ", columns
         id_type = self.name
-        values = (self.season, id_type)
-        print "values are ", values
+        values = [self.season, id_type]
+        # print "values are ", values
         db.insert(db.TOURNAMENTS_PLAYED_TABLE, columns, values)
         print "new tournament inserted"
         # return id
         id =  db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="one", suffix = " ORDER BY id DESC LIMIT 1")
-        print "id", id
-        print "id[0]", id[0]
-        return id[0]
+        # print "id", id
+        # print "id[0]", id[0]
+        # return id[0]
+        return id
 
 
     def saveToDB(self, table):
@@ -314,14 +311,14 @@ class League(object):
         """
         id_tournament = self.saveTounramentPlayed()
 
-        print "saving tournament %s results  to database" % self.getName()
+        print "\nsaving tournament %s results  to database" % self.getName()
         columns = db.select(table_names=db.TOURNAMENTS_RESULTS_TABLE, fetch="colnames", where = " LIMIT 0")[1:]
         print "TOURNAMENTS_RESULTS_TABLE columns are ", columns
         for ind, team in enumerate(table):
             # id_team = team.getID()
             id_team = team["Team"].getID()
             pos = ind + 1
-            values = (id_tournament, pos, id_team)
+            values = [id_tournament, pos, id_team]
             db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, values)
         print "inserted %s rows to %s" % (len(table), db.TOURNAMENTS_RESULTS_TABLE)
 
@@ -393,13 +390,13 @@ class Table():
         strRow = "            "
         for col in columns:
             strRow += col + "      "
-        for ind, team in enumerate(self.table):
+        for ind, result in enumerate(self.table):
             strRow += "\n%s. " % (ind+1) + "     "
             # first column must be teamname
-            strRow += str(team[0].getName()) + "     "
+            strRow += str(result["Team"].getName()) + "     "
             # others are results
             for col in columns[1:]:
-                strRow += str(team[col]) + "     "
+                strRow += str(result[col]) + "     "
         return strRow
 
     def update(self, results, team_inds = "all"):
@@ -450,6 +447,7 @@ if __name__ == "__main__":
         print_matches = kwargs["print_matches"]
         print_ratings = kwargs["print_ratings"]
         pair_mode = kwargs["pair_mode"]
+        save_to_db = kwargs["save_to_db"]
 
         for i in range(team_num):
             # teamN = i + 1
@@ -470,7 +468,7 @@ if __name__ == "__main__":
             # new-styled
             league_id = 3
             season = 1
-            League(league_id, season, teams, coefs, pair_mode).test(print_matches, print_ratings)
+            League(league_id, season, teams, coefs, pair_mode, save_to_db=save_to_db).test(print_matches, print_ratings)
 
         if "roundRobin" in args:
             print "TEST roundRobin"
@@ -493,8 +491,10 @@ if __name__ == "__main__":
     # print_matches = True
     print_matches = False
     print_ratings = False
+    SAVE_TO_DB = True
+
     for t_num in range(start_num, end_num, 1):
         for pair_mode in pair_modes:
             print "\nt_num = %s\n" % t_num
-            Test("League", team_num = t_num, pair_mode = pair_mode, print_matches = print_matches, print_ratings = print_ratings)
+            Test("League", team_num = t_num, pair_mode = pair_mode, print_matches = print_matches, print_ratings = print_ratings, save_to_db = SAVE_TO_DB)
             # Test("roundRobin", team_num = t_num, pair_mode = pair_mode, print_matches = print_matches, print_ratings = print_ratings)

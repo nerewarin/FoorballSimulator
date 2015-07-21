@@ -335,6 +335,7 @@ def insert(table, columns, values):
     # inputs = (columns, vals)
 
     inputs = (columns, values)
+    print "inputs =", inputs
     outputs = []
     for ind, input in enumerate(inputs):
 
@@ -355,17 +356,17 @@ def insert(table, columns, values):
                 # output += (str(input_part) + ", ")
                 # print "output", output
             output = output[:-2]
-
+            print "output = ", output
         else:
             output = str(input)
         outputs.append(output)
 
     cols, vals = outputs
-
+    print "vals = ", vals
     # print "sting vals", vals
 
     insert_query = 'INSERT INTO ' + table + ' (' + cols + ') VALUES (' + vals + ');'
-    print insert_query
+    print "insert_query = ",  insert_query
     trySQLquery(CUR.execute, insert_query)
 
 
