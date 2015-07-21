@@ -22,7 +22,8 @@ import os, operator, sys, time, warnings
 ### CONSTANTS ###
 
 # database info
-DBNAME ="FootballSimDB".lower()
+# DBNAME ="FootballSimDB".lower()
+DBNAME ="football_sim".lower()
 DBUSER = "postgres"
 DBHOST = 'localhost'
 DBPASSWORD = "GameDB"
@@ -88,7 +89,7 @@ def createExcelTable(filename, teamsL, overwrite = False):
             sheet1.write(i+1, j, data)
 
 
-    book.saveToDB(filename)
+    book.save(filename)
 
 
 def createTeamsFromExcelTable(excelFilename = "initial rating.xls"):
@@ -190,6 +191,20 @@ def createDB(teamsL, storage = "Postgre", overwrite = False):
         print "sorted_countries", sorted_countries
 
 
+        if overwrite:
+            # delete all data from constant and predefined tables and later fill again
+            tables = ""
+            for table in (CONSTANT_TABLES + PREDEFINED_TABLES):
+                tables += (table + ", ")
+            tables = tables[:-2]
+            truncate_query = 'TRUNCATE ' + tables + ' RESTART IDENTITY CASCADE;'
+
+            print "\nTRUNCATING ALL ROWS OF tables %s" % tables
+
+            trySQLquery(cur.execute, truncate_query)
+            print "ok\n"
+
+
         def create_db_table(recreating, cur, con, table_name, func, columns_info):
             if not tableExists(cur, table_name):
                 print "%s\" not exists, creating" % table_name
@@ -212,26 +227,13 @@ def createDB(teamsL, storage = "Postgre", overwrite = False):
                 if recreating != "only inserting":
                     print "refill %s" % table_name
                     # trySQLquery(cur.execute, 'DELETE FROM %s' % table_name)
-                func(cur, con, table_name, columns_info)
+                    func(cur, con, table_name, columns_info)
             print
 
 
-        if overwrite:
-            # delete all data from constant and predefined tables and later fill again
-            tables = ""
-            for table in (CONSTANT_TABLES + PREDEFINED_TABLES):
-                tables += (table + ", ")
-            tables = tables[:-2]
-            truncate_query = 'TRUNCATE ' + tables + ' RESTART IDENTITY CASCADE;'
-
-            print "\nTRUNCATING ALL ROWS OF tables %s" % tables
-
-            trySQLquery(cur.execute, truncate_query)
-            print "ok\n"
-
         # CREATE TABLE TeamCountries
         table_name = "Countries"
-        recreating = True
+        # recreating = True
         recreating = False
         columnsInfo = list(sorted_countries)
         create_db_table(recreating, cur, con, table_name, fill_countries, columnsInfo)
@@ -259,7 +261,7 @@ def createDB(teamsL, storage = "Postgre", overwrite = False):
         recreating = True
         recreating = False
         # tournament_ID = "ID"
-        tournament_name = "tournament"
+        tournament_name = "name"
         tournament_type = "type"
         tournament_country = "id_country"
         # tournament_teams_count = "teams_count"
@@ -281,9 +283,9 @@ def createDB(teamsL, storage = "Postgre", overwrite = False):
 
 
 
-def select(what, table_names, columns = "", values = "", fetch = "one", where = "", sign = ""):
+def select(what, table_names, where = "", columns = "", sign = "", values = "", suffix = "", fetch = "one"):
 
-    inputs = (table_names, columns, values)
+    inputs = (what, table_names, columns, values)
     outputs = []
     for input in inputs:
 
@@ -296,8 +298,8 @@ def select(what, table_names, columns = "", values = "", fetch = "one", where = 
             output = str(input)
         outputs.append(output)
 
-    tables, cols, vals = outputs
-    select_query = 'SELECT '+ what + ' FROM ' + tables + where + cols + sign + vals + ';'
+    _what, tables, cols, vals = outputs
+    select_query = 'SELECT '+ _what + ' FROM ' + tables + where + cols + sign + vals + suffix + ';'
     # select_query = 'SELECT * FROM ' + tables + ' WHERE '  + cols + " = " + vals + ';'
     print select_query
 
@@ -306,7 +308,7 @@ def select(what, table_names, columns = "", values = "", fetch = "one", where = 
     if fetch == "one":
         return CUR.fetchone()[0]
     elif fetch == "all":
-        return CUR.fetchall()
+        return CUR.fetchall()[0]
     elif fetch == "colnames":
         return [desc[0] for desc in CUR.description]
     else:
@@ -360,7 +362,7 @@ def get_country_id(cur, country_name):
     :param country_name:
     :return:
     """
-    cur.execute("""SELECT id FROM Countries WHERE tournament = %s;""", (country_name, )) # ok
+    cur.execute("""SELECT id FROM Countries WHERE name = %s;""", (country_name, )) # ok
     country_ID = cur.fetchone()[0]
     return country_ID
 
@@ -425,17 +427,17 @@ def save_ratings(con, cur, seasons, teamsL):
 
 def fill_season(con, cur, season):
     """
-    add new row (id-tournament) to SEASONS_TABLENAME
+    add new row (id-name) to SEASONS_TABLENAME
     :param con:
     :param cur:
     :param season:
     :return:
     """
     data = (SEASONS_TABLENAME, season)
-    trySQLquery(cur.execute, "INSERT INTO %s (tournament) VALUES ('%s');" % data)
+    trySQLquery(cur.execute, "INSERT INTO %s (name) VALUES ('%s');" % data)
     con.commit()
     # get last season ID (from last row)
-    cur.execute("""SELECT id FROM seasons WHERE tournament = %s;""", (str(season),)) # ok
+    cur.execute("""SELECT id FROM seasons WHERE name = %s;""", (str(season),)) # ok
     season_id = cur.fetchall()[0][0]
     con.commit()
     return season_id
@@ -453,7 +455,7 @@ def fill_teams_ratings(con, cur, season_id, teamsL):
     :return:
     """
     for ind, team in enumerate(teamsL):
-        # team_id = get_id_from_value(cur, TEAMINFO_TABLENAME, "tournament", team.getName())
+        # team_id = get_id_from_value(cur, TEAMINFO_TABLENAME, "name", team.getName())
         team_id = ind + 1
         position = ind + 1
         rating = team.getRating()
@@ -556,7 +558,7 @@ def fill_TeamInfo(cur, con, table_name, columnsInfo):
             # data = (table_name, str(teamName), country_ID)
             # print data
             # query =  "INSERT INTO %s (tournament, runame, id_country, team_emblem) VALUES ('%s', '%s', '%s', '%s');" % data
-            query =  "INSERT INTO %s (tournament, runame, id_country) VALUES ('%s', '%s', '%s');" % data
+            query =  "INSERT INTO %s (name, runame, id_country) VALUES ('%s', '%s', '%s');" % data
             # query =  "INSERT INTO %s (tournament, id_country) VALUES ('%s', '%s');" % data
             # query =  "INSERT INTO TeamInfo (team_ID, team_Name, team_RuName, countryID) VALUES (%s, %s, %s, %s);"
 
@@ -581,7 +583,7 @@ def fill_countries(cur, con, table_name, sorted_countries):
     try:
         # INSERT TO TABLE Countries [table_name, team_count, sorted_countries]
         for ind, (country, teams_count) in enumerate(sorted_countries):
-            query =  "INSERT INTO %s (tournament, teams_count) VALUES ('%s', '%s');" % (table_name, country, teams_count)
+            query =  "INSERT INTO %s (name, teams_count) VALUES ('%s', '%s');" % (table_name, country, teams_count)
             # print "insert data", data, "to table Countries"
             cur.execute(query)
         print "inserted %s rows to %s" % (len(sorted_countries), table_name)
@@ -647,7 +649,8 @@ def insert_tournament_to_DB_table(con, cur, columns, t_name, t_type, t_country =
                  (table_name,
                   tournament_name, tournament_type,
                   t_name, t_type)
-    # print tournament_name, tournament_type, tournament_country, t_name, t_type, t_country
+    # print "insert_tournament_to_DB_table"
+    # print query
     trySQLquery(cur.execute, query)
     con.commit()
 

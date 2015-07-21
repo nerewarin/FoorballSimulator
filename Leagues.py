@@ -294,7 +294,7 @@ class League(object):
         insert new row to TOURNAMENTS_PLAYED_TABLE, defining new id
         """
         print "saving tournament %s to database" % self.getName()
-        columns = db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="colnames", where = " LIMIT 0")[1:]
+        columns = db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="colnames", suffix = " LIMIT 0")[1:]
         print "TOURNAMENTS_PLAYED_TABLE columns are ", columns
         id_type = self.name
         values = (self.season, id_type)
@@ -302,7 +302,7 @@ class League(object):
         db.insert(db.TOURNAMENTS_PLAYED_TABLE, columns, values)
         print "new tournament inserted"
         # return id
-        id =  db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="one", where = " ORDER BY id DESC LIMIT 1")
+        id =  db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="one", suffix = " ORDER BY id DESC LIMIT 1")
         print "id", id
         print "id[0]", id[0]
         return id[0]
@@ -456,7 +456,10 @@ if __name__ == "__main__":
             teamN = i
             rating = team_num - i
             uefa_pos = teamN
-            teams.append(Team.Team("FC team%s" % teamN, "RUS", rating, "Р С™Р С•Р СР В°Р Р…Р Т‘Р В°%s" % teamN, uefa_pos))
+            id = i + 1
+            # teams.append(Team.Team("FC team%s" % teamN, "RUS", rating, "Р С™Р С•Р СР В°Р Р…Р Т‘Р В°%s" % teamN, uefa_pos))
+            # new-styled
+            teams.append(Team.Team(id))
 
         # # TEST LEAGUE CLASS
         if "League" in args:
