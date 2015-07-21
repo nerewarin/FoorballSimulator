@@ -601,7 +601,7 @@ def matrixAsList( matrix, value = True ):
 
 def lookup(name, namespace):
     """
-    Get a method or class from any imported module from its name.
+    Get a method or class from any imported module from its tournament.
     Usage: lookup(functionName, globals())
     """
     dots = name.count('.')

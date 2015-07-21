@@ -1,7 +1,7 @@
 # !/usr/bin/python
 # -*- coding: utf-8 -*-
 __author__ = 'NereWARin'
-from DataStoring import save_ratings, connectGameDB
+from DataStoring import save_ratings, CON, CUR
 
 class Season(object):
     """
@@ -27,7 +27,9 @@ class Season(object):
 
     def run(self):
         # connect to DB
-        con, cur = connectGameDB()
+        con, cur = CON, CUR
+
+        # TODO run every match that exists in table "Tournaments"
 
     columns = table_name, tournament_name, tournament_type, tournament_country
     counter += gen_national_tournaments(con, cur, columns, "Cup", sorted_countries)

@@ -27,8 +27,18 @@ DBUSER = "postgres"
 DBHOST = 'localhost'
 DBPASSWORD = "GameDB"
 SCHEMA = 'public'
+# database connection
+def connectGameDB(dbname=DBNAME, user=DBUSER, host = DBHOST, password=DBPASSWORD):
+    con = db.connect(dbname=dbname, user=user, host = host, password=password)
+    con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+    cur = con.cursor()
+    print "Database %s connected" % dbname
+    return con, cur
 
-# season that ratings will be filled as initial (defines only name of field "name" in season - data will be parsed
+CON, CUR = connectGameDB()
+
+
+# season that ratings will be filled as initial (defines only tournament of field "tournament" in season - data will be parsed
 # from default "2014/2015" season
 START_SEASON = "2014/2015"
 
@@ -41,7 +51,9 @@ SEASONS_TABLENAME = "seasons"
 TEAM_RATINGS_TABLENAME = "team_ratings"
 COUNTRY_RATINGS_TABLENAME = "country_ratings"
 PREDEFINED_TABLES = (SEASONS_TABLENAME, TEAM_RATINGS_TABLENAME, COUNTRY_RATINGS_TABLENAME)
-
+MATCHES_TABLE = "matches"
+TOURNAMENTS_PLAYED_TABLE = "tournaments_played"
+TOURNAMENTS_RESULTS_TABLE = "tournament_results"
 
 
 
@@ -76,7 +88,7 @@ def createExcelTable(filename, teamsL, overwrite = False):
             sheet1.write(i+1, j, data)
 
 
-    book.save(filename)
+    book.saveToDB(filename)
 
 
 def createTeamsFromExcelTable(excelFilename = "initial rating.xls"):
@@ -103,15 +115,9 @@ def createTeamsFromExcelTable(excelFilename = "initial rating.xls"):
         uefaPos = int(row[0])
         countryID = "undefined"
         teamsL.append(Team.Team(name, country, rating, ruName, uefaPos, countryID))
-        # print name, country, rating, ruName, uefaPos
+        # print tournament, country, rating, ruName, uefaPos
     # print to console all teams
     return teamsL
-
-def connectGameDB(dbname=DBNAME, user=DBUSER, host = DBHOST, password=DBPASSWORD):
-    con = db.connect(dbname=dbname, user=user, host = host, password=password)
-    con.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
-    cur = con.cursor()
-    return con, cur
 
 
 # CREATE DATABASE AND TABLES
@@ -119,14 +125,15 @@ def createDB(teamsL, storage = "Postgre", overwrite = False):
     if storage == "Postgre":
         # https://www.ibm.com/developerworks/ru/library/l-python_part_11/
         django_ver = django.VERSION
-        # using example from http://ideafix.name/wp-content/uploads/2012/05/Python-10.pdf
+        # using example from http://ideafix.tournament/wp-content/uploads/2012/05/Python-10.pdf
         db_api =  db.apilevel
         db_paramstyle = db.paramstyle
         db_threadsafety = db.threadsafety
         # http://stackoverflow.com/questions/19426448/creating-a-postgresql-db-using-psycopg2
 
         # connect to default DB (is specific DB not exists)
-        con, cur = connectGameDB(dbname='postgres', user=DBUSER, host = 'localhost', password=DBPASSWORD)
+        # con, cur = connectGameDB(dbname='postgres', user=DBUSER, host = 'localhost', password=DBPASSWORD)
+        con, cur = CON, CUR
 
         cur.execute('SELECT version()')
         ver = cur.fetchone()
@@ -252,7 +259,7 @@ def createDB(teamsL, storage = "Postgre", overwrite = False):
         recreating = True
         recreating = False
         # tournament_ID = "ID"
-        tournament_name = "name"
+        tournament_name = "tournament"
         tournament_type = "type"
         tournament_country = "id_country"
         # tournament_teams_count = "teams_count"
@@ -272,6 +279,68 @@ def createDB(teamsL, storage = "Postgre", overwrite = False):
             cur.close()
 
 
+
+
+def select(what, table_names, columns = "", values = "", fetch = "one", where = "", sign = ""):
+
+    inputs = (table_names, columns, values)
+    outputs = []
+    for input in inputs:
+
+        if isinstance(input, list):
+            output = ""
+            for input_part in input:
+                output += (str(input_part) + ", ")
+            output = output[:-2]
+        else:
+            output = str(input)
+        outputs.append(output)
+
+    tables, cols, vals = outputs
+    select_query = 'SELECT '+ what + ' FROM ' + tables + where + cols + sign + vals + ';'
+    # select_query = 'SELECT * FROM ' + tables + ' WHERE '  + cols + " = " + vals + ';'
+    print select_query
+
+
+    trySQLquery(CUR.execute, select_query)
+    if fetch == "one":
+        return CUR.fetchone()[0]
+    elif fetch == "all":
+        return CUR.fetchall()
+    elif fetch == "colnames":
+        return [desc[0] for desc in CUR.description]
+    else:
+        raise NotImplementedError, "unknown fetch parameter"
+
+
+def insert(table, columns, values):
+    """
+
+    :param table:
+    :param columns:
+    :param values:
+    :param fetch:
+    :return:
+    """
+    inputs = (columns, values)
+    outputs = []
+    for input in inputs:
+
+        if isinstance(input, list):
+            output = ""
+            for input_part in input:
+                output += (str(input_part) + ", ")
+            output = output[:-2]
+        else:
+            output = str(input)
+        outputs.append(output)
+
+    cols, vals = outputs
+    select_query = 'INSERT INTO ' + table + '(' + cols + ') VALUES ' + vals + ';'
+    print select_query
+    return
+
+
 # def exists(cur, table_name, dbname, schema):
 def tableExists(cur, table_name):
    try:
@@ -286,14 +355,15 @@ def tableExists(cur, table_name):
 
 def get_country_id(cur, country_name):
     """
-    converts string name to id by using
+    converts string tournament to id by using
      select id from table "Countries"
     :param country_name:
     :return:
     """
-    cur.execute("""SELECT id FROM Countries WHERE name = %s;""", (country_name, )) # ok
+    cur.execute("""SELECT id FROM Countries WHERE tournament = %s;""", (country_name, )) # ok
     country_ID = cur.fetchone()[0]
     return country_ID
+
 
 def get_id_from_value(cur, table_name, column, value):
     """
@@ -355,17 +425,17 @@ def save_ratings(con, cur, seasons, teamsL):
 
 def fill_season(con, cur, season):
     """
-    add new row (id-name) to SEASONS_TABLENAME
+    add new row (id-tournament) to SEASONS_TABLENAME
     :param con:
     :param cur:
     :param season:
     :return:
     """
     data = (SEASONS_TABLENAME, season)
-    trySQLquery(cur.execute, "INSERT INTO %s (name) VALUES ('%s');" % data)
+    trySQLquery(cur.execute, "INSERT INTO %s (tournament) VALUES ('%s');" % data)
     con.commit()
     # get last season ID (from last row)
-    cur.execute("""SELECT id FROM seasons WHERE name = %s;""", (str(season),)) # ok
+    cur.execute("""SELECT id FROM seasons WHERE tournament = %s;""", (str(season),)) # ok
     season_id = cur.fetchall()[0][0]
     con.commit()
     return season_id
@@ -383,7 +453,7 @@ def fill_teams_ratings(con, cur, season_id, teamsL):
     :return:
     """
     for ind, team in enumerate(teamsL):
-        # team_id = get_id_from_value(cur, TEAMINFO_TABLENAME, "name", team.getName())
+        # team_id = get_id_from_value(cur, TEAMINFO_TABLENAME, "tournament", team.getName())
         team_id = ind + 1
         position = ind + 1
         rating = team.getRating()
@@ -476,7 +546,7 @@ def fill_TeamInfo(cur, con, table_name, columnsInfo):
             else:
                 teamEmblem = open(DataParsing.EMBLEMS_STORAGE_FOLDER +  teamName + ".png", 'rb').read()
 
-            # cur.execute("""SELECT id FROM Countries WHERE name = %s;""", (teamCountry, )) # ok
+            # cur.execute("""SELECT id FROM Countries WHERE tournament = %s;""", (teamCountry, )) # ok
             # country_ID = cur.fetchone()[0]
             country_ID = team.getCountryID()
 
@@ -485,9 +555,9 @@ def fill_TeamInfo(cur, con, table_name, columnsInfo):
             data = (table_name, str(teamName), teamRuName, country_ID)
             # data = (table_name, str(teamName), country_ID)
             # print data
-            # query =  "INSERT INTO %s (name, runame, id_country, team_emblem) VALUES ('%s', '%s', '%s', '%s');" % data
-            query =  "INSERT INTO %s (name, runame, id_country) VALUES ('%s', '%s', '%s');" % data
-            # query =  "INSERT INTO %s (name, id_country) VALUES ('%s', '%s');" % data
+            # query =  "INSERT INTO %s (tournament, runame, id_country, team_emblem) VALUES ('%s', '%s', '%s', '%s');" % data
+            query =  "INSERT INTO %s (tournament, runame, id_country) VALUES ('%s', '%s', '%s');" % data
+            # query =  "INSERT INTO %s (tournament, id_country) VALUES ('%s', '%s');" % data
             # query =  "INSERT INTO TeamInfo (team_ID, team_Name, team_RuName, countryID) VALUES (%s, %s, %s, %s);"
 
             # use psycopg2.Binary(binary) from http://iamtgc.com/using-python-to-load-binary-files-into-postgres/
@@ -511,7 +581,7 @@ def fill_countries(cur, con, table_name, sorted_countries):
     try:
         # INSERT TO TABLE Countries [table_name, team_count, sorted_countries]
         for ind, (country, teams_count) in enumerate(sorted_countries):
-            query =  "INSERT INTO %s (name, teams_count) VALUES ('%s', '%s');" % (table_name, country, teams_count)
+            query =  "INSERT INTO %s (tournament, teams_count) VALUES ('%s', '%s');" % (table_name, country, teams_count)
             # print "insert data", data, "to table Countries"
             cur.execute(query)
         print "inserted %s rows to %s" % (len(sorted_countries), table_name)

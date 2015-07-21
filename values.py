@@ -217,7 +217,7 @@ class TournamentSchemas(object):
                     "tourn_type" : ("Cup", 1),
                     # 0 - one match in pair, 1 - home & guest but the final , 2 - always home & guest
                     "pair_mode" : 2,
-                    # every tour is a row of dict {round name : dict{(country indexes)* : team pos of national league**}}
+                    # every tour is a row of dict {round tournament : dict{(country indexes)* : team pos of national league**}}
                     # is tuple of int, from country, is stings and == "CL", from
                     # * - if int, pos, if string and == "cupwinner" - so its winner from national cups,
 
@@ -244,7 +244,7 @@ class TournamentSchemas(object):
                     "pair_mode" : 2,
                     "tindx_in_round" : [
                         # 13 champions of 1-13, 6 silver 1-6, 3 bronze 1-3   and 15 winners of qualification
-                        # no name or None -named round (cause its exclusive)
+                        # no tournament or None -named round (cause its exclusive)
                         {"" : {tuple(range(1,14,1)) : 0, tuple(range(1,7,1)) : 1, tuple(range(1,4,1)) : 2 }}
                     ]
                 }
@@ -269,7 +269,7 @@ class TournamentSchemas(object):
                     "tourn_type" : ("Cup", 1),
                     # 0 - one match in pair, 1 - home & guest but the final , 2 - always home & guest
                     "pair_mode" : 2,
-                    # every tour is a row of dict {round name : dict{country ind : team pos of national league}}
+                    # every tour is a row of dict {round tournament : dict{country ind : team pos of national league}}
                     "tindx_in_round" : [
                         # 1 round
                         # 20 cup winners 35-54, 26 silver of 27-53 # TODO exclude Lichtenstein or not when teams already parsed

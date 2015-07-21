@@ -15,7 +15,7 @@ EMBLEMS_STORAGE_FOLDER = "resourses/images/team_emblems/"
 
 def createTeamsFromHTML(season = "2014/2015", mode = "creating"):
     """
-    parses UEFA site, stores all data to list of Team object (every object stores name, rating, country, uefa_pos)
+    parses UEFA site, stores all data to list of Team object (every object stores tournament, rating, country, uefa_pos)
     :param mode:
     :return:
     """

@@ -6,6 +6,7 @@ import Team
 import util
 # import Cups
 import Match as M
+import DataStoring as db
 from values import Coefficients as C
 from operator import attrgetter, itemgetter
 from collections import defaultdict
@@ -18,6 +19,7 @@ import os
 import warnings
 from copy import copy, deepcopy
 
+
 class League(object):
     """
     represents Football League
@@ -26,7 +28,7 @@ class League(object):
     def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "rnd", state_params = ("P",	"W","D","L","GF","GA","GD","PTS")):
         """
 
-        :param name: League name and year
+        :param name: League tournament id
         :param members: list of teams
         :param delta_coefs: coefficients stored in values to compute ratings changing after match followed bby its result
 
@@ -42,7 +44,7 @@ class League(object):
 
         :return:
         """
-        # super(League, self).__init__(name, season, members, delta_coefs)
+        # super(League, self).__init__(tournament, season, members, delta_coefs)
         self.name = name
         self.season = season
         self.members = members
@@ -55,6 +57,8 @@ class League(object):
 
         # initial results
         # after next block it will be filled by all state_params=0
+        # results is a list of dicts ["Team" : , ... "PTS" = x]
+        # in run() method it will be moved to final self.table, that is the same but sorted
         self.results = []
 
         # check self is League (not a subclass Cup)
@@ -268,16 +272,59 @@ class League(object):
                 if len(dd.keys()) == 2:
                     # "its ok to be like 7/8 matches in league of 16 teams (15 rounds, odd)"
                     # warnings.warn("no way to fix, its math! maybe I shall add random for computing home-guest roles if equality of its count unreachable")
-                    return self.table.update(self.results)
+                    pass
+            else:
+                print "ddd_error"
+                for k,v in dd.iteritems():
+                    print k,v
 
-            print "ddd_error"
-            for k,v in dd.iteritems():
-                print k,v
-
-            raise Exception, "not all teams played exactly the same count of home matches, see above"
-            #     warnings.warn("maybe I shall add random for computing home-guest roles if equality of its count unreachable")
+                raise Exception, "not all teams played exactly the same count of home matches, see above"
+                #     warnings.warn("maybe I shall add random for computing home-guest roles if equality of its count unreachable")
         # update and return table
-        return self.table.update(self.results)
+        table =  self.table.update(self.results)
+
+        # TODO save League in database probe
+        self.saveToDB(table)
+
+        return table
+
+
+    def saveTounramentPlayed(self):
+        """
+        insert new row to TOURNAMENTS_PLAYED_TABLE, defining new id
+        """
+        print "saving tournament %s to database" % self.getName()
+        columns = db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="colnames", where = " LIMIT 0")[1:]
+        print "TOURNAMENTS_PLAYED_TABLE columns are ", columns
+        id_type = self.name
+        values = (self.season, id_type)
+        print "values are ", values
+        db.insert(db.TOURNAMENTS_PLAYED_TABLE, columns, values)
+        print "new tournament inserted"
+        # return id
+        id =  db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="one", where = " ORDER BY id DESC LIMIT 1")
+        print "id", id
+        print "id[0]", id[0]
+        return id[0]
+
+
+    def saveToDB(self, table):
+        """
+        save League data in database
+        """
+        id_tournament = self.saveTounramentPlayed()
+
+        print "saving tournament %s results  to database" % self.getName()
+        columns = db.select(table_names=db.TOURNAMENTS_RESULTS_TABLE, fetch="colnames", where = " LIMIT 0")[1:]
+        print "TOURNAMENTS_RESULTS_TABLE columns are ", columns
+        for ind, team in enumerate(table):
+            # id_team = team.getID()
+            id_team = team["Team"].getID()
+            pos = ind + 1
+            values = (id_tournament, pos, id_team)
+            db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, values)
+        print "inserted %s rows to %s" % (len(table), db.TOURNAMENTS_RESULTS_TABLE)
+
 
     def test(self,print_matches = False, print_ratings = False):
         print "\nTEST LEAGUE CLASS"
@@ -292,10 +339,6 @@ class League(object):
             print "updated ratings:"
             for team in self.getMember():
                 print team.getName(), team.getRating()
-
-    def saveData(self):
-        #TODO save League Results in particial Table for season
-        raise NotImplemented
 
 
 
@@ -315,7 +358,9 @@ class TeamResult():
 
     def get4table(self):
         all = self.result.copy()
-        all["Team"] = self.team.getName()
+        # all["Team"] = self.team.getName()
+        # TODO I CHANGED IT IN 21.07  -self.team is no more teamname, its object
+        all["Team"] = self.team
         return all
 
     def update(self, **kwargs):
@@ -350,7 +395,10 @@ class Table():
             strRow += col + "      "
         for ind, team in enumerate(self.table):
             strRow += "\n%s. " % (ind+1) + "     "
-            for col in columns:
+            # first column must be teamname
+            strRow += str(team[0].getName()) + "     "
+            # others are results
+            for col in columns[1:]:
                 strRow += str(team[col]) + "     "
         return strRow
 

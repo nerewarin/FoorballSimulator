@@ -9,14 +9,23 @@ Define Team class
 # import from util provided by AI EDX course project AI WEEK9 - REINFORCEMENT LEARNING
 # (in other modules)
 import time
+import warnings
+# from DataStoring import CON, CUR, TEAMINFO_TABLENAME, trySQLquery, select
+# from DataStoring import trySQLquery, select
+import DataStoring as db
 
 class Team():
     """
     represents team
     """
-    def __init__(self, name, country, rating, ruName, uefaPos, countryID, UEFAratings = []):
-        self.name = name
+    def __init__(self, id, country=None, rating=None, ruName=None, uefaPos=None, countryID=None, UEFAratings = []):
+        self.id = id
+        self.name = db.select(what = "name", table_names=db.TEAMINFO_TABLENAME, columns="id", values=self.id,
+                              where = " WHERE ", sign = " = ")
+
+        # if not country: ;else: self.country = country
         self.country = country
+
         self.rating = rating
         self.ruName = ruName
         self.uefaPos = uefaPos
@@ -26,6 +35,9 @@ class Team():
 
     def __str__(self):
         return self.name
+
+    def getID(self):
+        return self.id
 
     def getUefaPos(self):
         """
@@ -55,8 +67,8 @@ class Team():
         return self.ruName
 
     def setRating(self, rating):
-        print "RATING WAS UPDATED!!!!!!!!"
-        # TODO after every season i should shift actual rating to previous and so on
+        # print "RATING WAS UPDATED!!!!!!!!"
+        # TODO after every season i should (*OR NOT? IF USE ONLY ACTUAL RATING AAS RIGHT NOW) shift actual rating to previous and so on
         self.rating = rating
 
     def setCountryID(self, countryID):
@@ -73,8 +85,14 @@ class Team():
         return getattr(self, self.methods[func_index])
 
 def testTeam():
-    Spartak = Team("Spartak Moscow", "RUS", 1, "Спартак Москва", 56)
+    # old-styled - name instead of id
+    # Spartak = Team("Spartak Moscow", "RUS", 1, "Спартак Москва", 56)
 
+    # new-styled - id only (need postgres)
+    Real = Team(1)
+    Spartak = Team(56)
+    teamnames = [value.getName() for varname, value in locals().iteritems()]
+    assert teamnames == ['Real Madrid CF', 'FC Spartak Moskva'], "wrong teamnames response"
 
 
 

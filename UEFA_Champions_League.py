@@ -47,7 +47,7 @@ class UEFA_League(Cup):
         self.setMembers()
         self.members = self.getMember()
 
-        super(Cup, self).__init__(name, season, self.members, delta_coefs, state_params)#(self, name, season, members, delta_coefs)
+        super(Cup, self).__init__(name, season, self.members, delta_coefs, state_params)#(self, tournament, season, members, delta_coefs)
 
 
         # self.results - empty list. after run() it will be filled as following:
