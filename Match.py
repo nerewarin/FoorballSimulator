@@ -303,11 +303,11 @@ class DoubleMatch(Match):
     def run(self, update = True):
         # first digit - team1 goals, second - team2 goals
         # forward: 1 - team1 , 2 - team2
-        match1_score = list(Match((self.home, self.guest), self.deltaCoefs, self.tournament, self.round + " 1", False,
+        match1_score = list(Match((self.home, self.guest), self.deltaCoefs, self.tournament, self.round + " m1", False,
                                   self.result_format, self.mode, save_to_db = self.save_to_db).run())
 
         # reversed: 1 - team2 , 2 - team1
-        match2_score = list(Match((self.guest, self.home), self.deltaCoefs, self.tournament, self.round + " 2", False,
+        match2_score = list(Match((self.guest, self.home), self.deltaCoefs, self.tournament, self.round + " m2", False,
                                   self.result_format, self.mode, save_to_db = self.save_to_db).run())
 
         # like in match1_score, first digit - team1 goals, second - team2 result

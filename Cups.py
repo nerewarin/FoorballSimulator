@@ -270,24 +270,26 @@ class Cup(League):
 
                 else:
                     raise Exception, "unknown toss parameter %s" % toss
-                # if round_name not in self.net.keys():
-                #     self.net[round_name]
-                #     [1]
-                # self.net[round_name[1]] =
-                # warnings.warn("write ...to self.net")
+
 
                 pair = (team1, team2)
                 if random.randint(0,1): # TODO if pair_mode < 1, need to compute what team played less matches at home
                     pair = (team2, team1)
 
-                # print "%s :  %s" % (team1, team2)
-                # match_name = "%s %s. round %s. struggle %s"  \
+                # p is a pair
                 round_name = self.round_names[round]
+                if struggles > 1:
+                    # if more than one pair, enumerate pairs
+                    round_name += " p%s" % (struggleN+1)
+
                 id_tournament = self.name # TODO this is id - need refactoring
                 # match_name = "%s %s. %s.%s"  \
                 #                 % (self.getName(), self.season, round_name, struggleN)
+
+                # PLAY MATCH OR DOUBLE_MATCH
                 struggle = classname(pair, self.delta_coefs, id_tournament, round_name, playoff)
                 struggle.run()
+
                 # print "classname %s" % classname
                 results = struggle.getResult(1, 2, casted=True)
                 looser = struggle.getLooser()
@@ -415,80 +417,6 @@ class Cup(League):
                     # toss = self.seeding
 
 
-
-
-            # # if not isinstance(self.seeding, str):
-            # #     # UEFA
-            # #     raise NotImplemented, "implement CL and EL seeding"
-            # #
-            # # else:
-            # #     # national
-            # #     if self.seeding == "A1_B16":
-            # #         seeded = teams[borderI:]
-            # #     else:
-            # #         print "basic seeding (=%s) Cup with at most 1 qual. round" % self.seeding
-            # #         seeded = teams[borderI:]
-            #
-            # # id of winners that will be played in next round (exclusive of already seeding)
-            # winners = []
-            # # MIXES ROUNDS
-            # rounds =  self.p_rounds + self.q_rounds
-            # for round in range(1, rounds + 1):
-            #     if not isinstance(self.seeding, str):
-            #         # UEFA
-            #         # raise NotImplemented, "implement CL and EL seeding"
-            #         borderI = 0
-            #     else:
-            #         # national
-            #         borderI = self.seeding[round]
-            #     # get teams from from head
-            #     seeded = teams[borderI:]
-            #     print "teams", teams
-            #
-            #     # cut copy of teams to get indexes from head in future correctly
-            #     teams -=  seeded
-            #     print "rest teams", teams
-            #
-            #     # print "len(teams) = %s", len(teams)
-            #     # print "q_round", q_round
-            #     teams_idxs = winners + seeded
-            #
-            #     if round == rounds and self.pair_mode == 1:
-            #         # FINAL
-            #         pairmode = 0
-            #         self.results, loosers, winners = RunRoundAndUpdate(round, pairmode, self.results, teams_idxs)
-            #     else:
-            #         self.results, loosers, winners = RunRoundAndUpdate(round, self.pair_mode, self.results, teams_idxs)
-
-
-            #
-            #
-            # # PLAY-OFF
-            # for round in range(self.q_rounds + 1, all_rounds):
-            #     # print "len(teams) = %s", len(teams)
-            #     # round_name = round_names[round]
-            #     self.results, loosers, winners = RunRoundAndUpdate(round, self.pair_mode, self.results, teams)
-            #     for looser in loosers:
-            #         teams.remove(looser)
-            #
-            # # FINAL
-            # #     print "final round!"
-            # # print "len(teams) = %s", len(teams)
-            # if self.pair_mode == 1:
-            #     # if print_matches:
-            #     #     print "switch pair_mode from 1 to 0 so it will be only one final match!"
-            #     pairmode = 0 # ONE MATCH FOR FINAL
-            # else:
-            #     pairmode = self.pair_mode
-            # # round_name = round_names[all_rounds]
-            # self.results, loosers, winners = RunRoundAndUpdate(all_rounds, pairmode, self.results, teams)
-            # for looser in loosers:
-            #     teams.remove(looser)
-
-
-            # else:
-            #     self.results, teams = RunRoundAndUpdate(all_rounds + 1, self.pair_mode, self.results, teams)
-
             # assert len(teams) == 1, "Cup ends with more than one winner!"
             if not self.prefix:
                 assert len(winners) == 1, "Cup ends with more than one winner!"
@@ -558,11 +486,9 @@ class Cup(League):
 
     def test(self, print_matches = False, print_ratings = False,
              pre_truncate = False, post_truncate = False):
-
-        if pre_truncate:
-            db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
-            db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
-            db.truncate(db.MATCHES_TABLE)
+        """
+        test Cup and print info
+        """
 
         print "\nTEST CUP CLASS\n"
         print "pair_mode = %s\nseeding = %s\n" % (self.pair_mode, self.seeding)
@@ -579,33 +505,22 @@ class Cup(League):
             print k, [team.getName() for team in self.results[k]]
         print "\nFinal Net:\n", str(self), "\n"
 
-        # ratings after league
-        # print "print_ratings = %s" % print_ratings
-        # print "self.getMember() %s" % self.getMember()
         if print_ratings:
             for team in self.getMember():
                 print team.getName(), team.getRating()
 
-        if post_truncate:
-            db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
-            db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
-            db.truncate(db.MATCHES_TABLE)
 
-# class Net():
-#     """
-#     represents Net for printing in Gui
-#     """
-#     def __init__(self):
-#         self.net = {}
-#
-#     def __str__(self):
-#         return sorted(  self.net)
 
 
 # TEST
 if __name__ == "__main__":
     @util.timer
     def Test(*args, **kwargs):
+        if PRE_TRUNCATE:
+            db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
+            db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
+            db.truncate(db.MATCHES_TABLE)
+
         # VERSION = "v1.1"
         with open(os.path.join("", 'VERSION')) as version_file:
             values_version = version_file.read().strip()
@@ -631,23 +546,6 @@ if __name__ == "__main__":
                 # pair_mode = 0 # one match
                 # pair_mode = 1 # home + guest every match but the final
                 # pair_mode = 2 # home + guest every match
-
-                # PRINT MATCHES AFTER RUN
-                PRINT_MATCHES = False
-                PRINT_MATCHES = True
-                # PRINT RATINGS AFTER RUN
-                PRINT_RATINGS = True
-                PRINT_RATINGS = False
-                # RESET ALL MATCHES DATA BEFORE TEST
-                PRE_TRUNCATE = False
-                PRE_TRUNCATE = True
-                # RESET ALL MATCHES DATA AFTER TEST
-                POST_TRUNCATE = False
-                # POST_TRUNCATE = True
-                # SAVE TO DB - to avoid data integrity (if important data in table exists), turn it off
-                SAVE_TO_DB = False
-                SAVE_TO_DB = True
-
                 s =  Cup("no Cup, just getSeedings", "", teams, coefs, pair_mode)
                 seedings = s.getSeedings()
                 # print "seedings", seedings
@@ -657,12 +555,34 @@ if __name__ == "__main__":
                     # old-styled
                     # tstcp = Cup("testCup", "2015/2016", teams, coefs, pair_mode, seeding)
                     # new-styled
-                    tstcp = Cup(name=50, season=1, members=teams, delta_coefs= coefs, pair_mode=pair_mode, seeding=seeding, save_to_db=SAVE_TO_DB)
-                    tstcp.test(PRINT_MATCHES, PRINT_RATINGS, PRE_TRUNCATE, POST_TRUNCATE)
-                    # TODO TEST ONLY ONCE
-                    break
-                break
+                    tstcp = Cup(name=50, season=1, members=teams, delta_coefs= coefs, pair_mode=pair_mode,
+                                seeding=seeding, save_to_db=SAVE_TO_DB)
+                    tstcp.test(PRINT_MATCHES, PRINT_RATINGS)
+
+                # TEST ONLY ONCE
+                #     break
+                # break
                 # # Cup("testCup", "2015/2016", teams, coefs, pair_mode).run()
 
+        if POST_TRUNCATE:
+            db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
+            db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
+            db.truncate(db.MATCHES_TABLE)
 
-    Test("Cup", team_num = 20)
+
+    # PRINT MATCHES AFTER RUN
+    PRINT_MATCHES = False
+    PRINT_MATCHES = True
+    # PRINT RATINGS AFTER RUN
+    PRINT_RATINGS = True
+    PRINT_RATINGS = False
+    # RESET ALL MATCHES DATA BEFORE TEST
+    PRE_TRUNCATE = False
+    # PRE_TRUNCATE = True
+    # RESET ALL MATCHES DATA AFTER TEST
+    POST_TRUNCATE = False
+    # POST_TRUNCATE = True
+    # SAVE TO DB - to avoid data integrity (if important data in table exists), turn it off
+    SAVE_TO_DB = False
+    SAVE_TO_DB = True
+    Test("Cup", team_num = 200)
