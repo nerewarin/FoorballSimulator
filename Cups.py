@@ -24,7 +24,7 @@ class Cup(League):
                  state_params = ("final_stage", ), save_to_db = True, prefix = ""):
         """
 
-        :param name:
+        :param name: id of tournament stored in db table
         :param season:
 
         # ACTUAL REVERSED ORDER !!!
@@ -53,7 +53,7 @@ class Cup(League):
         # self.results - empty list. after run() it will be filled as following:
         # [team_champion, team_finished_in_final, teams_finished_in_semi-final, ... , teams_finished_in_qualRoundn, ...
         # teams_finished_in_qualRound1# ]
-        print "\nWELCOME TO CUP ***", name.upper(), season, "***"
+        print "\nWELCOME TO CUP ***", name, season, "***"
 
         state = {st:None for st in state_params}
 
@@ -156,6 +156,7 @@ class Cup(League):
         names = {}
         # print "we have %s rounds in Cup %s (%s in qualification, %s in playoff" % (rounds, self.getName(), q_rounds, p_rounds)
 
+        names[rounds+1] = "Winner"
         names[rounds] = "Final"
         names[rounds-1] = "Semi-Final"
 
@@ -214,7 +215,7 @@ class Cup(League):
             borderI = pteam_num - qpairs
             qteams = qpairs * 2
             # return borderI, qpairs
-            return qteams
+            return -borderI
 
         def cupRound(_teams_, round, pair_mode, toss, print_matches = False):
             """
@@ -282,19 +283,20 @@ class Cup(League):
                 # print "%s :  %s" % (team1, team2)
                 # match_name = "%s %s. round %s. struggle %s"  \
                 round_name = self.round_names[round]
-                match_name = "%s %s. %s.%s"  \
-                                % (self.getName(), self.season, round_name, struggleN)
-                struggle = classname(pair, self.delta_coefs, match_name, playoff)
+                id_tournament = self.name # TODO this is id - need refactoring
+                # match_name = "%s %s. %s.%s"  \
+                #                 % (self.getName(), self.season, round_name, struggleN)
+                struggle = classname(pair, self.delta_coefs, id_tournament, round_name, playoff)
                 struggle.run()
                 # print "classname %s" % classname
                 results = struggle.getResult(1, 2, casted=True)
-
+                looser = struggle.getLooser()
                 # for res in results:
                 #     print "res", res
 
                 # TODO use ORM to draw net better
                 # self.net[round].append((pair, results))
-                self.net[round].append((pair[0].getName(), pair[1].getName(), results))
+                self.net[round].append((pair[0].getName(), pair[1].getName(), results, looser))
 
                 # print "results", results, [res for res in results]
                 # print "result %s" % result
@@ -394,11 +396,13 @@ class Cup(League):
             for round in range(1, self.all_rounds + 1):
 
                 seeded = teams[-borderI:]
-                _teams = [self.getMember(i) for i in seeded] + winners
+                # seeded = [self.getMember(i) for i in range(len(seeded))]
+                _teams = seeded + winners
                 pair_mode = get_pairmode(round)
                 self.results, loosers, winners = RunRoundAndUpdate(round, pair_mode, self.results, _teams, toss)
                 # UPDATE LIST OF REMAINING TEAMS
-                teams = teams - _teams
+                for seeded_team in seeded:
+                    teams.remove(seeded_team)
 
                 if round_info:
                     round_info = self.seeding[round]
@@ -488,10 +492,16 @@ class Cup(League):
             # assert len(teams) == 1, "Cup ends with more than one winner!"
             if not self.prefix:
                 assert len(winners) == 1, "Cup ends with more than one winner!"
-                self.winner = winners.pop()
+                self.winners = winners
             else:
                 # for qualificaton for example
-                self.winner = winners
+                self.winners = winners
+            # print "self.winner" , self.winner
+
+
+            # for winner in self.winners:
+
+            self.net[self.all_rounds+1] = (self.winners, )
 
             # # print result for EVERY round
             # if print_matches:
@@ -499,8 +509,9 @@ class Cup(League):
             #         print "results (loosers) of stage %s len of %s : %s" % (stage, len(self.results[stage]), [team.getName() for team in self.results[stage]])
 
             # TODO save Cup in database probe
+
             self.saveToDB(self.net)
-            return self.winner
+            return self.winners
 
 
     def saveToDB(self, net):
@@ -510,22 +521,30 @@ class Cup(League):
         """
 
         if not self.prefix:
-            # unregistered yet - for national Leagues
-            self.saveTounramentPlayed()
-        # else get from parameter - if its Group Tourn
-        id_tournament = self.name
+            # if unregistered yet - register now (for national Leagues)
+            id_tournament = self.saveTounramentPlayed()
+        # else get last played tournament and reserve id for it for future saving
+        else:
+            id_tournament = db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE,
+                                      fetch="one", suffix = " ORDER BY id DESC LIMIT 1") \
+                            + 1
 
         columns = db.select(table_names=db.TOURNAMENTS_RESULTS_TABLE, fetch="colnames", where = " LIMIT 0")[1:]
         # TODO edit getName to return readable info about tournament: readable name and season
         print "\nsaving tournament %s results to database in columns %s" % (self.getName(), columns)
         count = 0
-        for round, teams in self.net.iteritems():
+        for round, pairs_info in self.net.iteritems():
+
             # pos = self.prefix +
             pos = self.round_names[round]
-            for team in teams:
-                id_team = team.getName()
+            if pos == "winner" and len(pairs_info) > 1:
+                pos = "winners"
+            for pair_info in pairs_info:
+                id_team = pair_info[-1].getID()
+                # id_team2 = pair_info[1].getName()
                 values = [id_tournament, pos, id_team]
                 db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, values)
+
                 count += 1
         # print "inserted %s rows to %s" % (len(self.net.values()), db.TOURNAMENTS_RESULTS_TABLE)
         print "inserted %s rows to %s" % (count, db.TOURNAMENTS_RESULTS_TABLE)
@@ -535,9 +554,15 @@ class Cup(League):
         return self.round_names
 
     def getWinner(self):
-        return self.winner
+        return self.winners
 
-    def test(self, print_matches = False, print_ratings = False):
+    def test(self, print_matches = False, print_ratings = False,
+             pre_truncate = False, post_truncate = False):
+
+        if pre_truncate:
+            db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
+            db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
+            db.truncate(db.MATCHES_TABLE)
 
         print "\nTEST CUP CLASS\n"
         print "pair_mode = %s\nseeding = %s\n" % (self.pair_mode, self.seeding)
@@ -561,7 +586,10 @@ class Cup(League):
             for team in self.getMember():
                 print team.getName(), team.getRating()
 
-
+        if post_truncate:
+            db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
+            db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
+            db.truncate(db.MATCHES_TABLE)
 
 # class Net():
 #     """
@@ -589,8 +617,11 @@ if __name__ == "__main__":
             teamN = i + 1
             rating = team_num - i
             uefa_pos = teamN
-            teams.append(Team.Team("FC team%s" % teamN, "RUS", rating, "Команда%s" % teamN, uefa_pos))
-
+            # old-styled
+            # teams.append(Team.Team("FC team%s" % teamN, "RUS", rating, "Команда%s" % teamN, uefa_pos))
+            # new-styled
+            teams.append(Team.Team(teamN))
+            # teams.append(Team.Team(name=teamN, country="RUS", rating=teamN*10.0, uefaPos=teamN, countryID=(teamN*10)%52))
         # TEST CUP CLASS
         if "Cup" in args:
 
@@ -601,11 +632,21 @@ if __name__ == "__main__":
                 # pair_mode = 1 # home + guest every match but the final
                 # pair_mode = 2 # home + guest every match
 
-                # print_matches = False
-                print_matches = True
-
-                print_ratings = False
-                # print_ratings = True
+                # PRINT MATCHES AFTER RUN
+                PRINT_MATCHES = False
+                PRINT_MATCHES = True
+                # PRINT RATINGS AFTER RUN
+                PRINT_RATINGS = True
+                PRINT_RATINGS = False
+                # RESET ALL MATCHES DATA BEFORE TEST
+                PRE_TRUNCATE = False
+                PRE_TRUNCATE = True
+                # RESET ALL MATCHES DATA AFTER TEST
+                POST_TRUNCATE = False
+                # POST_TRUNCATE = True
+                # SAVE TO DB - to avoid data integrity (if important data in table exists), turn it off
+                SAVE_TO_DB = False
+                SAVE_TO_DB = True
 
                 s =  Cup("no Cup, just getSeedings", "", teams, coefs, pair_mode)
                 seedings = s.getSeedings()
@@ -613,8 +654,14 @@ if __name__ == "__main__":
                 for seeding in seedings:
                     # print seeding , "seeding"
                     # print "teams, coefs, pair_mode, seeding", teams, coefs, pair_mode, seeding
-                    tstcp = Cup("testCup", "2015/2016", teams, coefs, pair_mode, seeding)
-                    tstcp.test(print_matches, print_ratings)
+                    # old-styled
+                    # tstcp = Cup("testCup", "2015/2016", teams, coefs, pair_mode, seeding)
+                    # new-styled
+                    tstcp = Cup(name=50, season=1, members=teams, delta_coefs= coefs, pair_mode=pair_mode, seeding=seeding, save_to_db=SAVE_TO_DB)
+                    tstcp.test(PRINT_MATCHES, PRINT_RATINGS, PRE_TRUNCATE, POST_TRUNCATE)
+                    # TODO TEST ONLY ONCE
+                    break
+                break
                 # # Cup("testCup", "2015/2016", teams, coefs, pair_mode).run()
 
 

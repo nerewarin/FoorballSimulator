@@ -371,6 +371,12 @@ def insert(table, columns, values):
 
 
 def truncate(table):
+    """
+    clears all rows of db table
+    :param table:
+    :return:
+    """
+    # TODO implement passing parameter "start_row" to truncate tests with other info integrity
     print "\nTRUNCATING ALL ROWS OF table %s" % table
     truncate_query = 'TRUNCATE ' + table + ' RESTART IDENTITY CASCADE;'
     trySQLquery(query=truncate_query)

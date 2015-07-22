@@ -29,7 +29,7 @@ class League(object):
                  state_params = ("P",	"W","D","L","GF","GA","GD","PTS"), save_to_db = True, prefix = ""):
         """
 
-        :param name: League tournament id
+        :param name: League tournament id (type) - not unique id used in tourn_results!
         :param members: list of teams
         :param delta_coefs: coefficients stored in values to compute ratings changing after match followed bby its result
         :param prefix: used for composite tournament like UEFA to add "Group A " or "Qualification " to roundname when
@@ -325,9 +325,12 @@ class League(object):
         """
         if not self.prefix:
             # unregistered yet - for national Leagues
-            self.saveTounramentPlayed()
-        # else get from parameter - if its Group Tourn
-        id_tournament = self.name
+            id_tournament = self.saveTounramentPlayed()
+        # else get last played tournament and reserve id for it for future saving
+        else:
+            id_tournament = db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE,
+                                      fetch="one", suffix = " ORDER BY id DESC LIMIT 1") \
+                            + 1
 
         print "\nsaving tournament %s results  to database" % self.getName()
         columns = db.select(table_names=db.TOURNAMENTS_RESULTS_TABLE, fetch="colnames", where = " LIMIT 0")[1:]
@@ -472,6 +475,7 @@ if __name__ == "__main__":
         if pre_truncate:
             db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
             db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
+            db.truncate(db.MATCHES_TABLE)
 
         for i in range(team_num):
             # # teamN = i + 1
@@ -504,6 +508,7 @@ if __name__ == "__main__":
         if post_truncate:
             db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
             db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
+            db.truncate(db.MATCHES_TABLE)
 
     # team_num = 3
     # for pair_mode in range(2):
@@ -515,9 +520,13 @@ if __name__ == "__main__":
     # pair_modes = (0, )
     pair_modes = (1, )
     # pair_modes = (0, 1)
-    # print_matches = True
+
+    # PRINT MATCHES AFTER RUN
     PRINT_MATCHES = False
+    PRINT_MATCHES = True
+    # PRINT RATINGS AFTER RUN
     PRINT_RATINGS = True
+    PRINT_RATINGS = False
     # RESET ALL MATCHES DATA BEFORE TEST
     PRE_TRUNCATE = False
     PRE_TRUNCATE = True
