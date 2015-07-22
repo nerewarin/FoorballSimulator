@@ -1,7 +1,7 @@
 __author__ = 'GorbachevAA'
 
 import util
-import Team
+# import Team
 
 def roundRobin(units, sets=None):
     """ Generates a schedule of "fair" pairings from a list of units """
@@ -83,13 +83,18 @@ def testStrings():
     print tables[:-2]
 
 
+def test_iterations(iterations):
+    for round in range(1, iterations+1):
+        print round
+
 """ test code """
 if __name__ == '__main__':
     # test_roundRobin()
     # TestSortTeamL()
     # TestAddLists()
     # testCounter()
-    testStrings()
+    # testStrings()
+    test_iterations(10)
 
 # TestSortTeamL()
 

@@ -4,6 +4,7 @@ __author__ = 'NereWARin'
 
 import Team
 from Cups import Cup
+import DataStoring as db
 import util
 from Leagues import League, TeamResult
 import Match as M
@@ -13,7 +14,7 @@ import random
 import time
 import os
 import warnings
-# from DataStoring import trySQLquery, connectDB
+
 # TODO func here aboid importing - delete it if DB is installed on executable env
 def trySQLquery(a,b,c):
     return a
@@ -27,6 +28,10 @@ class cur():
 
 class UEFA_League(Cup):
     def __init__(self, name, season, members, delta_coefs, pair_mode, seeding, state_params = ("final_stage", )):
+    # def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "A1_B16",
+    #              state_params = ("final_stage", ), save_to_db = True, prefix = ""):
+
+
         """
         UEFA_Champ_L is a tournament, implemented as three tournaments:
         Qualification Cup, Group League, Play-Off Cup.
@@ -87,40 +92,32 @@ class UEFA_League(Cup):
             for stage_name, stageV in stage.iteritems():
                 print "stage_name %s" %stage_name
                 # print stage_name, stageV
-                for attrK, attrV in stageV.iteritems():
-                    print "attrK, attrV", attrK, attrV
-                    # if isinstance(attrV, list):
-                    if attrK == "tourn_type":
-                        stage_type = attrV
-                        # print "tourn_type = ", attrV
-                    elif attrK == "pair_mode":
-                        stage_pair_mode = attrV
-                    elif attrK == "tindx_in_round":
-                        print attrK, "... (contains external members, not added from previous round"
-                        for round in attrV:
-                            # pass
-                            for roundname, members_schema in round.iteritems():
-                                print "round = %s" % roundname#, members_schema
-                                for members_source, pos in members_schema.iteritems():
-                                    print members_source, pos
-                                    if isinstance(members_source, tuple):
-                                        print "From country"
-                                        for country_id in members_source:
-                                            # TODO select pos from Tournaments type = League national = country_id of current season
-                                            query = "SELECT ... "
-                                            data = ""
-                                            team = trySQLquery(cur.execute, query, data)
-                                            stage_members.append(team)
-                                    # elif isinstance(members_source, str) and members_source == "CL":
-                                    elif members_source == "CL":
-                                        # get 3 / 4 round / group loosers
-                                        # TODO select from Tournaments type = CL national = international, round looser = pos (get from CL results) of current season
-                                        pass
+                stage_type = stageV["tourn_type"]
+                stage_pair_mode = stageV["pair_mode"]
+                for round in stageV["tindx_in_round"]:
+                    for roundname, members_schema in round.iteritems():
+                        print "round = %s" % roundname#, members_schema
+                        for members_source, pos in members_schema.iteritems():
+                            print "members_source, pos = ", members_source, pos
+                            if isinstance(members_source, tuple):
+                                print "From country"
+                                for country_id in members_source:
+                                    # TODO select pos from Tournaments type = League national = country_id of current season
+                                    # query = "SELECT ... "
+                                    # data = ""
+                                    # team = trySQLquery(cur.execute, query, data)
+                                    team_id = db.select("id", table_names=db.TOURNAMENTS_RESULTS_TABLE, where=" WHERE ", columns, " = ", values, )
+                                    stage_members.append(team)
+                            # elif isinstance(members_source, str) and members_source == "CL":
+                            elif members_source == "CL":
+                                # get 3 / 4 round / group loosers
+                                # TODO select from Tournaments type = CL national = international, round looser = pos (get from CL results) of current season
+                                pass
 
-                            # print round
-                            # for where, pos in round:
-                            #     print where, pos
-                            # # print roundname #, roundmembers
+                    # print round
+                    # for where, pos in round:
+                    #     print where, pos
+                    # # print roundname #, roundmembers
                     else:
 
                         print attrK, attrV

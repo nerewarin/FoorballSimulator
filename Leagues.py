@@ -25,12 +25,16 @@ class League(object):
     represents Football League
 
     """
-    def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "rnd", state_params = ("P",	"W","D","L","GF","GA","GD","PTS"), save_to_db = True):
+    def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "rnd",
+                 state_params = ("P",	"W","D","L","GF","GA","GD","PTS"), save_to_db = True, prefix = ""):
         """
 
         :param name: League tournament id
         :param members: list of teams
         :param delta_coefs: coefficients stored in values to compute ratings changing after match followed bby its result
+        :param prefix: used for composite tournament like UEFA to add "Group A " or "Qualification " to roundname when
+         save tournament results
+
 
         results is a list of dicts with following  attributes:
         # P - Played
@@ -44,20 +48,22 @@ class League(object):
 
         :return:
         """
+
         # super(League, self).__init__(tournament, season, members, delta_coefs)
         self.name = name
         self.season = season
         self.members = members
         self.delta_coefs = delta_coefs
-        self.seeding = seeding
+        self.seeding = seeding # not used in League - used hardcoded roundRobin instead
         self.pair_mode = pair_mode
         self.save_to_db = save_to_db
+        self.prefix = prefix
 
         state = {st:0 for st in state_params}
 
         # initial results
         # after next block it will be filled by all state_params=0
-        # results is a list of dicts ["Team" : , ... "PTS" = x]
+        # results is a list of dicts {"Team" : , ... "PTS" = x}
         # in run() method it will be moved to final self.table, that is the same but sorted
         self.results = []
 
@@ -101,7 +107,7 @@ class League(object):
         return self.table.getTeam(pos)["Team"]
 
 
-    def RunMatchUpdateResults(self, tindxs, roundN, tour, tourN, match_ind, matchN, print_matches):
+    def RunMatchUpdateResults(self, tindxs, round, print_matches):
         """
         helper func
         runs match and updates League result
@@ -121,7 +127,7 @@ class League(object):
         #                 % (self.getName(), self.season, roundN, tourN+1, match_ind+1))
 
         # new-style
-        match = M.Match(pair, self.delta_coefs, self.name, tourN+1, save_to_db=self.save_to_db)
+        match = M.Match(pair, self.delta_coefs, round = round, save_to_db=self.save_to_db)
 
         match_score = match.run()
         self.home_mathes_count[home_ind] += 1
@@ -199,6 +205,7 @@ class League(object):
             print "self.pair_mode = %s" % self.pair_mode
             print "teams_num = %s" % teams_num
 
+
         # generate matches
         for round in range(rounds):
 
@@ -231,6 +238,8 @@ class League(object):
                     print "tour %s of %s" % (tour + 1, tours*(rounds))
 
                 roundN = round + 1
+
+
                 tourN = tour + tours*(round)
 
                 for match_ind, pair in enumerate(parings):
@@ -238,6 +247,7 @@ class League(object):
                     if not match_ind and tour % 2:
                         pair = (pair[1], pair[0])
 
+                    print "self.rnd_role, round", self.rnd_role, round
                     if (self.rnd_role + round ) % 2:
                         tindxs = (pair[1], pair[0])
                     else:
@@ -245,8 +255,12 @@ class League(object):
 
                     matchN += 1
 
+                    # new-styled
+                    # only united "round" will be used as a readable of match in DB
+                    roundname = self.prefix + "tour %s " % tourN
+
                     # self.RunMatchUpdateResults(tindxs, roundN, tour, tourN, match_ind + prefix, matchN, print_matches)
-                    self.RunMatchUpdateResults(tindxs, roundN, tour, tourN, match_ind, matchN, print_matches)
+                    self.RunMatchUpdateResults(tindxs, roundname, print_matches)
 
 
 
@@ -309,7 +323,11 @@ class League(object):
         """
         save League data in database
         """
-        id_tournament = self.saveTounramentPlayed()
+        if not self.prefix:
+            # unregistered yet - for national Leagues
+            self.saveTounramentPlayed()
+        # else get from parameter - if its Group Tourn
+        id_tournament = self.name
 
         print "\nsaving tournament %s results  to database" % self.getName()
         columns = db.select(table_names=db.TOURNAMENTS_RESULTS_TABLE, fetch="colnames", where = " LIMIT 0")[1:]
@@ -448,16 +466,21 @@ if __name__ == "__main__":
         print_ratings = kwargs["print_ratings"]
         pair_mode = kwargs["pair_mode"]
         save_to_db = kwargs["save_to_db"]
+        pre_truncate = kwargs["pre_truncate"]
+        post_truncate = kwargs["post_truncate"]
+
+        if pre_truncate:
+            db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
+            db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
 
         for i in range(team_num):
-            # teamN = i + 1
-            teamN = i
-            rating = team_num - i
-            uefa_pos = teamN
-            id = i + 1
+            # # teamN = i + 1
+            # teamN = i
+            # rating = team_num - i
+            # uefa_pos = teamN
             # teams.append(Team.Team("FC team%s" % teamN, "RUS", rating, "Р С™Р С•Р СР В°Р Р…Р Т‘Р В°%s" % teamN, uefa_pos))
             # new-styled
-            teams.append(Team.Team(id))
+            teams.append(Team.Team(i+1))
 
         # # TEST LEAGUE CLASS
         if "League" in args:
@@ -478,6 +501,10 @@ if __name__ == "__main__":
                 # print "__", pairings
                 print pair
 
+        if post_truncate:
+            db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
+            db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
+
     # team_num = 3
     # for pair_mode in range(2):
     #     Test("League", team_num = team_num, pair_mode = pair_mode, print_matches = True, print_ratings = False)
@@ -489,12 +516,22 @@ if __name__ == "__main__":
     pair_modes = (1, )
     # pair_modes = (0, 1)
     # print_matches = True
-    print_matches = False
-    print_ratings = False
+    PRINT_MATCHES = False
+    PRINT_RATINGS = True
+    # RESET ALL MATCHES DATA BEFORE TEST
+    PRE_TRUNCATE = False
+    PRE_TRUNCATE = True
+    # RESET ALL MATCHES DATA AFTER TEST
+    POST_TRUNCATE = False
+    POST_TRUNCATE = True
+    # SAVE TO DB - to avoid data integrity (if important data in table exists), turn it off
+    SAVE_TO_DB = False
     SAVE_TO_DB = True
 
     for t_num in range(start_num, end_num, 1):
         for pair_mode in pair_modes:
             print "\nt_num = %s\n" % t_num
-            Test("League", team_num = t_num, pair_mode = pair_mode, print_matches = print_matches, print_ratings = print_ratings, save_to_db = SAVE_TO_DB)
+            Test("League", team_num = t_num, pair_mode = pair_mode,
+                 print_matches = PRINT_MATCHES, print_ratings = PRINT_RATINGS,
+                 pre_truncate = PRE_TRUNCATE, post_truncate = POST_TRUNCATE, save_to_db = SAVE_TO_DB)
             # Test("roundRobin", team_num = t_num, pair_mode = pair_mode, print_matches = print_matches, print_ratings = print_ratings)

@@ -7,17 +7,10 @@ represents Match Class
 """
 
 import Team
+import util
 from values import Coefficients as C
 import random, os, warnings
 import DataStoring as db
-
-# print values.Coefficients()
-# import bumpversion
-# class Result():
-#     def __init(self, homeScore, guestScore):
-#         self.result = (homeScore, guestScore)
-#     def __str(self):
-#         return
 
 
 class Match(object):
@@ -261,11 +254,11 @@ class Match(object):
         self.guestID = self.guest.getID()
         # columns = db.trySQLquery(CUR.execute())"id" "SELECT * FROM %s LIMIT 0" % db.MATCHES_TABLE
         columns = db.select(table_names=db.MATCHES_TABLE, fetch="colnames", suffix = " LIMIT 0")
-        print "Matches columns are ", columns
+        # print "Matches columns are ", columns
         columns = columns[1:]
-        print "Matches columns (exclusive id) are ", columns
+        # print "Matches columns (exclusive id) are ", columns
         values = [self.tournament, self.round, self.homeID, self.guestID, self.getResult()[0], self.getResult()[1]]
-        print "values are ", values
+        # print "values are ", values
         db.insert(db.MATCHES_TABLE, columns, values)
        #  return "%s. %s %s %s" % \
        # (self.tournament, self.homeName, str(self.getResult())[1:-1].replace(",", ":").replace(" ", "") ,self.guestName)
@@ -370,6 +363,7 @@ class DoubleMatch(Match):
                     # self.winner = self.result_format[2]
                     # self.looser = self.winner
                     self.outcome  = self.result_format[2]
+                    # raise FutureWarning, "Incorrect \'Draw\' result in mode play-off!"
                     # raise FutureWarning, "SENYA! Where did you see play-off double match with a Draw as result?? no winner - no play-off!"
                     warnings.warn("SENYA! Where did you see play-off double match with a Draw as result?? no winner - no play-off!")
                 # self.winner = self.result_format[2]
@@ -450,6 +444,7 @@ if __name__ == "__main__":
     # v1.0 coefs
     # coefs = C("v1.0").getRatingUpdateCoefs("list")
 
+    @util.timer
     def Test(iterations, pre_truncate, post_truncate, save_to_db, *args, **kwargs):
         """
 
@@ -464,14 +459,6 @@ if __name__ == "__main__":
         # # old-styled
         # team1 = Team.Team("Manchester City FC", "ENG", 87.078, "Манчестер Сити", 17)
         # team2 = Team.Team("FC Shakhtar Donetsk", "UKR", 85.899, "Шахтер Донецк", 18)
-        # new-styled
-        team1_id = random.randint(1, 454)
-        team1 = Team.Team(team1_id)
-        team2_id = random.randint(1, 454)
-        while team2_id == team1_id:
-             team2_id = random.randint(1, 454)
-        team2 = Team.Team(team2_id)
-        # teams = (team1, team2)
 
         if pre_truncate:
             db.truncate(db.MATCHES_TABLE)
@@ -480,6 +467,15 @@ if __name__ == "__main__":
         if "Match" in args:
             print "\nTEST MATCH CLASS\n"
             for i in range(iterations):
+                # new-styled
+                team1_id = random.randint(1, 454)
+                team1 = Team.Team(team1_id)
+                team2_id = random.randint(1, 454)
+                while team2_id == team1_id:
+                     team2_id = random.randint(1, 454)
+                team2 = Team.Team(team2_id)
+
+
                 # if i > ITERATIONS*0.5 - 1:
                 if not i % 2:
                     pair = (team2, team1)
@@ -541,9 +537,12 @@ if __name__ == "__main__":
     # Test(int(ITERATIONS*0.001), "DoubleMatch")
 
     # RESET ALL MATCHES DATA BEFORE TEST
+    PRE_TRUNCATE = False
     PRE_TRUNCATE = True
     # RESET ALL MATCHES DATA AFTER TEST
+    POST_TRUNCATE = False
     POST_TRUNCATE = True
     # SAVE TO DB - to avoid data integrity (if important data in table exists), turn it off
+    SAVE_TO_DB = False
     SAVE_TO_DB = True
     Test(ITERATIONS, PRE_TRUNCATE, POST_TRUNCATE, SAVE_TO_DB, "Match", "DoubleMatch")

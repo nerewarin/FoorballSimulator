@@ -4,6 +4,7 @@ __author__ = 'NereWARin'
 
 import Team
 import util
+import DataStoring as db
 from Leagues import League, TeamResult
 import Match as M
 from values import Coefficients as C
@@ -19,7 +20,8 @@ class Cup(League):
     """
     represents Cup, some methods from League were overridden
     """
-    def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "rnd", state_params = ("final_stage", )):
+    def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "A1_B16",
+                 state_params = ("final_stage", ), save_to_db = True, prefix = ""):
         """
 
         :param name:
@@ -28,10 +30,21 @@ class Cup(League):
         # ACTUAL REVERSED ORDER !!!
         :param members: should be in seeding order (1place_team, 2place_team...) . net will ve provided by that class itself
 
+        :param seeding: if Cup used as qualification for UEFA (or another special tournament),
+        seeding must be a list in of dicts {round : int, seeded_teams : count, toss = ("all_rnd") or
+        ("not_same_country", "not_played_group") as in UEFA Champ League
+
         :param delta_coefs:
         :param pair_mode: 0 - one match in pair, 1 - home & guest but the final , 2 - always home & guest
         :return:
         """
+        if prefix:
+            if not isinstance(seeding, list):
+                raise Exception, "seeding must be a list of dicts roundN:[seeded_teams]"
+        else:
+            if seeding not in self.getSeedings():
+                raise Exception, "call independed Cup but seeding type not found in provided list getSeedings()"
+
         # super(self.__class__, self).__init__(tournament, season, members, delta_coefs)#(self, tournament, season, members, delta_coefs)
         # super(Cup, self).__init__(tournament, season, members, delta_coefs, state_params)#(self, tournament, season, members, delta_coefs)
         super(Cup, self).__init__(name, season, members, delta_coefs, pair_mode, seeding, state_params)
@@ -50,19 +63,13 @@ class Cup(League):
         # initialize net
         # self.seeding = copy.copy(seeding)
         self.seeding = seeding
-        if type(self.seeding) == str: # so rounds_num and rounds_names will be computed by internal methods
-            pass
-        elif type(self.seeding) == dict:
-            raise NotImplementedError, "not implemented type of seeding (%s) %s" % (type(self.seeding), self.seeding)
-        #     self.round_names = self.seeding.keys()
-        else:
-            raise NotImplementedError, "unknown seeding %s" % self.seeding
 
-        # self.net = {"not implemented yet" : None} # TODO net should be ini as start pos (1 round) and seeding (branch), then in run - updated from results
-        self.net = {} #
         # {round: [ (t1,t2,pair_result, m1, m2) ... } , ... roundFinal : [ ... ]
         self.round_names = "not computed" # TODO make branch: get from params (if external scheme exists) OR compute in run()
 
+        # self.net = {"not implemented yet" : None} # TODO net should be ini as start pos (1 round) and seeding (branch), then in run - updated from results
+        # TODO its not necessacy for cups with
+        self.net = {} #
         # *** HEART OF RUN METHOD ***
         #   ***                 ***
         # CALL HELPER FUNCTIONS
@@ -103,6 +110,7 @@ class Cup(League):
     def getSeedings(self):
         """
         seeding mode is by what rule pairs form
+        return a tuple of the standart seeding behaviours, bur external scheme is allowed
         :return: available seeding modes supported by class
         """
         return (
@@ -154,7 +162,7 @@ class Cup(League):
         for round in range(q_rounds + 1, rounds-1):
             names[round] = "1/%s-Final" % (2**(rounds-round))
 
-        names[q_rounds] = "Qualification Final"
+        names[q_rounds] = "Qualification Play-Off"
         for round in range(1, q_rounds):
             names[round] = "Qualification round %s" % round
 
@@ -171,7 +179,7 @@ class Cup(League):
         self.results = {}
         self.net = {}
 
-        # seeding
+        # seeding "A1_B16"
         # 14-team cup example
 
         # play-off                                          *
@@ -191,20 +199,24 @@ class Cup(League):
             p_rounds - number of play-off rounds in cup
             q_rounds - number of qualification rounds in cup
 
-            return pteam_num, qpairs
+            return:
+            qteams - number of teams played in qualification round, if q_rounds = 1
             pteam_num - number of teams witch start from playoff
             qpairs - number of pairs in qualification round
             """
+            if  q_rounds != 1:
+                raise NotImplemented, "for now it can be used only for national Cup that has at most 1 qual round "
             # teams in lowest play-off round
             pteam_num = 2 ** p_rounds
             # pais in highest qualification round
             qpairs = teams_num - pteam_num
             # indexes of teams that seeds directly in playoff
-            pteamsI = pteam_num - qpairs
+            borderI = pteam_num - qpairs
             qteams = qpairs * 2
-            return pteamsI, qpairs
+            # return borderI, qpairs
+            return qteams
 
-        def cupRound(_teams_, round, pair_mode, print_matches = False):
+        def cupRound(_teams_, round, pair_mode, toss, print_matches = False):
             """
             teams - only those teams that will play in that round
 
@@ -230,23 +242,38 @@ class Cup(League):
 
             for struggleN in range(struggles):
                 team1 = teams.pop(0) # favorite
-                if self.seeding == "David&Goliaf":
+                if toss == "David&Goliaf":
                     team2 = teams.pop() # outsider
-                elif self.seeding == "rnd":
+                elif toss == "rnd":
                     # TODO fix wild random! or at leat keep track of it to build self.net...
                     # TODO team0 will play with rnd team of the weak half
                     teams_num = len(teams)
                     team2 = teams.pop(random.randrange(teams_num/2, teams_num)) # outsider
-                elif self.seeding == "A1_B16":
-                     raise NotImplementedError, "need keeping track of winners order (need new list winners"
-                     team2 = teams.pop()
+                elif toss == "A1_B16":
+                    print "check A1_B16 correctness - now its same as David&Goliaf - who lies?!!"
+                    team2 = teams.pop()
+                elif toss == "not_same_country_and_played_in_group":
+                    # for 1/4 Champions League
+                    team2 = teams[-1]
 
+                    def played_in_group(team1, team2):
+                        pass
+                        columns = ["id_tournament", "round", "id_team1", "id_team2"]
+                        id_tournament = self.name
+                        round = "" # TODO  CONSISTS GROUP !!!!!
+                        values = [id_tournament, round, team1.getID(), team2.getID()]
+                        # TODO SQL select id from %s where        db.MATCHES_TABLE
 
+                    while team1.getCountry() == team2.getCountry() or played_in_group:
+                        team2 = teams[random.randrange(teams_num/2, teams_num)]
+
+                else:
+                    raise Exception, "unknown toss parameter %s" % toss
                 # if round_name not in self.net.keys():
                 #     self.net[round_name]
                 #     [1]
                 # self.net[round_name[1]] =
-                warnings.warn("write ...to self.net")
+                # warnings.warn("write ...to self.net")
 
                 pair = (team1, team2)
                 if random.randint(0,1): # TODO if pair_mode < 1, need to compute what team played less matches at home
@@ -285,8 +312,7 @@ class Cup(League):
 
             return loosers, winners
 
-
-        def RunRoundAndUpdate(round, pair_mode, results, teams):
+        def RunRoundAndUpdate(round, pair_mode, results, teams, toss):
             # try:
             #
             # except:
@@ -296,7 +322,7 @@ class Cup(League):
             # # create new list for pair in round
             # self.net[round] = []
 
-            loosers, winners = cupRound(teams, round, pair_mode, print_matches)
+            loosers, winners = cupRound(teams, round, pair_mode, toss, print_matches)
 
             # UPDATE RESULTS
             # TODO choose results form and net form
@@ -312,71 +338,123 @@ class Cup(League):
             return res, loosers, winners
 
 
+        def get_pairmode(round):
+            """
+            check if final round to switch to 1 match in pair
+            """
+            if round == self.all_rounds and self.pair_mode == 1:
+                print "switch pair_mode from 1 to 0 so it will be only one final match!"
+                pairmode = 0 # ONE MATCH FOR FINAL
+            else:
+                pairmode = self.pair_mode
+            return pairmode
+
+
+
 
             # TODO: to support self.q_rounds > 1, need recompute qpairs and qteamsI with special logic: compute by
             # TODO: rounds_count only if external schema does't exists (else get it from additional class parameters,
             # TODO: UEFA is good example of that situation)
 
+
         try:
             # print "teams_num", teams_num
-            self.p_rounds, self.q_rounds = self.rounds_count(teams_num)#self.rounds_count(teams_num)
-            # print "self.p_rounds %s, self.q_rounds %s" % (self.p_rounds, self.q_rounds)
+            # borderI - number of teams that skip first qualification round
+            if isinstance(self.seeding, str):
+                # national Cups
+                self.p_rounds, self.q_rounds = self.rounds_count(teams_num)#self.rounds_count(teams_num)
+                borderI = PQplaces(self.p_rounds, self.q_rounds)
+                round_info = None
+                toss = self.seeding
+                # print "self.p_rounds %s, self.q_rounds %s" % (self.p_rounds, self.q_rounds)
+
+            elif isinstance(self.seeding, list):
+                self.q_rounds = len(self.seeding)
+                self.p_rounds = 0
+                round = 0
+                round_info = self.seeding[round]
+                borderI = round_info["count"]
+                toss = round_info["toss"]
+            else:
+                raise ValueError, "unsupported argument type for seeding %s" %type(self.seeding)
+            self.all_rounds = self.p_rounds + self.q_rounds
+
         except:
             print "%s. need more teams to run cup" % teams_num
             raise AttributeError
         else:
             # convert number of round to round tournament (1/4, semi-final, etc.)
             self.round_names = self.roundNames(self.p_rounds, self.q_rounds)
+
             # print round_names
-            all_rounds = self.p_rounds + self.q_rounds
 
-            pteamsI, qpairs = PQplaces(self.p_rounds, self.q_rounds)
-
-
-
-
-            # if not isinstance(self.seeding, str):
-            #     # UEFA
-            #     raise NotImplemented, "implement CL and EL seeding"
-            #
-            # else:
-            #     # national
-            #     if self.seeding == "A1_B16":
-            #         seeded = teams[pteamsI:]
-            #     else:
-            #         print "basic seeding (=%s) Cup with at most 1 qual. round" % self.seeding
-            #         seeded = teams[pteamsI:]
-
-            # id of winners that will be played in next round (exclusive of already seeding)
             winners = []
-            # MIXES ROUNDS
-            rounds =  self.p_rounds + self.q_rounds
-            for round in range(1, rounds + 1):
-                if not isinstance(self.seeding, str):
-                    # UEFA
-                    # raise NotImplemented, "implement CL and EL seeding"
-                    pteamsI = 0
+
+            # Qualification
+            for round in range(1, self.all_rounds + 1):
+
+                seeded = teams[-borderI:]
+                _teams = [self.getMember(i) for i in seeded] + winners
+                pair_mode = get_pairmode(round)
+                self.results, loosers, winners = RunRoundAndUpdate(round, pair_mode, self.results, _teams, toss)
+                # UPDATE LIST OF REMAINING TEAMS
+                teams = teams - _teams
+
+                if round_info:
+                    round_info = self.seeding[round]
+                    borderI = round_info["count"]
+                    toss = round_info["toss"]
                 else:
                     # national
-                    pteamsI = self.seeding[round]
-                # get teams from from head
-                seeded = teams[pteamsI:]
-                print "teams", teams
+                    borderI = 0
+                    # after 1 round no more seeded teams, only winners of prev round
+                    # toss = self.seeding
 
-                # cut copy of teams to get indexes from head in future correctly
-                teams -=  seeded
-                print "rest teams", teams
 
-                # print "len(teams) = %s", len(teams)
-                # print "q_round", q_round
-                teams_idxs = winners + seeded
 
-                if round == rounds and self.pair_mode == 1:
-                    # FINAL
-                    pairmode = 0
-                    self.results, loosers, winners = RunRoundAndUpdate(round, pairmode, self.results, teams_idxs)
-                else:
-                    self.results, loosers, winners = RunRoundAndUpdate(round, self.pair_mode, self.results, teams_idxs)
+
+            # # if not isinstance(self.seeding, str):
+            # #     # UEFA
+            # #     raise NotImplemented, "implement CL and EL seeding"
+            # #
+            # # else:
+            # #     # national
+            # #     if self.seeding == "A1_B16":
+            # #         seeded = teams[borderI:]
+            # #     else:
+            # #         print "basic seeding (=%s) Cup with at most 1 qual. round" % self.seeding
+            # #         seeded = teams[borderI:]
+            #
+            # # id of winners that will be played in next round (exclusive of already seeding)
+            # winners = []
+            # # MIXES ROUNDS
+            # rounds =  self.p_rounds + self.q_rounds
+            # for round in range(1, rounds + 1):
+            #     if not isinstance(self.seeding, str):
+            #         # UEFA
+            #         # raise NotImplemented, "implement CL and EL seeding"
+            #         borderI = 0
+            #     else:
+            #         # national
+            #         borderI = self.seeding[round]
+            #     # get teams from from head
+            #     seeded = teams[borderI:]
+            #     print "teams", teams
+            #
+            #     # cut copy of teams to get indexes from head in future correctly
+            #     teams -=  seeded
+            #     print "rest teams", teams
+            #
+            #     # print "len(teams) = %s", len(teams)
+            #     # print "q_round", q_round
+            #     teams_idxs = winners + seeded
+            #
+            #     if round == rounds and self.pair_mode == 1:
+            #         # FINAL
+            #         pairmode = 0
+            #         self.results, loosers, winners = RunRoundAndUpdate(round, pairmode, self.results, teams_idxs)
+            #     else:
+            #         self.results, loosers, winners = RunRoundAndUpdate(round, self.pair_mode, self.results, teams_idxs)
 
 
             #
@@ -408,27 +486,50 @@ class Cup(League):
             #     self.results, teams = RunRoundAndUpdate(all_rounds + 1, self.pair_mode, self.results, teams)
 
             # assert len(teams) == 1, "Cup ends with more than one winner!"
-            assert len(winners) == 1, "Cup ends with more than one winner!"
-            self.winner = winners.pop()
+            if not self.prefix:
+                assert len(winners) == 1, "Cup ends with more than one winner!"
+                self.winner = winners.pop()
+            else:
+                # for qualificaton for example
+                self.winner = winners
 
-        # # print result for EVERY round
-        # if print_matches:
-        #     for stage, result in enumerate(self.results):
-        #         print "results (loosers) of stage %s len of %s : %s" % (stage, len(self.results[stage]), [team.getName() for team in self.results[stage]])
+            # # print result for EVERY round
+            # if print_matches:
+            #     for stage, result in enumerate(self.results):
+            #         print "results (loosers) of stage %s len of %s : %s" % (stage, len(self.results[stage]), [team.getName() for team in self.results[stage]])
 
-        # TODO save Cup in database probe
-        self.saveToDB(self.net)
-        return self.winner
+            # TODO save Cup in database probe
+            self.saveToDB(self.net)
+            return self.winner
 
 
     def saveToDB(self, net):
-        id_tournament = self.saveTounramentPlayed()
-        print "id_tournament" % id_tournament
-        print "RESULTS", self.results
-        print "NET", self.net
-        for k, v in self.net:
-            print k, v
-        raise NotImplemented
+        """
+        save Cup data to database
+        :param: net is a dict round:[teams]
+        """
+
+        if not self.prefix:
+            # unregistered yet - for national Leagues
+            self.saveTounramentPlayed()
+        # else get from parameter - if its Group Tourn
+        id_tournament = self.name
+
+        columns = db.select(table_names=db.TOURNAMENTS_RESULTS_TABLE, fetch="colnames", where = " LIMIT 0")[1:]
+        # TODO edit getName to return readable info about tournament: readable name and season
+        print "\nsaving tournament %s results to database in columns %s" % (self.getName(), columns)
+        count = 0
+        for round, teams in self.net.iteritems():
+            # pos = self.prefix +
+            pos = self.round_names[round]
+            for team in teams:
+                id_team = team.getName()
+                values = [id_tournament, pos, id_team]
+                db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, values)
+                count += 1
+        # print "inserted %s rows to %s" % (len(self.net.values()), db.TOURNAMENTS_RESULTS_TABLE)
+        print "inserted %s rows to %s" % (count, db.TOURNAMENTS_RESULTS_TABLE)
+
 
     def getRoundNames(self):
         return self.round_names
@@ -437,6 +538,7 @@ class Cup(League):
         return self.winner
 
     def test(self, print_matches = False, print_ratings = False):
+
         print "\nTEST CUP CLASS\n"
         print "pair_mode = %s\nseeding = %s\n" % (self.pair_mode, self.seeding)
         print "initial Net:"

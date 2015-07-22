@@ -3,6 +3,8 @@
 __author__ = 'NereWARin'
 # import Team, Match, Leagues
 
+UEFA_TOURNAMENTS_ID = (0, 1)
+
 class Coefficients():
     """
     defines coefficients to calculate rating changes after matches
