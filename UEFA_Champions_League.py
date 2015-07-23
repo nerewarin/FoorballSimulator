@@ -127,29 +127,15 @@ class UEFA_League(Cup):
                                 raise Exception, "unknown pos %s type %s" % (pos, type(pos))
 
 
-
-                            # tst = db.select("id", db.COUNTRY_RATINGS_TABLENAME, " WHERE ", "id_season", " = ", self.prev_season, fetch = "all")
-                            # print "tst", tst  # ok
-
                             # get list of indexes of countries ids with a given rating from previous season
-                            # query =  "SELECT id FROM %s WHERE id_season = '%s' and pos IN %s;"
-                            # data =  (db.COUNTRY_RATINGS_TABLENAME, self.prev_season, source)
-                            # query =  "SELECT id FROM country_ratings WHERE id_season = '%s' and pos IN %s;"
                             query =  "SELECT id FROM %s " % db.COUNTRY_RATINGS_TABLENAME + "WHERE id_season = '%s' and position IN %s;"
                             data =  (self.prev_season, source)
-                            # print query
-                            # print data
                             # print query % data
                             # countries_ids = db.trySQLquery("execute", query, data, fetch = "all_tuples", ind = 0)
                             self.cur.execute(query, data)
                             fetched = self.cur.fetchall()
-                            # countries_ids = self.cur.fetchall()
                             countries_ids = [country_id[0] for country_id in fetched]
-
                             print "countries_ids", countries_ids
-                            # print "countries_ids", countries_ids[0]
-
-                            # countries_ids = cur.fetchall()[0]
 
                             # search for tournament_id of League of this country
                             query =  "SELECT id FROM %s WHERE type = '%s' and id_country IN '%s';"
