@@ -146,7 +146,7 @@ def createDB(teamsL, storage = "Postgre", overwrite = False):
         team_count = len(teamsL)
 
         # CREATE DB for this application
-        trySQLquery(cur.execute, 'SELECT exists(SELECT 1 from pg_catalog.pg_database where datname = %s)', (DBNAME,))
+        trySQLquery("execute", 'SELECT exists(SELECT 1 from pg_catalog.pg_database where datname = %s)', (DBNAME,))
         isDB = cur.fetchone()[0]
         # print "BD exists?", isDB
         if not isDB:
@@ -174,7 +174,7 @@ def createDB(teamsL, storage = "Postgre", overwrite = False):
 
 
         # PRINT EXISTING TABLES
-        trySQLquery(cur.execute, """SELECT table_name FROM information_schema.tables
+        trySQLquery("execute", """SELECT table_name FROM information_schema.tables
                 WHERE table_schema = 'public'""")
         print "tables of DB ", [tabletuple[0] for tabletuple in cur.fetchall()]
 
@@ -214,7 +214,7 @@ def createDB(teamsL, storage = "Postgre", overwrite = False):
             elif recreating:
                 print "%s exists but recreating enabled" % table_name
                 # # DROP AND RECREATE
-                trySQLquery(cur.execute, 'DROP TABLE %s' % table_name)
+                trySQLquery("execute", 'DROP TABLE %s' % table_name)
                 con.commit()
                 print "DROP table %s ok" %table_name
                 # createTable_Countries(cur, con, table_name, team_count, sorted_countries)
@@ -306,7 +306,7 @@ def select(what = "*", table_names = "", where = "", columns = "", sign = "", va
     print "select_query = ", select_query
 
 
-    trySQLquery(CUR.execute, select_query)
+    trySQLquery("execute", select_query)
     if fetch == "one":
         return CUR.fetchone()[0]
     elif fetch == "all":
@@ -367,7 +367,7 @@ def insert(table, columns, values):
 
     insert_query = 'INSERT INTO ' + table + ' (' + cols + ') VALUES (' + vals + ');'
     print "insert_query = ",  insert_query
-    trySQLquery(CUR.execute, insert_query)
+    trySQLquery("execute", insert_query)
 
 
 def truncate(table):
@@ -422,11 +422,24 @@ def get_id_from_value(cur, table_name, column, value):
     return id
 
 # def trySQLquery(cur, func, query, data = None):
-def trySQLquery(func = CUR.execute, query = None, data = None):
+def trySQLquery(func = "execute", query = None, data = None, fetch = None, ind = 0):
     try:
         # print "query = \n %s" % query, type(query)
         # print "data = ", data
-        return func(query, data)
+        available_funcs = {"execute": CUR.execute, "mogrify" : CUR.mogrify}
+        if not fetch:
+            return available_funcs[func](query, data)
+        print "query = %s" % (query % data)
+        # CUR.execute(query, data)
+        available_funcs[func](query, data)
+        print "ok %s" % (query % data)
+        if fetch == "all":
+            print CUR.fetchall()[ind]
+            return CUR.fetchall()[ind]
+        elif fetch == "ine":
+            return CUR.fetchone()[ind]
+        else:
+            raise ValueError, "unknown parameter fetch=%s" % fetch
 
     except db.DatabaseError, e:
         print "error when executing trySQLquery"
@@ -474,7 +487,7 @@ def fill_season(con, cur, season):
     :return:
     """
     data = (SEASONS_TABLENAME, season)
-    trySQLquery(cur.execute, "INSERT INTO %s (name) VALUES ('%s');" % data)
+    trySQLquery("execute", "INSERT INTO %s (name) VALUES ('%s');" % data)
     con.commit()
     # get last season ID (from last row)
     cur.execute("""SELECT id FROM seasons WHERE name = %s;""", (str(season),)) # ok
@@ -503,7 +516,7 @@ def fill_teams_ratings(con, cur, season_id, teamsL):
         columns = ("id_season", "id_team", "rating", "position")
         values = (season_id, team_id, rating, position)
         data = [TEAM_RATINGS_TABLENAME] + list(columns) + list(values)
-        trySQLquery(cur.execute, "INSERT INTO %s (%s, %s, %s, %s) VALUES ('%s', '%s', '%s', '%s');" % tuple(data))
+        trySQLquery("execute", "INSERT INTO %s (%s, %s, %s, %s) VALUES ('%s', '%s', '%s', '%s');" % tuple(data))
         con.commit()
     print "inserted %s rows to %s" % (len(teamsL), TEAM_RATINGS_TABLENAME)
 
@@ -565,7 +578,7 @@ def fill_countries_ratings(con, cur, season_id, teamsL):
         data = columns + values
         query = "INSERT INTO " + COUNTRY_RATINGS_TABLENAME + " (%s, %s, %s, %s) VALUES ('%s', '%s', '%s', '%s');" % tuple(data)
         # print query
-        trySQLquery(cur.execute, query)
+        trySQLquery("execute", query)
     print "inserted %s rows to %s" % (position, COUNTRY_RATINGS_TABLENAME)
     con.commit()
 
@@ -608,7 +621,7 @@ def fill_TeamInfo(cur, con, table_name, columnsInfo):
             # data = (teamID, unicode_to_str(teamName), unicode_to_str(teamRuName), country_ID)
             # print "insert data", data, "to table TeamInfo"
             # trySQLquery(cur.execute, query, data)
-            trySQLquery(cur.execute, query)
+            trySQLquery("execute", query)
             con.commit()
 
         print "inserted %s rows to %s" % (team_count, table_name)
@@ -691,7 +704,7 @@ def insert_tournament_to_DB_table(con, cur, columns, t_name, t_type, t_country =
                   t_name, t_type)
     # print "insert_tournament_to_DB_table"
     # print query
-    trySQLquery(cur.execute, query)
+    trySQLquery("execute", query)
     con.commit()
 
 

@@ -425,9 +425,7 @@ class Cup(League):
                 self.winners = winners
             # print "self.winner" , self.winner
 
-
-            # for winner in self.winners:
-
+            # add team object to the top of the net
             self.net[self.all_rounds+1] = (self.winners, )
 
             # # print result for EVERY round
@@ -575,11 +573,11 @@ if __name__ == "__main__":
     PRINT_RATINGS = False
     # RESET ALL MATCHES DATA BEFORE TEST
     PRE_TRUNCATE = False
-    # PRE_TRUNCATE = True
+    PRE_TRUNCATE = True
     # RESET ALL MATCHES DATA AFTER TEST
     POST_TRUNCATE = False
-    # POST_TRUNCATE = True
+    POST_TRUNCATE = True
     # SAVE TO DB - to avoid data integrity (if important data in table exists), turn it off
     SAVE_TO_DB = False
     SAVE_TO_DB = True
-    Test("Cup", team_num = 200)
+    Test("Cup", team_num = 20)

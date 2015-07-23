@@ -27,7 +27,7 @@ class cur():
         return None
 
 class UEFA_League(Cup):
-    def __init__(self, name, season, members, delta_coefs, pair_mode, seeding, state_params = ("final_stage", )):
+    def __init__(self, id, season, members, delta_coefs, pair_mode, seeding, state_params = ("final_stage", )):
     # def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "A1_B16",
     #              state_params = ("final_stage", ), save_to_db = True, prefix = ""):
 
@@ -47,23 +47,35 @@ class UEFA_League(Cup):
         :param state_params:
         :return:
         """
-
+        self.con, self.cur =  db.connectGameDB()
+        self.id = id
         self.seeding = seeding
-        self.setMembers()
-        self.members = self.getMember()
+        self.season = season
+        self.prev_season = season -1
 
-        super(Cup, self).__init__(name, season, self.members, delta_coefs, state_params)#(self, tournament, season, members, delta_coefs)
+        if members:
+            # EXTERNAL
+            # all members came as arguments and were initially sorted
+            self.members = members
+        else:
+            # INTERNAL
+            # class will get all teams from database by itself
+            self.setMembers()
+            self.members = self.getMember()
+
+        super(UEFA_League, self).__init__(id, season, self.members, delta_coefs, state_params)#(self, tournament, season, members, delta_coefs)
 
 
         # self.results - empty list. after run() it will be filled as following:
         # [team_champion, team_finished_in_final, teams_finished_in_semi-final, ... , teams_finished_in_qualRoundn, ...
         # teams_finished_in_qualRound1# ]
-        print "\nWELCOME TO *** %s %s ***" % (name.upper(), season)
+        print "\nWELCOME TO UEFA LEAGUE *** id = %s season_id = %s ***" % (id, season)
 
         state = {st:None for st in state_params}
 
         for member in self.members:
-            self.results.append(L.TeamResult(member, state).get4table())
+            self.results.append(TeamResult(member, state).get4table())
+
         # print "self.results", self.results
         # initialize net
         # self.net = "not implemented yet"
@@ -78,7 +90,6 @@ class UEFA_League(Cup):
 
         :return:
         """
-        con, cur = connectDB()
         self.members = []
         # define only those members, that are independent of results in
         self.members_by_round = []
@@ -98,121 +109,128 @@ class UEFA_League(Cup):
                 classname = stage_info["classname"]
                 parts = stage_info["parts"]
                 pair_mode = stage_info["pair_mode"]
-                for round in stage_info["tindx_in_round"]:
-                    for round_num, seeded_sources in round.items():
-                        print "round_num = %s" % round_num#, members_schema
-                        for source, pos in seeded_sources.iteritems():
-                            print "sourcse, pos = ", source, pos
-                            if isinstance(source, tuple):
-                                if isinstance(source, int):
-                                    print "seed from national League"
-                                    tournament_type = "League"
-                                    position = pos
-                                elif source == "cupwinner":
-                                    print "seed from national Cup"
-                                    tournament_type = "Cup"
-                                    position = 1
-                                else:
-                                    raise Exception, "unknown source %s type %s" % (source, type(source))
-
-
-                                query =  "SELECT id FROM %s WHERE id_season = '%s' and position IN '%s';"
-                                data =  (db.COUNTRY_RATINGS_TABLENAME, self.season, source)
-                                print query
-                                print data
-                                print query % data
-                                db.trySQLquery(cur.mogrify, query, data)
-                                # get list of indexes of countries ids
-                                countries_ids = cur.fetchall()[0]
-
-                                # search for tournament_id of League of this country
-                                query =  "SELECT id FROM %s WHERE type = '%s' and id_country IN '%s';"
-                                data =  (db.TOURNAMENTS_TABLENAME, tournament_type, countries_ids)
-                                db.trySQLquery(cur.mogrify, query, data)
-                                id_types = cur.fetchall()[0]
-
-                                # get from tournaments_played needed results ids
-                                query =  "SELECT id FROM %s WHERE id_season = '%s' and id_type IN '%s';"
-                                data =  (db.TOURNAMENTS_TABLENAME, self.season, id_types)
-                                db.trySQLquery(cur.mogrify, query, data)
-                                id_tournaments = cur.fetchall()[0]
-
-                            elif source == "CL":
-                                id_types = (0, )
+                round_info = stage_info["tindx_in_round"]
+                for round_num, seeded_sources in round_info.items():
+                    print "round_num = %s" % round_num#, members_schema
+                    for source, pos in seeded_sources.iteritems():
+                        print "sourcse, pos = ", source, pos
+                        if isinstance(source, tuple):
+                            if isinstance(pos, int):
+                                print "seed from national League"
+                                tournament_type = "League"
                                 position = pos
-
+                            elif pos == "cupwinner":
+                                print "seed from national Cup"
+                                tournament_type = "Cup"
+                                position = 1
                             else:
-                                raise Exception, "unknown source %s ,type %s" % (source, type(source))
-
-                            # get from tournament_results id of team with a given position
-                            query =  "SELECT id_team FROM %s WHERE position = '%s' and id_tournaments IN '%s';"
-                            data =  (db.TOURNAMENTS_RESULTS_TABLE, position, id_types)
-                            db.trySQLquery(cur.mogrify, pos, data)
-                            id_teams = cur.fetchall()[0]
-
-                            # add team ids to members of the current stage
-                            stage_members += id_teams
+                                raise Exception, "unknown pos %s type %s" % (pos, type(pos))
 
 
-                            # query = "SELECT id from %s WHERE
-                            # data =  (db.TOURNAMENTS_PLAYED_TABLE, self.season, source,)
 
-                            # # TODO fetch all for every variant of structure
-                            # for country_pos in source:
-                            #     # placeholders = ', '.join(source)
-                            #
-                            #
-                            #
-                            #
-                            #     country_ids = "select * from COUNTRY_RATINGS_TABLENAME where id_season = '%s' and pos in '%s'" % (self.season, country_positions)
+                            # tst = db.select("id", db.COUNTRY_RATINGS_TABLENAME, " WHERE ", "id_season", " = ", self.prev_season, fetch = "all")
+                            # print "tst", tst  # ok
+
+                            # get list of indexes of countries ids with a given rating from previous season
+                            # query =  "SELECT id FROM %s WHERE id_season = '%s' and pos IN %s;"
+                            # data =  (db.COUNTRY_RATINGS_TABLENAME, self.prev_season, source)
+                            # query =  "SELECT id FROM country_ratings WHERE id_season = '%s' and pos IN %s;"
+                            query =  "SELECT id FROM %s " % db.COUNTRY_RATINGS_TABLENAME + " WHERE id_season = '%s' and pos IN %s;"
+                            data =  (self.prev_season, source)
+                            print query
+                            print data
+                            print query % data
+                            # countries_ids = db.trySQLquery("execute", query, data, fetch = "all", ind = 0)
+                            self.cur.execute(query, data)
+                            countries_ids = self.cur.fetchall()[0]
+                            # countries_ids = db.get_id_from_value(self.cur, db.COUNTRY_RATINGS_TABLENAME, "id_season",  self.prev_season)
+
+                            print "countries_ids", countries_ids
+
+                            # countries_ids = cur.fetchall()[0]
+
+                            # search for tournament_id of League of this country
+                            query =  "SELECT id FROM %s WHERE type = '%s' and id_country IN '%s';"
+                            data =  (db.TOURNAMENTS_TABLENAME, tournament_type, countries_ids)
+                            db.trySQLquery(cur.mogrify, query, data)
+                            id_types = cur.fetchall()[0]
+
+                            # get from tournaments_played needed results ids
+                            query =  "SELECT id FROM %s WHERE id_season = '%s' and id_type IN '%s';"
+                            data =  (db.TOURNAMENTS_TABLENAME, self.season, id_types)
+                            db.trySQLquery(cur.mogrify, query, data)
+                            id_tournaments = cur.fetchall()[0]
+
+                        elif source == "CL":
+                            id_types = (0, )
+                            position = pos
+
+                        else:
+                            raise Exception, "unknown source %s ,type %s" % (source, type(source))
+
+                        # get from tournament_results id of team with a given position
+                        query =  "SELECT id_team FROM %s WHERE pos = '%s' and id_tournaments IN '%s';"
+                        data =  (db.TOURNAMENTS_RESULTS_TABLE, position, id_types)
+                        db.trySQLquery(cur.mogrify, pos, data)
+                        id_teams = cur.fetchall()[0]
+
+                        # add team ids to members of the current stage
+                        stage_members += id_teams
 
 
-                                 # , pos = (self.season, pos)
-                                # what = "id"
-                                # table = db.COUNTRY_RATINGS_TABLENAME
-                                # columns = ["id_season", "pos"]
-                                # values = (self.season, pos)
-                                # fetch = "all"
+                        # query = "SELECT id from %s WHERE
+                        # data =  (db.TOURNAMENTS_PLAYED_TABLE, self.season, source,)
+
+                        # # TODO fetch all for every variant of structure
+                        # for country_pos in source:
+                        #     # placeholders = ', '.join(source)
+                        #
+                        #
+                        #
+                        #
+                        #     country_ids = "select * from COUNTRY_RATINGS_TABLENAME where id_season = '%s' and pos in '%s'" % (self.season, country_positions)
 
 
-                            # for every country, select
-                                if isinstance(pos, int):
-                                    tournament_type = "League"
+                             # , pos = (self.season, pos)
+                            # what = "id"
+                            # table = db.COUNTRY_RATINGS_TABLENAME
+                            # columns = ["id_season", "pos"]
+                            # values = (self.season, pos)
+                            # fetch = "all"
 
 
-                                # stage_members = select
-                                # TODO select pos from Tournaments type = League national = country_id of current season
-                                # query = "SELECT ... "
-                                # data = ""
-                                # team = trySQLquery(cur.execute, query, data)
-                                team_id = db.select("id", table_names=db.TOURNAMENTS_RESULTS_TABLE, where=" WHERE ", columns, " = ", values, )
-                                stage_members.append(team)
+                        # # for every country, select
+                        #     if isinstance(pos, int):
+                        #         tournament_type = "League"
+                        #
+                        #
+                        #     # stage_members = select
+                        #     # TODO select pos from Tournaments type = League national = country_id of current season
+                        #     # query = "SELECT ... "
+                        #     # data = ""
+                        #     # team = trySQLquery(cur.execute, query, data)
+                        #     team_id = db.select("id", table_names=db.TOURNAMENTS_RESULTS_TABLE, where=" WHERE ", columns, " = ", values, )
+                        #     stage_members.append(team)
+                        #
+                        #
+                        # # elif isinstance(members_source, str) and members_source == "CL":
+                        # elif source == "CL":
+                        #     # get 3 / 4 round / group loosers
+                        #     # TODO select from Tournaments type = CL national = international, round looser = pos (get from CL results) of current season
+                        #     pass
 
 
-                            # elif isinstance(members_source, str) and members_source == "CL":
-                            elif source == "CL":
-                                # get 3 / 4 round / group loosers
-                                # TODO select from Tournaments type = CL national = international, round looser = pos (get from CL results) of current season
-                                pass
-
-                    # print round
-                    # for where, pos in round:
-                    #     print where, pos
-                    # # print roundname #, roundmembers
-                    else:
-
-                        print attrK, attrV
-                # print  "stage_type__" , stage_type
-                if not stage_type:
-                    raise Exception, "undefined stage_type"
-                if not stage_pair_mode:
-                    raise Exception, "undefined stage_pair_mode"
-                self.stages.append((stage_name, stage_type, stage_pair_mode))
-
-            if roundname:
-                print roundname
-            # round = stage_name + roundname
-            self.members_by_round.append(stage_members)
+            #     # print  "stage_type__" , stage_type
+            #     if not stage_type:
+            #         raise Exception, "undefined stage_type"
+            #     if not stage_pair_mode:
+            #         raise Exception, "undefined stage_pair_mode"
+            #     self.stages.append((stage_name, stage_type, stage_pair_mode))
+            #
+            # if roundname:
+            #     print roundname
+            # # round = stage_name + roundname
+            # self.members_by_round.append(stage_members)
 
     def run(self, print_matches = False):
         for stage in self.stages:
@@ -265,7 +283,10 @@ if __name__ == "__main__":
             teamN = i + 1
             rating = team_num - i
             uefa_pos = teamN
-            teams.append(Team.Team("FC team%s" % teamN, "RUS", rating, "Команда%s" % teamN, uefa_pos))
+            # old-styled
+            # teams.append(Team.Team("FC team%s" % teamN, "RUS", rating, "Команда%s" % teamN, uefa_pos))
+            # new-styled
+            # teams.append(Team.Team(teamN))
 
         # TEST CUP CLASS
         if "ChL" in args:
@@ -289,12 +310,14 @@ if __name__ == "__main__":
 
             # seeding schema schemas().get_CL_schema()
             seeding = schemas().get_CL_schema()
-            tstcp = UEFA_League("test UEFA Champions league", "2015/2016", teams, coefs, pair_mode, seeding)
+            # tstcp = UEFA_League("test UEFA Champions league", "2015/2016", teams, coefs, pair_mode, seeding)
+            members = None
+            tstcp = UEFA_League(id = 0, season = 2, members = members, delta_coefs=coefs, pair_mode = pair_mode, seeding=seeding)
             # tstcp.test(print_matches, print_ratings)
             # # Cup("testCup", "2015/2016", teams, coefs, pair_mode).run()
 
 
-    Test("ChL", team_num = 300)
+    Test("ChL", team_num = 200)
 
 
 
