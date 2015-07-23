@@ -216,49 +216,49 @@ class TournamentSchemas(object):
             # stage
             {"Qualification" : {
                     # type of tournament and number of sub-tournaments of this type in this stage
-                    "tourn_type" : ("Cup", 1),
+                    "classname" : "Cup",
+                    "parts" : 1,
                     # 0 - one match in pair, 1 - home & guest but the final , 2 - always home & guest
                     "pair_mode" : 2,
                     # every tour is a row of dict {round tournament : dict{(country indexes)* : team pos of national league**}}
                     # is tuple of int, from country, is stings and == "CL", from
                     # * - if int, pos, if string and == "cupwinner" - so its winner from national cups,
 
-                    "tindx_in_round" : [
+                    "tindx_in_round" : {
                        # 1 round
                        # 6 champions of leagues 49-54
-                       {1 : {tuple(range(49,55,1)) : 0}},
+                       1 : {tuple(range(49,55,1)) : 1},
                        # 2 round
                        # 31 champions of leagues 17-48 and 3 winners of prev round # TODO exclude Lichtenstein
-                       {2 : {tuple(range(17,49,1)) : 0}},
+                       2 : {tuple(range(17,49,1)) : 1},
                        # 3 round
                        # 3 champions of 14-16, 9 silver of 7-15, 1 bronze of 6 and 17 winners of prev
-                       {3 : {tuple(range(14,17)) : 0, tuple(range(7,16)) : 1, (6,) : 2}},
+                       3 : {tuple(range(14,17)) : 1, tuple(range(7,16)) : 2, (6,) : 3},
                        # final of Play-Off round
                        # 2 bronze 4-5, 3 fourth of 1-3, and 15 winners of prev
-                       {4 : {(4,5) : 2, (1,2,3) : 3}}
-                    ]
+                       4 : {(4,5) : 3, (1,2,3) : 4}
+                    }
                 }
             },
 
             {"Group" : {
-                    # split members to four groups
-                    "tourn_type" : ("League", 4),
+                    "classname" : "League",
+                    # split members to 8 groups
+                    "parts" : 8,
                     "pair_mode" : 2,
-                    "tindx_in_round" : [
-                        # 13 champions of 1-13, 6 silver 1-6, 3 bronze 1-3   and 15 winners of qualification
+                    "tindx_in_round" : {
+                        # 13 champions of 1-13, 6 silver 1-6, 3 bronze 1-3   and 10 winners of qualification
                         # no tournament or None -named round (cause its exclusive)
-                        {"" : {tuple(range(1,14,1)) : 0, tuple(range(1,7,1)) : 1, tuple(range(1,4,1)) : 2 }}
-                    ]
+                        1 : {tuple(range(1,14,1)) : 1, tuple(range(1,7,1)) : 2, tuple(range(1,4,1)) : 3 }}
                 }
             },
 
             {"Play-Off" : {
-                    "tourn_type" : ("Cup", 1),
+                    "classname" : "Cup",
+                    "parts" : 1,
                     "pair_mode" : 1, # one match in final
-                    "tindx_in_round" : [
+                    "tindx_in_round" : {1 : {}}
                         # simple cup of 16 winners of groups
-
-                    ]
                 }
             }
         ]
@@ -268,65 +268,68 @@ class TournamentSchemas(object):
             # stage
             {"Qualification" : {
                     # type of tournament and number of sub-tournaments of this type in this stage
-                    "tourn_type" : ("Cup", 1),
+                    "classname" : "Cup",
+                    "parts" : 1,
                     # 0 - one match in pair, 1 - home & guest but the final , 2 - always home & guest
                     "pair_mode" : 2,
                     # every tour is a row of dict {round tournament : dict{country ind : team pos of national league}}
-                    "tindx_in_round" : [
+                    "tindx_in_round" : {
                         # 1 round
                         # 20 cup winners 35-54, 26 silver of 27-53 # TODO exclude Lichtenstein or not when teams already parsed
                         # 29 bronze 22-51, 3 "FairPlay"
-                        {1 : {tuple(range(35,55)) : "cupwinner",  tuple(range(27,53)) : 1, tuple(range(22,52)) : 2, (0,1,2) : "FairPlay"}},
+                        # TODO instead of Fairplay we can just get next -rated teams
+                        1 : {tuple(range(35,55)) : "cupwinner",  tuple(range(27,53)) : 2, tuple(range(22,52)) : 3, (0,1,2) : "FairPlay"},
                         # 2 round
                          # 15 cup winners 20-34, 11 silver 16-26, 6 bronze 16-21, 6 fourth 10-15, 3 fifth 7-9,
                          # and 38 winners of prev
-                        {2 : {tuple(range(20,35)) : "cupwinner",  tuple(range(16,27)) : 1, tuple(range(16,22)) : 2,
-                               tuple(range(10,16)) : 3,  tuple(range(7,10)) : 4}},
+                        2 : {tuple(range(20,35)) : "cupwinner",  tuple(range(16,27)) : 2, tuple(range(16,22)) : 3,
+                               tuple(range(10,16)) : 4,  tuple(range(7,10)) : 3},
                         # 3 round
                          # 3 cup winners 17-19, 6 bronze 10-15, 3 fourth 7-9, 3 fifth 4-6, 3 sixth 1-3,
                         # # TODO if sixth from ENG of FRANCE, use cup winners of special national "League Cup"
                          # and 38 winners of prev
-                        {3 : {tuple(range(17,20)) : "cupwinner",  tuple(range(10,16)) : 2, tuple(range(7,10)) : 3,
-                               tuple(range(4,7)) : 4,  tuple(range(1,4)) : 5}}, # or league cup see todo above
+                        3 : {tuple(range(17,20)) : "cupwinner",  tuple(range(10,16)) : 3, tuple(range(7,10)) : 4,
+                               tuple(range(4,7)) : 5,  tuple(range(1,4)) : 6}, # or league cup see todo above
                         # Play-Off round
                          # 9 cup winners 8-16, 3 bronze 7-9, 3 fourth 4-6, 3 fifth 1-3,
                          # 15 from 3th qualification round of champions league
                          # and 38 winners of prev
-                        {4 : {tuple(range(8,17)) : "cupwinner",  tuple(range(7,10)) : 2, tuple(range(4,7)) : 3,
-                               tuple(range(1,4)) : 4,   "CL" : 3}}
+                        4 : {tuple(range(8,17)) : "cupwinner",  tuple(range(7,10)) : 3, tuple(range(4,7)) : 4,
+                               tuple(range(1,4)) : 5,   "CL" : 3}
                         # TODO groupUefa support
-                         ]
+                        }
             }
             },
 
             {"Group" : {
-                    # split members to four groups
-                    "tourn_type" : ("League", 12),
+                    "classname" : "League",
+                    # split members to 12 groups
+                    "parts" : 12,
                     "pair_mode" : 2,
-                    "tindx_in_round" : [
+                    "tindx_in_round" : {
                         # champion of prev Europe League
                         #  TODO implement shifting rest teams if champion was already qualified to CL or EL
                         # else:
                         # 7 cup winners
                         # 10 from 4th qualification round of champions league
                         # and 31 winners of prev (Qualification)
-                        {"" : {tuple(range(1,8)) : "cupwinner", "CL" : 4}}
-                                        ]
+                        1 : {tuple(range(1,8)) : "cupwinner", "CL" : "Qualification 4"}}
+
                     }
             },
 
             {"Play-Off" : {
-                    "tourn_type" : ("Cup", 1),
+                    "classname" : "Cup",
+                    "parts" : 1,
                     "pair_mode" : 1, # one match in final
-                    "tindx_in_round" : [
+                    "tindx_in_round" : {
                         # simple cup of
                         # 24 winners of prev
                         # 8 from Group round of champions league (3th places)
-                        {"" : {"CL" : "Group"}}
-                                        ]
+                        1 : {"CL" : "Group"}}
+
                         }
             }
-
         ]
 
 

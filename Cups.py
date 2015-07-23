@@ -31,15 +31,14 @@ class Cup(League):
         :param members: should be in seeding order (1place_team, 2place_team...) . net will ve provided by that class itself
 
         :param seeding: if Cup used as qualification for UEFA (or another special tournament),
-        seeding must be a list in of dicts {round : int, seeded_teams : count, toss = ("all_rnd") or
-        ("not_same_country", "not_played_group") as in UEFA Champ League
+        seeding must be a list in of dicts {int(round_number) : { "count" : int(seeded_teams), toss = "rnd" or "not_same_country_and_played_in_group" as in UEFA Champ League
 
         :param delta_coefs:
         :param pair_mode: 0 - one match in pair, 1 - home & guest but the final , 2 - always home & guest
         :return:
         """
         if prefix:
-            if not isinstance(seeding, list):
+            if not isinstance(seeding, dict):
                 raise Exception, "seeding must be a list of dicts roundN:[seeded_teams]"
         else:
             if seeding not in self.getSeedings():
@@ -70,7 +69,7 @@ class Cup(League):
         # self.net = {"not implemented yet" : None} # TODO net should be ini as start pos (1 round) and seeding (branch), then in run - updated from results
         # TODO its not necessacy for cups with
         self.net = {} #
-        # *** HEART OF RUN METHOD ***
+        # *** HEART OF RUN METHOD TO RUN STEP-BY_STEP OR TO INITIALIZE NET BEFORE RUN***
         #   ***                 ***
         # CALL HELPER FUNCTIONS
         # if seeding == "rnd" or "A1_F16":
@@ -372,7 +371,7 @@ class Cup(League):
                 toss = self.seeding
                 # print "self.p_rounds %s, self.q_rounds %s" % (self.p_rounds, self.q_rounds)
 
-            elif isinstance(self.seeding, list):
+            elif isinstance(self.seeding, dict):
                 self.q_rounds = len(self.seeding)
                 self.p_rounds = 0
                 round = 0
@@ -435,8 +434,6 @@ class Cup(League):
             # if print_matches:
             #     for stage, result in enumerate(self.results):
             #         print "results (loosers) of stage %s len of %s : %s" % (stage, len(self.results[stage]), [team.getName() for team in self.results[stage]])
-
-            # TODO save Cup in database probe
 
             self.saveToDB(self.net)
             return self.winners
@@ -550,7 +547,7 @@ if __name__ == "__main__":
                 seedings = s.getSeedings()
                 # print "seedings", seedings
                 for seeding in seedings:
-                    # print seeding , "seeding"
+                    print "TEST CUP: seeding=", seeding ,"pair_mode=", pair_mode
                     # print "teams, coefs, pair_mode, seeding", teams, coefs, pair_mode, seeding
                     # old-styled
                     # tstcp = Cup("testCup", "2015/2016", teams, coefs, pair_mode, seeding)

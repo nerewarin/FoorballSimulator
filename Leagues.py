@@ -30,6 +30,7 @@ class League(object):
         """
 
         :param name: League tournament id (type) - not unique id used in tourn_results!
+        :param season: id
         :param members: list of teams
         :param delta_coefs: coefficients stored in values to compute ratings changing after match followed bby its result
         :param prefix: used for composite tournament like UEFA to add "Group A " or "Qualification " to roundname when

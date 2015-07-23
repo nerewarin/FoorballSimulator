@@ -86,30 +86,111 @@ class UEFA_League(Cup):
         # parsing stored in schema values
         self.stages = []
 
+# TODO round_info  [{"count": x , "toss" : "not_same_country_and_played_in_group"}, {
+
+
         for stage in self.seeding:
             # print stage
             stage_members = []
-            for stage_name, stageV in stage.iteritems():
+            for stage_name, stage_info in stage.iteritems():
                 print "stage_name %s" %stage_name
                 # print stage_name, stageV
-                stage_type = stageV["tourn_type"]
-                stage_pair_mode = stageV["pair_mode"]
-                for round in stageV["tindx_in_round"]:
-                    for roundname, members_schema in round.iteritems():
-                        print "round = %s" % roundname#, members_schema
-                        for members_source, pos in members_schema.iteritems():
-                            print "members_source, pos = ", members_source, pos
-                            if isinstance(members_source, tuple):
-                                print "From country"
-                                for country_id in members_source:
-                                    # TODO select pos from Tournaments type = League national = country_id of current season
-                                    # query = "SELECT ... "
-                                    # data = ""
-                                    # team = trySQLquery(cur.execute, query, data)
-                                    team_id = db.select("id", table_names=db.TOURNAMENTS_RESULTS_TABLE, where=" WHERE ", columns, " = ", values, )
-                                    stage_members.append(team)
+                classname = stage_info["classname"]
+                parts = stage_info["parts"]
+                pair_mode = stage_info["pair_mode"]
+                for round in stage_info["tindx_in_round"]:
+                    for round_num, seeded_sources in round.items():
+                        print "round_num = %s" % round_num#, members_schema
+                        for source, pos in seeded_sources.iteritems():
+                            print "sourcse, pos = ", source, pos
+                            if isinstance(source, tuple):
+                                if isinstance(source, int):
+                                    print "seed from national League"
+                                    tournament_type = "League"
+                                    position = pos
+                                elif source == "cupwinner":
+                                    print "seed from national Cup"
+                                    tournament_type = "Cup"
+                                    position = 1
+                                else:
+                                    raise Exception, "unknown source %s type %s" % (source, type(source))
+
+
+                                query =  "SELECT id FROM %s WHERE id_season = '%s' and position IN '%s';"
+                                data =  (db.COUNTRY_RATINGS_TABLENAME, self.season, source)
+                                print query
+                                print data
+                                print query % data
+                                db.trySQLquery(cur.mogrify, query, data)
+                                # get list of indexes of countries ids
+                                countries_ids = cur.fetchall()[0]
+
+                                # search for tournament_id of League of this country
+                                query =  "SELECT id FROM %s WHERE type = '%s' and id_country IN '%s';"
+                                data =  (db.TOURNAMENTS_TABLENAME, tournament_type, countries_ids)
+                                db.trySQLquery(cur.mogrify, query, data)
+                                id_types = cur.fetchall()[0]
+
+                                # get from tournaments_played needed results ids
+                                query =  "SELECT id FROM %s WHERE id_season = '%s' and id_type IN '%s';"
+                                data =  (db.TOURNAMENTS_TABLENAME, self.season, id_types)
+                                db.trySQLquery(cur.mogrify, query, data)
+                                id_tournaments = cur.fetchall()[0]
+
+                            elif source == "CL":
+                                id_types = (0, )
+                                position = pos
+
+                            else:
+                                raise Exception, "unknown source %s ,type %s" % (source, type(source))
+
+                            # get from tournament_results id of team with a given position
+                            query =  "SELECT id_team FROM %s WHERE position = '%s' and id_tournaments IN '%s';"
+                            data =  (db.TOURNAMENTS_RESULTS_TABLE, position, id_types)
+                            db.trySQLquery(cur.mogrify, pos, data)
+                            id_teams = cur.fetchall()[0]
+
+                            # add team ids to members of the current stage
+                            stage_members += id_teams
+
+
+                            # query = "SELECT id from %s WHERE
+                            # data =  (db.TOURNAMENTS_PLAYED_TABLE, self.season, source,)
+
+                            # # TODO fetch all for every variant of structure
+                            # for country_pos in source:
+                            #     # placeholders = ', '.join(source)
+                            #
+                            #
+                            #
+                            #
+                            #     country_ids = "select * from COUNTRY_RATINGS_TABLENAME where id_season = '%s' and pos in '%s'" % (self.season, country_positions)
+
+
+                                 # , pos = (self.season, pos)
+                                # what = "id"
+                                # table = db.COUNTRY_RATINGS_TABLENAME
+                                # columns = ["id_season", "pos"]
+                                # values = (self.season, pos)
+                                # fetch = "all"
+
+
+                            # for every country, select
+                                if isinstance(pos, int):
+                                    tournament_type = "League"
+
+
+                                # stage_members = select
+                                # TODO select pos from Tournaments type = League national = country_id of current season
+                                # query = "SELECT ... "
+                                # data = ""
+                                # team = trySQLquery(cur.execute, query, data)
+                                team_id = db.select("id", table_names=db.TOURNAMENTS_RESULTS_TABLE, where=" WHERE ", columns, " = ", values, )
+                                stage_members.append(team)
+
+
                             # elif isinstance(members_source, str) and members_source == "CL":
-                            elif members_source == "CL":
+                            elif source == "CL":
                                 # get 3 / 4 round / group loosers
                                 # TODO select from Tournaments type = CL national = international, round looser = pos (get from CL results) of current season
                                 pass

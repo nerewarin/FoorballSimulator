@@ -83,6 +83,11 @@ def testStrings():
     print tables[:-2]
 
 
+def test_orderedDict():
+    _dict = {1:{ "count":1, "toss":"rnd"}, 2 :{ "count":0, }, 0:{ "count":17, "toss":"aaa"}}
+    print _dict.items()
+
+
 def test_iterations(iterations):
     for round in range(1, iterations+1):
         print round
@@ -94,7 +99,8 @@ if __name__ == '__main__':
     # TestAddLists()
     # testCounter()
     # testStrings()
-    test_iterations(10)
+    # test_iterations(10)
+    test_orderedDict()
 
 # TestSortTeamL()
 
