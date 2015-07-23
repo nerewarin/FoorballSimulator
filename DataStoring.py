@@ -436,8 +436,10 @@ def trySQLquery(func = "execute", query = None, data = None, fetch = None, ind =
         if fetch == "all":
             print CUR.fetchall()[ind]
             return CUR.fetchall()[ind]
-        elif fetch == "ine":
+        elif fetch == "one":
             return CUR.fetchone()[ind]
+        elif fetch == "all_tuples":
+            return  (element[ind] for element in CUR.fetchall())
         else:
             raise ValueError, "unknown parameter fetch=%s" % fetch
 

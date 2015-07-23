@@ -135,17 +135,19 @@ class UEFA_League(Cup):
                             # query =  "SELECT id FROM %s WHERE id_season = '%s' and pos IN %s;"
                             # data =  (db.COUNTRY_RATINGS_TABLENAME, self.prev_season, source)
                             # query =  "SELECT id FROM country_ratings WHERE id_season = '%s' and pos IN %s;"
-                            query =  "SELECT id FROM %s " % db.COUNTRY_RATINGS_TABLENAME + " WHERE id_season = '%s' and pos IN %s;"
+                            query =  "SELECT id FROM %s " % db.COUNTRY_RATINGS_TABLENAME + "WHERE id_season = '%s' and position IN %s;"
                             data =  (self.prev_season, source)
-                            print query
-                            print data
-                            print query % data
-                            # countries_ids = db.trySQLquery("execute", query, data, fetch = "all", ind = 0)
+                            # print query
+                            # print data
+                            # print query % data
+                            # countries_ids = db.trySQLquery("execute", query, data, fetch = "all_tuples", ind = 0)
                             self.cur.execute(query, data)
-                            countries_ids = self.cur.fetchall()[0]
-                            # countries_ids = db.get_id_from_value(self.cur, db.COUNTRY_RATINGS_TABLENAME, "id_season",  self.prev_season)
+                            fetched = self.cur.fetchall()
+                            # countries_ids = self.cur.fetchall()
+                            countries_ids = [country_id[0] for country_id in fetched]
 
                             print "countries_ids", countries_ids
+                            # print "countries_ids", countries_ids[0]
 
                             # countries_ids = cur.fetchall()[0]
 
@@ -169,7 +171,7 @@ class UEFA_League(Cup):
                             raise Exception, "unknown source %s ,type %s" % (source, type(source))
 
                         # get from tournament_results id of team with a given position
-                        query =  "SELECT id_team FROM %s WHERE pos = '%s' and id_tournaments IN '%s';"
+                        query =  "SELECT id_team FROM %s WHERE position = '%s' and id_tournaments IN '%s';"
                         data =  (db.TOURNAMENTS_RESULTS_TABLE, position, id_types)
                         db.trySQLquery(cur.mogrify, pos, data)
                         id_teams = cur.fetchall()[0]
