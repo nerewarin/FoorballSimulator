@@ -9,6 +9,7 @@ represents Match Class
 import Team
 import util
 from values import Coefficients as C
+import values as v
 import random, os, warnings
 import DataStoring as db
 
@@ -259,6 +260,10 @@ class Match(object):
         # print "Matches columns (exclusive id) are ", columns
         values = [self.tournament, self.round, self.homeID, self.guestID, self.getResult()[0], self.getResult()[1]]
         # print "values are ", values
+        if not self.tournament or self.tournament == v.TEST_TOURNAMENT_ID:
+            # print "friendly ot test match, id_tournament column will not be filled"
+            columns = columns[1:]
+            values = values[1:]
         db.insert(db.MATCHES_TABLE, columns, values)
        #  return "%s. %s %s %s" % \
        # (self.tournament, self.homeName, str(self.getResult())[1:-1].replace(",", ":").replace(" ", "") ,self.guestName)
@@ -435,6 +440,112 @@ class DoubleMatch(Match):
 
 
 
+@util.timer
+def Test(iterations = 20, pre_truncate = False, post_truncate = False, save_to_db = True,
+         cleaning = True, tst_match = True, tst_doublematch = True):
+    """
+
+    run matches and store in database (if new-styled)
+
+    :param iterations:
+    :param args:
+    :param kwargs:
+    :return:
+    """
+
+    # # old-styled
+    # team1 = Team.Team("Manchester City FC", "ENG", 87.078, "Манчестер Сити", 17)
+    # team2 = Team.Team("FC Shakhtar Donetsk", "UKR", 85.899, "Шахтер Донецк", 18)
+
+    # used by clearing inserted rows by test after it runs
+    last_m_row = db.trySQLquery(query="SELECT id FROM %s ORDER BY ID DESC LIMIT 1"
+                                      % db.MATCHES_TABLE, fetch="one")
+    print "last_row before match test %s" % last_m_row
+
+    if pre_truncate:
+        db.truncate(db.MATCHES_TABLE)
+
+    print "self.save_to_db", save_to_db
+    if tst_match:
+        print "\nTEST MATCH CLASS\n"
+        for i in range(iterations):
+            # new-styled
+            team1_id = random.randint(1, 454)
+            team1 = Team.Team(team1_id)
+            team2_id = random.randint(1, 454)
+            while team2_id == team1_id:
+                 team2_id = random.randint(1, 454)
+            team2 = Team.Team(team2_id)
+
+
+            # if i > ITERATIONS*0.5 - 1:
+            if not i % 2:
+                pair = (team2, team1)
+            else:
+                pair = (team1, team2)
+            # testMatch = Match(pair, coefs, "testMatch%s" % (i + 1))
+            testMatch = Match(pair, coefs, tournament = v.TEST_TOURNAMENT_ID, round = "test%s" % (i + 1), save_to_db = save_to_db)
+
+            testMatch.run()
+            # print testMatch.printResult(), "updated ratings", team1.getRating(), team2.getRating()
+            # if not i % 1000:
+            # or print every iteration
+            outcome = testMatch.getOutcome()
+            if outcome == testMatch.getResultFormats()["Draw"]:
+                winner = "Draw"
+            else:
+                winner = pair[outcome]
+            # try:
+            #     winner = pair[testMatch.getWinner()]
+            # except:
+            #     winner = "Draw"
+            # print testMatch, "winner = %s" % winner,"| updated ratings", team1.getRating(), team2.getRating()
+            print testMatch#, "winner = %s" % winner,"| updated ratings", team1.getRating(), team2.getRating()
+                # print "%s: %s : %s, outcome = %s, pair_score %s m1 %s m2 %s" % \
+                #       (test_DoubleMatch1.getName(), pair[0], pair[1], test_DoubleMatch1.getOutcome(), pair_result,
+                #        test_DoubleMatch1.getFirstMatchResult(), test_DoubleMatch1.getSecondMatchResult())
+
+            # results[testMatch.getWinner()] += 1
+            # print "updated ratings", team1.getRating(), team2.getRating()
+
+    if tst_doublematch:
+        print "\nTEST DoubleMatch CLASS\n"
+        for playoff in (True, False):
+            print ("playoff = %s") % playoff
+            for i in range(iterations):
+                # playoff = False # ERROR WILL BE RISEN cause DoubleMatch made only for playoff stages!
+                # playoff = True
+
+                pair = (team1, team2)
+                test_DoubleMatch1 = DoubleMatch(pair, coefs, tournament = v.TEST_TOURNAMENT_ID, round = "_m%s" % (2*i+1), playoff = playoff, save_to_db = save_to_db)
+                pair_result = test_DoubleMatch1.run()
+                # print "test_DoubleMatch%s: pair_score %s m1 %s m2 %s" % (i, result[0], result[1], result[2])
+
+                print test_DoubleMatch1, " [winner = %s]" % test_DoubleMatch1.getWinner()
+                # return "%s. %s %s %s" % \
+                # (self.tournament, self.homeName, str(self.getResult()).replace(",", ":") ,self.guestName)
+                # print "%s: %s : %s, outcome = %s, pair_score %s m1 %s m2 %s" % \
+                #       (test_DoubleMatch1.getName(), pair[0], pair[1], test_DoubleMatch1.getOutcome(), pair_result,
+                #        test_DoubleMatch1.getFirstMatchResult(), test_DoubleMatch1.getSecondMatchResult())
+
+    if post_truncate:
+        db.truncate(db.MATCHES_TABLE)
+
+    # if last_m_row and cleaning:
+    #     # CLEANING ALL INSERTED BY TEST DATA
+    #     question = "clean after test Match? (y)"
+    #     print question
+    #     # answer = str(input(question))
+    #     answer = str(raw_input())
+    #     print answer
+    #     if "y" in answer:
+    #         print "cleaning all data after id=%s inserted by test Match, serial id set" % last_m_row
+    #         query = "DELETE FROM %s WHERE id > %s; SELECT setval('id', %s);" % (db.MATCHES_TABLE, last_m_row, last_m_row)
+    #         db.trySQLquery(query = query)
+    #
+    #     else:
+    #         print "info was not deleted"
+
 # TEST
 if __name__ == "__main__":
     # v1.1 coefs
@@ -444,92 +555,6 @@ if __name__ == "__main__":
     # v1.0 coefs
     # coefs = C("v1.0").getRatingUpdateCoefs("list")
 
-    @util.timer
-    def Test(iterations, pre_truncate, post_truncate, save_to_db, *args, **kwargs):
-        """
-
-        run matches and store in database (if new-styled)
-
-        :param iterations:
-        :param args:
-        :param kwargs:
-        :return:
-        """
-
-        # # old-styled
-        # team1 = Team.Team("Manchester City FC", "ENG", 87.078, "Манчестер Сити", 17)
-        # team2 = Team.Team("FC Shakhtar Donetsk", "UKR", 85.899, "Шахтер Донецк", 18)
-
-        if pre_truncate:
-            db.truncate(db.MATCHES_TABLE)
-
-        print "self.save_to_db", save_to_db
-        if "Match" in args:
-            print "\nTEST MATCH CLASS\n"
-            for i in range(iterations):
-                # new-styled
-                team1_id = random.randint(1, 454)
-                team1 = Team.Team(team1_id)
-                team2_id = random.randint(1, 454)
-                while team2_id == team1_id:
-                     team2_id = random.randint(1, 454)
-                team2 = Team.Team(team2_id)
-
-
-                # if i > ITERATIONS*0.5 - 1:
-                if not i % 2:
-                    pair = (team2, team1)
-                else:
-                    pair = (team1, team2)
-                # testMatch = Match(pair, coefs, "testMatch%s" % (i + 1))
-                testMatch = Match(pair, coefs, round = "friendly%s" % (i + 1), save_to_db = save_to_db)
-
-                testMatch.run()
-                # print testMatch.printResult(), "updated ratings", team1.getRating(), team2.getRating()
-                # if not i % 1000:
-                # or print every iteration
-                outcome = testMatch.getOutcome()
-                if outcome == testMatch.getResultFormats()["Draw"]:
-                    winner = "Draw"
-                else:
-                    winner = pair[outcome]
-                # try:
-                #     winner = pair[testMatch.getWinner()]
-                # except:
-                #     winner = "Draw"
-                # print testMatch, "winner = %s" % winner,"| updated ratings", team1.getRating(), team2.getRating()
-                print testMatch#, "winner = %s" % winner,"| updated ratings", team1.getRating(), team2.getRating()
-                    # print "%s: %s : %s, outcome = %s, pair_score %s m1 %s m2 %s" % \
-                    #       (test_DoubleMatch1.getName(), pair[0], pair[1], test_DoubleMatch1.getOutcome(), pair_result,
-                    #        test_DoubleMatch1.getFirstMatchResult(), test_DoubleMatch1.getSecondMatchResult())
-
-                # results[testMatch.getWinner()] += 1
-                # print "updated ratings", team1.getRating(), team2.getRating()
-
-        if "DoubleMatch" in args:
-            print "\nTEST DoubleMatch CLASS\n"
-            for playoff in (True, False):
-                print ("playoff = %s") % playoff
-                for i in range(iterations):
-                    # playoff = False # ERROR WILL BE RISEN cause DoubleMatch made only for playoff stages!
-                    # playoff = True
-
-                    pair = (team1, team2)
-                    test_DoubleMatch1 = DoubleMatch(pair, coefs, tournament = 1, round = "_m%s" % (2*i+1), playoff = playoff, save_to_db = save_to_db)
-                    pair_result = test_DoubleMatch1.run()
-                    # print "test_DoubleMatch%s: pair_score %s m1 %s m2 %s" % (i, result[0], result[1], result[2])
-
-                    print test_DoubleMatch1, " [winner = %s]" % test_DoubleMatch1.getWinner()
-                    # return "%s. %s %s %s" % \
-                    # (self.tournament, self.homeName, str(self.getResult()).replace(",", ":") ,self.guestName)
-                    # print "%s: %s : %s, outcome = %s, pair_score %s m1 %s m2 %s" % \
-                    #       (test_DoubleMatch1.getName(), pair[0], pair[1], test_DoubleMatch1.getOutcome(), pair_result,
-                    #        test_DoubleMatch1.getFirstMatchResult(), test_DoubleMatch1.getSecondMatchResult())
-
-        if post_truncate:
-            db.truncate(db.MATCHES_TABLE)
-
-
     # for every iteration will be played 1 match and 1 double-matches
     ITERATIONS = 100
 
@@ -538,11 +563,21 @@ if __name__ == "__main__":
 
     # RESET ALL MATCHES DATA BEFORE TEST
     PRE_TRUNCATE = False
-    PRE_TRUNCATE = True
+    # PRE_TRUNCATE = True
     # RESET ALL MATCHES DATA AFTER TEST
     POST_TRUNCATE = False
     POST_TRUNCATE = True
     # SAVE TO DB - to avoid data integrity (if important data in table exists), turn it off
     SAVE_TO_DB = False
     SAVE_TO_DB = True
-    Test(ITERATIONS, PRE_TRUNCATE, POST_TRUNCATE, SAVE_TO_DB, "Match", "DoubleMatch")
+    # TEST MATCH
+    TST_MATCH = False
+    TST_MATCH = True
+    # TEST DOUBLEMATCH
+    TST_DOUBLEMATCH = False
+    TST_DOUBLEMATCH = True
+    # CLEANING AFTER TEST
+    CLEANING = False
+    CLEANING = True
+
+    Test(ITERATIONS, PRE_TRUNCATE, POST_TRUNCATE, SAVE_TO_DB, CLEANING, TST_MATCH, TST_DOUBLEMATCH)

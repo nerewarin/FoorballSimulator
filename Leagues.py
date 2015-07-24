@@ -7,6 +7,7 @@ import util
 # import Cups
 import Match as M
 import DataStoring as db
+import values as v
 from values import Coefficients as C
 from operator import attrgetter, itemgetter
 from collections import defaultdict
@@ -456,61 +457,119 @@ def roundRobin(units, sets=None):
 
 
 # TEST
-if __name__ == "__main__":
-    @util.timer
-    def Test(*args, **kwargs):
-        # VERSION = "v1.1"
-        with open(os.path.join("", 'VERSION')) as version_file:
-            values_version = version_file.read().strip()
-        coefs = C(values_version).getRatingUpdateCoefs("list")
+@util.timer
+def Test(*args, **kwargs):
+    """
+    Test League Class
 
-        teams = []
+    :param args:
+    :param kwargs: test arguments are listed below
+
+    by default, save_db = True,  team_num = 20, all other options are disabled
+
+    :return:
+    """
+
+    # used by clearing inserted rows by test after it runs
+    last_m_row = db.trySQLquery(query="SELECT id FROM %s ORDER BY ID DESC LIMIT 1"
+                                      % db.MATCHES_TABLE, fetch="one")
+    last_tp_row = db.trySQLquery(query="SELECT id FROM %s ORDER BY ID DESC LIMIT 1"
+                                       % db.TOURNAMENTS_PLAYED_TABLE, fetch="one")
+    last_tr_row = db.trySQLquery(query="SELECT id FROM %s ORDER BY ID DESC LIMIT 1"
+                                       % db.TOURNAMENTS_RESULTS_TABLE, fetch="one")
+    print "last rows before League test are: last_m_row %s, last_tp_row %s, last_tr_row %s " % \
+          ( last_m_row, last_tp_row, last_tr_row    )
+
+    # VERSION = "v1.1"
+    with open(os.path.join("", 'VERSION')) as version_file:
+        values_version = version_file.read().strip()
+    coefs = C(values_version).getRatingUpdateCoefs("list")
+
+    teams = []
+    if "team_num" in kwargs.keys():
         team_num = kwargs["team_num"]
+    else:
+        # default
+        team_num = 20
+
+    if "print_matches" in kwargs.keys():
         print_matches = kwargs["print_matches"]
+    else:
+        # default
+        print_matches = False
+
+    if "print_ratings" in kwargs.keys():
         print_ratings = kwargs["print_ratings"]
-        pair_mode = kwargs["pair_mode"]
+    else:
+        # default
+        print_ratings = False
+
+    if "pair_mode" in kwargs.keys():
+        pair_modes = kwargs["pair_mode"]
+        if isinstance(pair_modes, int):
+            pair_modes = (pair_modes, )
+    else:
+        # default
+        pair_modes = (0,1,2)
+
+    if "save_to_db" in kwargs.keys():
         save_to_db = kwargs["save_to_db"]
+    else:
+        # default
+        save_to_db = True
+
+    if "pre_truncate" in kwargs.keys():
         pre_truncate = kwargs["pre_truncate"]
+    else:
+        # default
+        pre_truncate = False
+
+    if "post_truncate" in kwargs.keys():
         post_truncate = kwargs["post_truncate"]
+    else:
+        # default
+        post_truncate = False
 
-        if pre_truncate:
-            db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
-            db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
-            db.truncate(db.MATCHES_TABLE)
+    # team_num = kwargs["team_num"]
+    # print_matches = kwargs["print_matches"]
+    # print_ratings = kwargs["print_ratings"]
+    # pair_mode = kwargs["pair_mode"]
+    # save_to_db = kwargs["save_to_db"]
+    # pre_truncate = kwargs["pre_truncate"]
+    # post_truncate = kwargs["post_truncate"]
 
-        for i in range(team_num):
-            # # teamN = i + 1
-            # teamN = i
-            # rating = team_num - i
-            # uefa_pos = teamN
-            # teams.append(Team.Team("FC team%s" % teamN, "RUS", rating, "Р С™Р С•Р СР В°Р Р…Р Т‘Р В°%s" % teamN, uefa_pos))
-            # new-styled
-            teams.append(Team.Team(i+1))
+    if pre_truncate:
+        db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
+        db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
+        db.truncate(db.MATCHES_TABLE)
 
-        # # TEST LEAGUE CLASS
-        if "League" in args:
-    # def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "rnd", state_params = ("P",	"W","D","L","GF","GA","GD","PTS")):
+    for i in range(team_num):
+        # # teamN = i + 1
+        # teamN = i
+        # rating = team_num - i
+        # uefa_pos = teamN
+        # teams.append(Team.Team("FC team%s" % teamN, "RUS", rating, "Р С™Р С•Р СР В°Р Р…Р Т‘Р В°%s" % teamN, uefa_pos))
+        # new-styled
+        teams.append(Team.Team(i+1))
 
-            # old-styled
-            # League("testLeague", "2015/2016", teams, coefs, pair_mode).test(print_matches, print_ratings)
-            # new-styled
-            league_id = 3
-            season = 1
-            League(league_id, season, teams, coefs, pair_mode, save_to_db=save_to_db).test(print_matches, print_ratings)
+    for pair_mode in pair_modes:
+        season = 1
+        League(v.TEST_TOURNAMENT_ID, season, teams, coefs, pair_mode, save_to_db=save_to_db)\
+            .test(print_matches, print_ratings)
 
-        if "roundRobin" in args:
-            print "TEST roundRobin"
-            # for team_l in range(team_num):
-                # for pair in roundRobin(range(team_l)):
-            for pair in roundRobin(range(team_num)):
-                # print "__", pairings
-                print pair
+    # if "roundRobin" in args:
+    #     print "TEST roundRobin"
+    #     for pair in roundRobin(range(team_num)):
+    #         print pair
 
-        if post_truncate:
-            db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
-            db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
-            db.truncate(db.MATCHES_TABLE)
+    if post_truncate:
+        db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
+        db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
+        db.truncate(db.MATCHES_TABLE)
 
+
+
+if __name__ == "__main__":
     # team_num = 3
     # for pair_mode in range(2):
     #     Test("League", team_num = team_num, pair_mode = pair_mode, print_matches = True, print_ratings = False)

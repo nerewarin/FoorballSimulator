@@ -4,6 +4,34 @@ __author__ = 'NereWARin'
 # import Team, Match, Leagues
 
 UEFA_TOURNAMENTS_ID = (0, 1)
+TEST_TOURNAMENT_ID = "testTournament"
+TEST_LEAGUE_ID = 3 # RUS League
+TEST_CUP_ID = 62 # RUS Cup
+
+EUROPEAN_LEAGUES_AND_CUPS = [
+    # http://www.uefa.com/memberassociations/leaguesandcups/
+    "English Premier League",
+    "French Ligue 1",
+    "German Bundesliga",
+    "Spanish Liga",
+    "Romanian First Division",
+    "Russian Premier League",
+    "Dutch First Division",
+    "Ukrainian Premier League",
+    "Portuguese First Division",
+    "Italian Serie A",
+    "Swedish First Division",
+    "Swiss Super League",
+    "Danish Super League",
+    "Croatian First League",
+    "Hungarian First League",
+    "Welsh Premier League",
+    "Finnish First Division",
+    "Belarusian Premier League",
+    "Georgian Premier League",
+    "Belgian First League",
+
+]
 
 class Coefficients():
     """

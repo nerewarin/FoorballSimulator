@@ -128,7 +128,7 @@ class UEFA_League(Cup):
 
 
                             # get list of indexes of countries ids with a given rating from previous season
-                            query =  "SELECT id FROM %s " % db.COUNTRY_RATINGS_TABLENAME + "WHERE id_season = '%s' and position IN %s;"
+                            query =  "SELECT id FROM %s " % db.COUNTRY_RATINGS_TABLE + "WHERE id_season = '%s' and position IN %s;"
                             data =  (self.prev_season, source)
                             # print query % data
                             # countries_ids = db.trySQLquery("execute", query, data, fetch = "all_tuples", ind = 0)
@@ -138,14 +138,14 @@ class UEFA_League(Cup):
                             print "countries_ids", countries_ids
 
                             # search for tournament_id of League of this country
-                            query =  "SELECT id FROM %s WHERE type = '%s' and id_country IN '%s';"
-                            data =  (db.TOURNAMENTS_TABLENAME, tournament_type, countries_ids)
+                            query =  "SELECT id FROM %s" % db.TOURNAMENTS_TABLE + " WHERE type = '%s' and id_country IN '%s';"
+                            data =  (tournament_type, countries_ids)
                             db.trySQLquery(cur.mogrify, query, data)
                             id_types = cur.fetchall()[0]
 
                             # get from tournaments_played needed results ids
                             query =  "SELECT id FROM %s WHERE id_season = '%s' and id_type IN '%s';"
-                            data =  (db.TOURNAMENTS_TABLENAME, self.season, id_types)
+                            data =  (db.TOURNAMENTS_TABLE, self.season, id_types)
                             db.trySQLquery(cur.mogrify, query, data)
                             id_tournaments = cur.fetchall()[0]
 
@@ -176,12 +176,12 @@ class UEFA_League(Cup):
                         #
                         #
                         #
-                        #     country_ids = "select * from COUNTRY_RATINGS_TABLENAME where id_season = '%s' and pos in '%s'" % (self.season, country_positions)
+                        #     country_ids = "select * from COUNTRY_RATINGS_TABLE where id_season = '%s' and pos in '%s'" % (self.season, country_positions)
 
 
                              # , pos = (self.season, pos)
                             # what = "id"
-                            # table = db.COUNTRY_RATINGS_TABLENAME
+                            # table = db.COUNTRY_RATINGS_TABLE
                             # columns = ["id_season", "pos"]
                             # values = (self.season, pos)
                             # fetch = "all"

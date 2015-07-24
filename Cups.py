@@ -7,6 +7,7 @@ import util
 import DataStoring as db
 from Leagues import League, TeamResult
 import Match as M
+import values as v
 from values import Coefficients as C
 from operator import attrgetter, itemgetter
 import random
@@ -507,62 +508,129 @@ class Cup(League):
 
 
 
+@util.timer
+def Test(*args, **kwargs):
+    """
+    Test Cup
+
+    :param args:
+    :param kwargs: test arguments are listed below
+
+    by default, save_db = True,  team_num = 20, all other options are disabled
+
+    :return:
+    """
+    # used by clearing inserted rows by test after it runs
+    last_m_row = db.trySQLquery(query="SELECT id FROM %s ORDER BY ID DESC LIMIT 1"
+                                      % db.MATCHES_TABLE, fetch="one")
+    last_tp_row = db.trySQLquery(query="SELECT id FROM %s ORDER BY ID DESC LIMIT 1"
+                                       % db.TOURNAMENTS_PLAYED_TABLE, fetch="one")
+    last_tr_row = db.trySQLquery(query="SELECT id FROM %s ORDER BY ID DESC LIMIT 1"
+                                       % db.TOURNAMENTS_RESULTS_TABLE, fetch="one")
+    print "last rows before Cup test are: last_m_row %s, last_tp_row %s, last_tr_row %s " % \
+          ( last_m_row, last_tp_row, last_tr_row    )
+
+    # VERSION = "v1.1"
+    with open(os.path.join("", 'VERSION')) as version_file:
+        values_version = version_file.read().strip()
+    coefs = C(values_version).getRatingUpdateCoefs("list")
+
+    teams = []
+    if "team_num" in kwargs.keys():
+        team_num = kwargs["team_num"]
+    else:
+        # default
+        team_num = 20
+
+    if "print_matches" in kwargs.keys():
+        print_matches = kwargs["print_matches"]
+    else:
+        # default
+        print_matches = False
+
+    if "print_ratings" in kwargs.keys():
+        print_ratings = kwargs["print_ratings"]
+    else:
+        # default
+        print_ratings = False
+
+    if "pair_mode" in kwargs.keys():
+        pair_modes = kwargs["pair_mode"]
+        if isinstance(pair_modes, int):
+            pair_modes = (pair_modes, )
+    else:
+        # default
+        pair_modes = (0,1,2)
+
+    if "save_to_db" in kwargs.keys():
+        save_to_db = kwargs["save_to_db"]
+    else:
+        # default
+        save_to_db = True
+
+    if "pre_truncate" in kwargs.keys():
+        pre_truncate = kwargs["pre_truncate"]
+    else:
+        # default
+        pre_truncate = False
+
+    if "post_truncate" in kwargs.keys():
+        post_truncate = kwargs["post_truncate"]
+    else:
+        # default
+        post_truncate = False
+
+
+    if pre_truncate:
+        db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
+        db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
+        db.truncate(db.MATCHES_TABLE)
+
+
+    for i in range(team_num):
+        teamN = i + 1
+        rating = team_num - i
+        uefa_pos = teamN
+        # old-styled
+        # teams.append(Team.Team("FC team%s" % teamN, "RUS", rating, "Команда%s" % teamN, uefa_pos))
+        # new-styled
+        teams.append(Team.Team(teamN))
+        # teams.append(Team.Team(name=teamN, country="RUS", rating=teamN*10.0, uefaPos=teamN, countryID=(teamN*10)%52))
+
+    # TEST CUP CLASS
+    # for seeding in Cup.getSeedings(Cup):
+    #     print seeding
+    for pair_mode in pair_modes:
+        # pair_mode = 0 # one match
+        # pair_mode = 1 # home + guest every match but the final
+        # pair_mode = 2 # home + guest every match
+        s =  Cup("no Cup, just getSeedings", "", teams, coefs, pair_mode)
+        seedings = s.getSeedings()
+        # print "seedings", seedings
+        for seeding in seedings:
+            print "TEST CUP: seeding=", seeding ,"pair_mode=", pair_mode
+            # print "teams, coefs, pair_mode, seeding", teams, coefs, pair_mode, seeding
+            # old-styled
+            # tstcp = Cup("testCup", "2015/2016", teams, coefs, pair_mode, seeding)
+            # new-styled
+            Cup(name=v.TEST_TOURNAMENT_ID, season=1, members=teams, delta_coefs= coefs, pair_mode=pair_mode,
+                        seeding=seeding, save_to_db=save_to_db)\
+                .test(print_matches, print_ratings)
+
+        # TEST ONLY ONCE
+        #     break
+        # break
+        # # Cup("testCup", "2015/2016", teams, coefs, pair_mode).run()
+
+    if post_truncate:
+        db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
+        db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
+        db.truncate(db.MATCHES_TABLE)
+
+
+
 # TEST
 if __name__ == "__main__":
-    @util.timer
-    def Test(*args, **kwargs):
-        if PRE_TRUNCATE:
-            db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
-            db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
-            db.truncate(db.MATCHES_TABLE)
-
-        # VERSION = "v1.1"
-        with open(os.path.join("", 'VERSION')) as version_file:
-            values_version = version_file.read().strip()
-        coefs = C(values_version).getRatingUpdateCoefs("list")
-
-        teams = []
-        team_num = kwargs["team_num"]
-        for i in range(team_num):
-            teamN = i + 1
-            rating = team_num - i
-            uefa_pos = teamN
-            # old-styled
-            # teams.append(Team.Team("FC team%s" % teamN, "RUS", rating, "Команда%s" % teamN, uefa_pos))
-            # new-styled
-            teams.append(Team.Team(teamN))
-            # teams.append(Team.Team(name=teamN, country="RUS", rating=teamN*10.0, uefaPos=teamN, countryID=(teamN*10)%52))
-        # TEST CUP CLASS
-        if "Cup" in args:
-
-            # for seeding in Cup.getSeedings(Cup):
-            #     print seeding
-            for pair_mode in [0,1,2]:
-                # pair_mode = 0 # one match
-                # pair_mode = 1 # home + guest every match but the final
-                # pair_mode = 2 # home + guest every match
-                s =  Cup("no Cup, just getSeedings", "", teams, coefs, pair_mode)
-                seedings = s.getSeedings()
-                # print "seedings", seedings
-                for seeding in seedings:
-                    print "TEST CUP: seeding=", seeding ,"pair_mode=", pair_mode
-                    # print "teams, coefs, pair_mode, seeding", teams, coefs, pair_mode, seeding
-                    # old-styled
-                    # tstcp = Cup("testCup", "2015/2016", teams, coefs, pair_mode, seeding)
-                    # new-styled
-                    tstcp = Cup(name=50, season=1, members=teams, delta_coefs= coefs, pair_mode=pair_mode,
-                                seeding=seeding, save_to_db=SAVE_TO_DB)
-                    tstcp.test(PRINT_MATCHES, PRINT_RATINGS)
-
-                # TEST ONLY ONCE
-                #     break
-                # break
-                # # Cup("testCup", "2015/2016", teams, coefs, pair_mode).run()
-
-        if POST_TRUNCATE:
-            db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
-            db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
-            db.truncate(db.MATCHES_TABLE)
 
 
     # PRINT MATCHES AFTER RUN

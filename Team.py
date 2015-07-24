@@ -10,7 +10,7 @@ Define Team class
 # (in other modules)
 import time
 import warnings
-# from DataStoring import CON, CUR, TEAMINFO_TABLENAME, trySQLquery, select
+# from DataStoring import CON, CUR, TEAMINFO_TABLE, trySQLquery, select
 # from DataStoring import trySQLquery, select
 import DataStoring as db
 
@@ -24,9 +24,9 @@ class Team():
         # and all other parameters are stored here like in buffer.
         # when DB is already initialized we can initialze Team only by id and other attributes we get from SQL
         if not name: # and not country e.t.c
-            # self.name = db.select(what = "*", table_names=db.TEAMINFO_TABLENAME, columns="id", values=self.id,
+            # self.name = db.select(what = "*", table_names=db.TEAMINFO_TABLE, columns="id", values=self.id,
             #                       where = " WHERE ", sign = " = ")
-            teaminfo_data = db.select(what = "*", table_names=db.TEAMINFO_TABLENAME, columns="id", values=self.id,
+            teaminfo_data = db.select(what = "*", table_names=db.TEAMINFO_TABLE, columns="id", values=self.id,
                                   where = " WHERE ", sign = " = ", fetch="all")
             # print id
             # print "stored_data",  stored_data
@@ -37,7 +37,7 @@ class Team():
                                   where = " WHERE ", sign = " = ", fetch="all")
             self.rating, self.uefaPos = team_ratings
             # print "self.rating, self.uefaPos", self.rating, self.uefaPos
-            self.country = db.select(what = "name", table_names=db.COUNTRIES_TABLENAME, columns="id", values=self.countryID,
+            self.country = db.select(what = "name", table_names=db.COUNTRIES_TABLE, columns="id", values=self.countryID,
                                   where = " WHERE ", sign = " = ", fetch="one")
         # if not country: ;else: self.country = country
         else:
