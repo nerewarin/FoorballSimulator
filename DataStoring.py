@@ -320,10 +320,12 @@ def select(what = "*", table_names = "", where = "", columns = "", sign = "", va
         return CUR.fetchone()[0]
     elif fetch == "all":
         # raise Warning, "add index!"
+        result =  CUR.fetchall()
+        # print "CUR.fetchall() = %s" % result
         if ind == "all":
-            return CUR.fetchall()
+            return result
         else:
-            return CUR.fetchall()[ind]
+            return result[ind]
     elif fetch == "colnames":
         return [desc[0] for desc in CUR.description]
     else:

@@ -33,8 +33,9 @@ class Team():
             assert id == teaminfo_data[0], "incorrect id response! %s" % (teaminfo_data, )
             self.id, self.name, self.ruName, self.countryID, emblem = teaminfo_data
 
-            team_ratings  = db.select(what = ["rating", "position"], table_names=db.TEAM_RATINGS_TABLENAME, columns="id", values=self.id,
-                                  where = " WHERE ", sign = " = ", fetch="all")
+            team_ratings  = db.select(what = ["rating", "position"], table_names=db.TEAM_RATINGS_TABLENAME,
+                                      columns="id", values=self.id,
+                                      where = " WHERE ", sign = " = ", fetch="all")
             self.rating, self.uefaPos = team_ratings
             # print "self.rating, self.uefaPos", self.rating, self.uefaPos
             self.country = db.select(what = "name", table_names=db.COUNTRIES_TABLE, columns="id", values=self.countryID,
