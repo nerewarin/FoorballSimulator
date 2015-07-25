@@ -26,8 +26,16 @@ class League(object):
     represents Football League
 
     """
-    def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "rnd",
-                 state_params = ("P",	"W","D","L","GF","GA","GD","PTS"), save_to_db = True, prefix = "", type_id = 3):
+    def __init__(self,
+                 name,
+                 season,
+                 members,
+                 delta_coefs = C(v.VALUES_VERSION).getRatingUpdateCoefs("list"),
+                 pair_mode = 1,
+                 seeding = "rnd",
+                 state_params = ("P","W","D","L","GF","GA","GD","PTS"),
+                 save_to_db = True,
+                 prefix = "", type_id = 3):
         """
 
         :param name: League tournament id (type) - not unique id used in tourn_results!
@@ -484,10 +492,8 @@ def Test(*args, **kwargs):
     print "last rows before League test are: last_m_row %s, last_tp_row %s, last_tr_row %s " % \
           ( last_m_row, last_tp_row, last_tr_row    )
 
-    # VERSION = "v1.1"
-    with open(os.path.join("", 'VERSION')) as version_file:
-        values_version = version_file.read().strip()
-    coefs = C(values_version).getRatingUpdateCoefs("list")
+
+    coefs = C(v.VALUES_VERSION).getRatingUpdateCoefs("list")
 
     teams = []
     if "team_num" in kwargs.keys():

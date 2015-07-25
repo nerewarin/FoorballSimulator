@@ -2,10 +2,17 @@
 # -*- coding: utf-8 -*-
 __author__ = 'NereWARin'
 # import Team, Match, Leagues
+import os
 
-UEFA_TOURNAMENTS_ID = (1, 2)
+# VERSION = "v1.1"
+with open(os.path.join("", 'VERSION')) as version_file:
+    VALUES_VERSION = version_file.read().strip()
+
+UEFA_CL_TYPE_ID = 1
+UEFA_EL_TYPE_ID = 2
 LEAGUE_TYPE_ID = 3
 CUP_TYPE_ID = 4
+UEFA_TOURNAMENTS_ID = (UEFA_CL_TYPE_ID, UEFA_EL_TYPE_ID)
 
 TEST_TOURNAMENT_ID = "testTournament"
 TEST_LEAGUE_ID = 3 # RUS League
@@ -262,7 +269,7 @@ class Coefficients():
 #             "UEFA_Champ_L"
 #         }
 
-class TournamentSchemas(object):
+def TournamentSchemas(tournament_id):
     """
     defines how to collect members of UEFA tournaments
 
@@ -272,13 +279,8 @@ class TournamentSchemas(object):
 
     to print match, round should include stage+round of stage
     """
-    def __init__(self):
-        """
-
-        :return:
-        """
-        # 77 members (32 members in groups)
-        self.UEFA_Champions_League = [
+    if tournament_id == UEFA_CL_TYPE_ID:
+        return   [
             # stage
             {"Qualification" : {
                     # type of tournament and number of sub-tournaments of this type in this stage
@@ -329,8 +331,9 @@ class TournamentSchemas(object):
             }
         ]
 
+    elif tournament_id == UEFA_EL_TYPE_ID:
         # 195 members (48 members in groups)
-        self.UEFA_Europa_League = [
+        return [
             # stage
             {"Qualification" : {
                     # type of tournament and number of sub-tournaments of this type in this stage
@@ -400,22 +403,23 @@ class TournamentSchemas(object):
 
 
 
-    def get_CL_schema(self):
-        """
+def get_CL_schema():
+    """
 
-        :return: schema of UEFA Champions League Tournament
-        """
-        return self.UEFA_Champions_League
-
-
-    def get_EL_schema(self):
-        """
-
-        :return: schema of UEFA Champions League Tournament
-        """
-        return self.UEFA_Europa_League
+    :return: schema of UEFA Champions League Tournament
+    """
+    return TournamentSchemas(UEFA_CL_TYPE_ID)
 
 
+def get_EL_schema():
+    """
+
+    :return: schema of UEFA Champions League Tournament
+    """
+    return TournamentSchemas(UEFA_EL_TYPE_ID)
+
+def get_schema(type_ID):
+    return TournamentSchemas(type_ID)
 
 if __name__ == "__main__":
     def TestCoefficients():
@@ -433,10 +437,9 @@ if __name__ == "__main__":
 
     def Test_Tournament_schemas():
         print "Test Tournament Schemas"
-        schems = TournamentSchemas()
-        CL_schema =  schems.get_CL_schema()
-        EL_schema =  schems.get_EL_schema()
-        for schema in (CL_schema, EL_schema):
+        CL_sch =  get_CL_schema()
+        EL_sch =  get_EL_schema()
+        for schema in (CL_sch, EL_sch):
             print "\n"
             for stage in schema:
                 # print stage

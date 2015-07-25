@@ -8,7 +8,10 @@ import DataStoring as db
 import util
 from Leagues import League, TeamResult
 import Match as M
-from values import Coefficients as C, TournamentSchemas as schemas
+from values import Coefficients as C, TournamentSchemas as schemas, UEFA_CL_TYPE_ID, \
+    UEFA_EL_TYPE_ID, VALUES_VERSION, UEFA_TOURNAMENTS_ID
+import values as v
+
 from operator import attrgetter, itemgetter
 import random
 import time
@@ -27,7 +30,10 @@ class cur():
         return None
 
 class UEFA_League(Cup):
-    def __init__(self, id, season, members, delta_coefs, pair_mode, seeding, state_params = ("final_stage", )):
+    def __init__(self, id = UEFA_CL_TYPE_ID, season = None, members = None,
+                 delta_coefs = C(VALUES_VERSION).getRatingUpdateCoefs("list"),
+                 pair_mode = 1,
+                 seeding = v.get_schema(id), state_params = ("final_stage", )):
     # def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "A1_B16",
     #              state_params = ("final_stage", ), save_to_db = True, prefix = ""):
 
@@ -257,56 +263,16 @@ class UEFA_League(Cup):
 
 
 
+@util.timer
+def Test(*args, **kwargs):
+    # TEST CUP CLASS
+    if "ids" in kwargs:
+        for id in  kwargs["ids"]:
+            tstcp = UEFA_League(id)
+
 # TEST
 if __name__ == "__main__":
-    @util.timer
-    def Test(*args, **kwargs):
-        # VERSION = "v1.1"
-        with open(os.path.join("", 'VERSION')) as version_file:
-            values_version = version_file.read().strip()
-        coefs = C(values_version).getRatingUpdateCoefs("list")
-
-        teams = []
-        team_num = kwargs["team_num"]
-        for i in range(team_num):
-            teamN = i + 1
-            rating = team_num - i
-            uefa_pos = teamN
-            # old-styled
-            # teams.append(Team.Team("FC team%s" % teamN, "RUS", rating, "Команда%s" % teamN, uefa_pos))
-            # new-styled
-            # teams.append(Team.Team(teamN))
-
-        # TEST CUP CLASS
-        if "ChL" in args:
-
-            # schema =
-            # for seeding in Cup.getSeedings(Cup):
-            #     print seeding
-            # pair_mode = 0 # one match
-            pair_mode = 1 # home + guest every match but the final
-            # pair_mode = 2 # home + guest every match
-
-            # print_matches = False
-            print_matches = True
-
-            print_ratings = False
-            # print_ratings = True
-
-            s =  Cup("no Cup, just getSeedings", "", teams, coefs, pair_mode)
-            # seedings = s.getSeedings()
-            # print "seedings", seedings
-
-            # seeding schema schemas().get_CL_schema()
-            seeding = schemas().get_CL_schema()
-            # tstcp = UEFA_League("test UEFA Champions league", "2015/2016", teams, coefs, pair_mode, seeding)
-            members = None
-            tstcp = UEFA_League(id = 0, season = 2, members = members, delta_coefs=coefs, pair_mode = pair_mode, seeding=seeding)
-            # tstcp.test(print_matches, print_ratings)
-            # # Cup("testCup", "2015/2016", teams, coefs, pair_mode).run()
-
-
-    Test("ChL", team_num = 200)
+    Test(ids = UEFA_TOURNAMENTS_ID)
 
 
 

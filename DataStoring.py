@@ -38,7 +38,6 @@ def connectGameDB(dbname=DBNAME, user=DBUSER, host = DBHOST, password=DBPASSWORD
 
 CON, CUR = connectGameDB()
 
-
 # season that ratings will be filled as initial (defines only tournament of field "tournament" in season - data will be parsed
 # from default "2014/2015" season
 START_SEASON = "2014/2015"
@@ -429,12 +428,14 @@ def trySQLquery(func = "execute", query = None, data = None, fetch = None, ind =
         available_funcs = {"execute": CUR.execute, "mogrify" : CUR.mogrify}
         if not fetch:
             return available_funcs[func](query, data)
-        if data: print "query = %s" % (query % data)
-        else: print "query = %s" % (query )
+
+        # if data: print "query = %s" % (query % data)
+        # else: print "query = %s" % (query )
+
         # CUR.execute(query, data)
         available_funcs[func](query, data)
         if fetch == "all":
-            print CUR.fetchall()[ind]
+            # print CUR.fetchall()[ind]
             return CUR.fetchall()[ind]
         elif fetch == "one":
             fetched = CUR.fetchone()
