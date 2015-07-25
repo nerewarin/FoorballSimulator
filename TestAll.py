@@ -33,4 +33,5 @@ def run(models):
 
 if __name__ == "__main__":
     models = [DataStoring, Team, Match, Leagues, Cups]
+    # models = [Leagues]
     run(models)

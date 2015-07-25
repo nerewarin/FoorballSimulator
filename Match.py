@@ -291,7 +291,6 @@ class Match(object):
        #  return "%s. %s %s %s" % \
        # (self.tournament, self.homeName, str(self.getResult())[1:-1].replace(",", ":").replace(" ", "") ,self.guestName)
        # # (self.tournament, self.homeName, str(self.result[0])+ ":" + str(self.result[1]) ,self.guestName)
-        print
 
 
 class DoubleMatch(Match):

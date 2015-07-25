@@ -204,8 +204,8 @@ class League(object):
         # if 0, first match starts with favorite at home (as guest otherwise)
         # it is important in leagues of two members and pair_mode = 0, cause only one match is played in this case
         self.rnd_role = random.randint(0,1)
-        if print_matches:
-            print "self.rnd_role" , self.rnd_role
+        # if print_matches:
+            # print "self.rnd_role" , self.rnd_role
 
         # rounds of league
         rounds = 1
@@ -262,7 +262,6 @@ class League(object):
                     if not match_ind and tour % 2:
                         pair = (pair[1], pair[0])
 
-                    print "self.rnd_role, round", self.rnd_role, round
                     if (self.rnd_role + round ) % 2:
                         tindxs = (pair[1], pair[0])
                     else:

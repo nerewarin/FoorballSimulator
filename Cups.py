@@ -559,7 +559,7 @@ def Test(*args, **kwargs):
         print_matches = kwargs["print_matches"]
     else:
         # default
-        print_matches = False
+        print_matches = True
 
     if "print_ratings" in kwargs.keys():
         print_ratings = kwargs["print_ratings"]
