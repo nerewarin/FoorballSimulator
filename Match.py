@@ -182,14 +182,14 @@ class Match(object):
         """
         returns index of winner in pair
         """
-        # honest version...
+        # for honest version use
         # homeLuck  = random.randint(1, 6)
         # guestLuck = random.randint(1, 6)
         # self.homeScore  = homeLuck
         # self.guestScore = guestLuck
 
         # simplified version
-        # index of losed team
+        # just index of loosed team
         pair_winner = random.randint(0,1)
         # print "penalty i", i
         # print "penalty sequence!", [match2_score[1], match2_score[0]], pair_score
@@ -288,9 +288,6 @@ class Match(object):
             columns = columns[1:]
             values = values[1:]
         db.insert(db.MATCHES_TABLE, columns, values)
-       #  return "%s. %s %s %s" % \
-       # (self.tournament, self.homeName, str(self.getResult())[1:-1].replace(",", ":").replace(" ", "") ,self.guestName)
-       # # (self.tournament, self.homeName, str(self.result[0])+ ":" + str(self.result[1]) ,self.guestName)
 
 
 class DoubleMatch(Match):
@@ -325,8 +322,6 @@ class DoubleMatch(Match):
                       + str(self.getSecondMatchResult(cast_m2))[1:-1].replace(",", ":").replace(" ", "") + ")"
                      ,self.guestName)
 
-               # (self.tournament, self.homeName, str(self.result[0][0])+ ":" + str(self.result[0][1]) ,self.guestName)
-               #  (self.tournament, self.homeName, str(self.getResult()).replace(",", ":") ,self.guestName)
     def run(self, update = True):
         # first digit - team1 goals, second - team2 goals
         # forward: 1 - team1 , 2 - team2

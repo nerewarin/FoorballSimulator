@@ -251,34 +251,56 @@ class Cup(League):
             self.net[round] = []
 
             for struggleN in range(struggles):
-                team1 = teams.pop(0) # favorite
+
                 if toss == "David&Goliaf":
                     # broke it 25.07.15
                     raise NotImplementedError
+                    team1 = teams.pop(0) # favorite
                     team2 = teams.pop() # outsider
                 elif toss == "rnd":
                     # TODO fix wild random! or at leat keep track of it to build self.net...
                     # TODO team0 will play with rnd team of the weak half
-                    teams_num = len(teams)
-                    team2 = teams.pop(random.randrange(teams_num/2, teams_num)) # outsider
+
+                    # random of weak half
+                    # team1 = teams.pop(0) # favorite
+                    # teams_num = len(teams)
+                    # team2 = teams.pop(random.randrange(teams_num/2, teams_num)) # outsider
+
+                    # full random
+                    # for 1/4 Champions League
+                    team1 = teams.pop(random.randrange(0, len(teams))) # favorite
+                    team2 = teams.pop(random.randrange(0, len(teams))) # favorite
+
                 elif toss == "A1_B16":
                     # print "check A1_B16 correctness - now its same as David&Goliaf - who lies?!!"
                     # answer: David&Goliaf lies as expected - we not need it mode
+                    team1 = teams.pop(0) # favorite
                     team2 = teams.pop()
+
                 elif toss == "not_same_country_and_played_in_group":
-                    # for 1/4 Champions League
-                    team2 = teams[-1]
+                    # for 1/8 Champions League
+                    team1 = teams[random.randrange(teams_num/2)]  # 1 half
+                    team2 = teams[random.randrange(teams_num/2, teams_num)] # 2 half
 
                     def played_in_group(team1, team2):
-                        pass
                         columns = ["id_tournament", "round", "id_team1", "id_team2"]
                         id_tournament = self.name
                         round = "" # TODO  CONSISTS GROUP !!!!!
                         values = [id_tournament, round, team1.getID(), team2.getID()]
                         # TODO SQL select id from %s where        db.MATCHES_TABLE
+                        warnings.warn("constraint for played_in_group not implemented!")
+                        return False
 
+                    attempts = 100
                     while team1.getCountry() == team2.getCountry() or played_in_group:
-                        team2 = teams[random.randrange(teams_num/2, teams_num)]
+                        team1 = teams[random.randrange(teams_num/2)]  # 1 half
+                        team2 = teams[random.randrange(teams_num/2, teams_num)] # 2 half
+                        attempts -= 1
+                        if not attempts:
+                            warnings.warn("cannot find opponent")
+                            break
+                    teams.remove(team1)
+                    teams.remove(team2)
 
                 else:
                     raise Exception, "unknown toss parameter %s" % toss
@@ -603,9 +625,9 @@ def Test(*args, **kwargs):
 
     for i in range(team_num):
         teamN = i + 1
-        rating = team_num - i
-        uefa_pos = teamN
-        # old-styled
+        # # old-styled
+        # rating = team_num - i
+        # uefa_pos = teamN
         # teams.append(Team.Team("FC team%s" % teamN, "RUS", rating, "Команда%s" % teamN, uefa_pos))
         # new-styled
         teams.append(Team.Team(teamN))
@@ -627,11 +649,6 @@ def Test(*args, **kwargs):
             Cup(name=v.TEST_CUP_ID, season=1, members=teams, delta_coefs= coefs, pair_mode=pair_mode,
                         seeding=seeding, save_to_db=save_to_db)\
                 .test(print_matches, print_ratings)
-
-        # TEST ONLY ONCE
-        #     break
-        # break
-        # # Cup("testCup", "2015/2016", teams, coefs, pair_mode).run()
 
     if post_truncate:
         db.truncate(db.TOURNAMENTS_PLAYED_TABLE)

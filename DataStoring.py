@@ -712,8 +712,8 @@ def fill_tournaments(cur, con, table_name, columnsInfo):#team_count, sorted_coun
     counter += 1
 
     columns = table_name, tournament_name, tournament_type, tournament_country
-    counter += gen_national_tournaments(con, cur, columns, 3, sorted_countries)
-    counter += gen_national_tournaments(con, cur, columns, 4, sorted_countries)
+    counter += gen_national_tournaments(con, cur, columns, v.LEAGUE_TYPE_ID, sorted_countries)
+    counter += gen_national_tournaments(con, cur, columns, v.CUP_TYPE_ID, sorted_countries)
 
     print "inserted %s rows to %s" % (counter, table_name)
 

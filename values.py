@@ -3,7 +3,10 @@
 __author__ = 'NereWARin'
 # import Team, Match, Leagues
 
-UEFA_TOURNAMENTS_ID = (0, 1)
+UEFA_TOURNAMENTS_ID = (1, 2)
+LEAGUE_TYPE_ID = 3
+CUP_TYPE_ID = 4
+
 TEST_TOURNAMENT_ID = "testTournament"
 TEST_LEAGUE_ID = 3 # RUS League
 TEST_CUP_ID = 62 # RUS Cup

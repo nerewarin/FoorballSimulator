@@ -97,8 +97,8 @@ class UEFA_League(Cup):
         # parsing stored in schema values
         self.stages = []
 
-# TODO round_info  [{"count": x , "toss" : "not_same_country_and_played_in_group"}, {
-
+        # TODO round_info  [{"count": x , "toss" : "not_same_country_and_played_in_group"}, {
+        # and support it in Cups!
 
         for stage in self.seeding:
             # print stage
@@ -117,7 +117,8 @@ class UEFA_League(Cup):
                         if isinstance(source, tuple):
                             if isinstance(pos, int):
                                 print "seed from national League"
-                                tournament_type = "League"
+                                # tournament_type = "League"
+                                tournament_type_id = 3
                                 position = pos
                             elif pos == "cupwinner":
                                 print "seed from national Cup"
