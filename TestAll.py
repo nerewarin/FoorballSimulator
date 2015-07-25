@@ -21,10 +21,16 @@ import os
 import warnings
 import copy
 
-if __name__ == "__main__":
-    models = [DataStoring, Team, Match, Leagues, Cups]
+@util.timer
+def run(models):
     names = [model.__name__ for model in models]
     print "TEST ALL:", ", ".join(name for name in names)
     for ind, model in enumerate(models):
-        print "\n===================================================\nTEST %s:%s" % (ind+1, names[ind])
+        testname = "TEST %s:%s" % (ind+1, names[ind])
+        print "\n%s" % testname
         model.Test()
+        print "%s PASSED\n===================================================" % testname
+
+if __name__ == "__main__":
+    models = [DataStoring, Team, Match, Leagues, Cups]
+    run(models)
