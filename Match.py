@@ -64,9 +64,30 @@ class Match(object):
         self.outcome = "not played"
 
     def __str__(self):
+        """
+        create readable representation of tournament and round in one string
+        :return:
+        """
+        # # old-styled
+        # representation = self.name
+        # new-styled
+        if not self.tournament or self.tournament == v.TEST_TOURNAMENT_ID:
+            representation = self.tournament
+        else:
+            season_name = db.select(what="name", table_names=db.SEASONS_TABLE, suffix=" ORDER BY ID DESC LIMIT 1")
+            # print "season = %s" % season_name
+
+            # type_id from Tournaments (expected SERIE A) - (not from tournaments_types_names, where expected just "League")
+            type_id = db.select(what="type", table_names=db.TOURNAMENTS_TABLE, where=" WHERE ", columns="id", sign=" = ",
+                                   values=self.tournament)
+
+            tourn_name = db.select(what="name", table_names=db.TOURNAMENTS_TABLE, where=" WHERE ", columns="id", sign=" = ",
+                                   values=type_id)
+
+            # print "tourn_name = %s" % tourn_name
+            representation = season_name + " " + tourn_name
         return "%s. %s %s %s" % \
-               (self.name, self.homeName, str(self.getResult())[1:-1].replace(",", ":").replace(" ", "") ,self.guestName)
-               # (self.name, self.homeName, str(self.getResult())[1:-1].replace(",", ":").replace(" ", "") ,self.guestName)
+               (representation, self.homeName, str(self.getResult())[1:-1].replace(",", ":").replace(" ", "") ,self.guestName)
                # (self.name, self.homeName, str(self.result[0])+ ":" + str(self.result[1]) ,self.guestName)
 
     def getName(self):
@@ -566,7 +587,7 @@ if __name__ == "__main__":
     # PRE_TRUNCATE = True
     # RESET ALL MATCHES DATA AFTER TEST
     POST_TRUNCATE = False
-    POST_TRUNCATE = True
+    # POST_TRUNCATE = True
     # SAVE TO DB - to avoid data integrity (if important data in table exists), turn it off
     SAVE_TO_DB = False
     SAVE_TO_DB = True

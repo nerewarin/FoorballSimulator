@@ -174,6 +174,12 @@ class Cup(League):
         generate matches, every match team rating and result updates
         after all, table updates and returns
         """
+        # register ID or tournament if unregistered yet
+        if not self.prefix:
+            # if unregistered yet - register now (for national Leagues)
+            self.id = self.saveTounramentPlayed()
+        # else (already registered) - so stored in self.id
+
         teams = list(self.getMember())
         teams_num = len(teams)
         # clear results
@@ -282,7 +288,7 @@ class Cup(League):
                     # if more than one pair, enumerate pairs
                     round_name += " p%s" % (struggleN+1)
 
-                id_tournament = self.name # TODO this is id - need refactoring
+                id_tournament = self.getID()
                 # match_name = "%s %s. %s.%s"  \
                 #                 % (self.getName(), self.season, round_name, struggleN)
 
@@ -444,15 +450,6 @@ class Cup(League):
         :param: net is a dict round:[teams]
         """
 
-        if not self.prefix:
-            # if unregistered yet - register now (for national Leagues)
-            id_tournament = self.saveTounramentPlayed()
-        # else get last played tournament and reserve id for it for future saving
-        else:
-            id_tournament = db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE,
-                                      fetch="one", suffix = " ORDER BY id DESC LIMIT 1") \
-                            + 1
-
         columns = db.select(table_names=db.TOURNAMENTS_RESULTS_TABLE, fetch="colnames", where = " LIMIT 0")[1:]
         # TODO edit getName to return readable info about tournament: readable name and season
         print "\nsaving tournament %s results to database in columns %s" % (self.getName(), columns)
@@ -466,7 +463,7 @@ class Cup(League):
             for pair_info in pairs_info:
                 id_team = pair_info[-1].getID()
                 # id_team2 = pair_info[1].getName()
-                values = [id_tournament, pos, id_team]
+                values = [self.getID(), pos, id_team]
                 db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, values)
 
                 count += 1
@@ -613,7 +610,7 @@ def Test(*args, **kwargs):
             # old-styled
             # tstcp = Cup("testCup", "2015/2016", teams, coefs, pair_mode, seeding)
             # new-styled
-            Cup(name=v.TEST_TOURNAMENT_ID, season=1, members=teams, delta_coefs= coefs, pair_mode=pair_mode,
+            Cup(name=v.TEST_CUP_ID, season=1, members=teams, delta_coefs= coefs, pair_mode=pair_mode,
                         seeding=seeding, save_to_db=save_to_db)\
                 .test(print_matches, print_ratings)
 

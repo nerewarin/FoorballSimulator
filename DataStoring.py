@@ -10,7 +10,7 @@ create storage from HTML to Excel or Database
 import Team
 import DataParsing
 import util
-
+import values as v
 import xlwt # write Excel xls
 import xlrd # read Excel xls
 import psycopg2 as db
@@ -416,7 +416,7 @@ def get_id_from_value(cur, table_name, column, value):
     :return:
     """
     print "table_name, column, value =", table_name, column, value
-    cur.execute("""SELECT id FROM %s WHERE %s = '%s';""", (table_name, column, value)) # ok
+    cur.execute("""SELECT id FROM %s WHERE %s = '%s';""" %table_name,  (column, value)) # ok
     id = cur.fetchone()[0]
     return id
 
@@ -746,7 +746,14 @@ def insert_tournament_to_DB_table(con, cur, columns, t_name, t_type, t_country =
 def gen_national_tournaments(con, cur, columns, t_type, sorted_countries):
     counter = 0
     for t_country, teams_count in sorted_countries:
-        t_name = t_country + " " + str(t_type)
+    # t_name = t_country + " " + str(t_type)
+        if t_type == 3: # use external list of Leagues names
+            t_name = v.EUROPEAN_LEAGUES_AND_CUPS[counter]
+        elif t_type == 4: # Cup
+            t_name = v.EUROPEAN_LEAGUES_AND_CUPS[counter].split(" ")[0] + " Cup"
+        else:
+            raise ValueError, "unknown t_type=%s" % t_type
+
         country_ID = get_country_id(cur, t_country)
         # insert_tournament_to_DB_table(t_name, t_type, t_country)#, teams_count)
         insert_tournament_to_DB_table(con, cur, columns, t_name, t_type, country_ID)#, teams_count)

@@ -27,7 +27,7 @@ class League(object):
 
     """
     def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "rnd",
-                 state_params = ("P",	"W","D","L","GF","GA","GD","PTS"), save_to_db = True, prefix = ""):
+                 state_params = ("P",	"W","D","L","GF","GA","GD","PTS"), save_to_db = True, prefix = "", type_id = 3):
         """
 
         :param name: League tournament id (type) - not unique id used in tourn_results!
@@ -52,6 +52,9 @@ class League(object):
         """
 
         # super(League, self).__init__(tournament, season, members, delta_coefs)
+        self.id = name # TODO name = id ? in tourn_played  - only for UEFA. if not, it will be filled in the 1st row of run()
+        self.type_id = type_id # 3 for League
+
         self.name = name
         self.season = season
         self.members = members
@@ -85,6 +88,9 @@ class League(object):
         calls __str__ method of Table class
         """
         return str(self.table)
+
+    def getID(self):
+        return self.id
 
     def getName(self):
         return self.name
@@ -129,7 +135,9 @@ class League(object):
         #                 % (self.getName(), self.season, roundN, tourN+1, match_ind+1))
 
         # new-style
-        match = M.Match(pair, self.delta_coefs, round = round, save_to_db=self.save_to_db)
+
+        # match = M.Match(pair, self.delta_coefs, tournament=season_name + " " + str(tourn_name), round = round, save_to_db=self.save_to_db)
+        match = M.Match(pair, self.delta_coefs, tournament=self.getID(), round = round, save_to_db=self.save_to_db)
 
         match_score = match.run()
         self.home_mathes_count[home_ind] += 1
@@ -168,6 +176,21 @@ class League(object):
         generate matches, every match team rating and result updates
         after all, table updates and returns
         """
+        if self.prefix:
+            # if League is a part of tournament (for example, UEFA),
+            # get id from last played tournament stored in database
+            # cause tournament id must be saved before run call this part (League)
+            # id_tournament = db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE,
+            #                           fetch="one", suffix = " ORDER BY id DESC LIMIT 1") \
+            #                 + 1
+            # or just get it from arguments
+            # id_tournament = self.id
+            pass
+        else:
+            # unregistered yet - for national Leagues
+            # saving tournament id before run to pass id to matches correctly
+            self.id = self.saveTounramentPlayed()
+
 
         teams = self.getMember()
         teams_num = len(teams)
@@ -227,12 +250,6 @@ class League(object):
                 # 0 is False, 1 (second round) is True
                 self.pair_host[tind] = round
 
-
-            team_indexes = list(iter_teamind)
-
-            # if odd_league:
-            #     # in round robin we append "rest" symbol means that if opponent == rest, this team skips this round
-            #     team_indexes.append(rest)
 
             # for tour in range(tours):
             for tour, parings in enumerate(shedule_gen):
@@ -295,7 +312,7 @@ class League(object):
         # update and return table
         table =  self.table.update(self.results)
 
-        # TODO save League in database probe
+        # save League in database
         self.saveToDB(table)
 
         return table
@@ -305,16 +322,16 @@ class League(object):
         """
         insert new row to TOURNAMENTS_PLAYED_TABLE, defining new id
         """
-        print "saving tournament %s to database" % self.getName()
+        print "saving tournament type_id %s to database" % self.type_id
         columns = db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="colnames", suffix = " LIMIT 0")[1:]
         print "TOURNAMENTS_PLAYED_TABLE columns are ", columns
-        id_type = self.name
-        values = [self.season, id_type]
+        values = [self.season, self.type_id]
         # print "values are ", values
         db.insert(db.TOURNAMENTS_PLAYED_TABLE, columns, values)
-        print "new tournament inserted"
+        print "new tournament id (%s) of season_id (%s) inserted" % tuple(values)
         # return id
         id =  db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="one", suffix = " ORDER BY id DESC LIMIT 1")
+        # assert (id == self.id ), "storeed (%s) and argument (%s) id not equals!" % (id,  self.id)
         # print "id", id
         # print "id[0]", id[0]
         # return id[0]
@@ -323,16 +340,8 @@ class League(object):
 
     def saveToDB(self, table):
         """
-        save League data in database
+        save League results data in database
         """
-        if not self.prefix:
-            # unregistered yet - for national Leagues
-            id_tournament = self.saveTounramentPlayed()
-        # else get last played tournament and reserve id for it for future saving
-        else:
-            id_tournament = db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE,
-                                      fetch="one", suffix = " ORDER BY id DESC LIMIT 1") \
-                            + 1
 
         print "\nsaving tournament %s results  to database" % self.getName()
         columns = db.select(table_names=db.TOURNAMENTS_RESULTS_TABLE, fetch="colnames", where = " LIMIT 0")[1:]
@@ -341,7 +350,7 @@ class League(object):
             # id_team = team.getID()
             id_team = team["Team"].getID()
             pos = ind + 1
-            values = [id_tournament, pos, id_team]
+            values = [self.id, pos, id_team]
             db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, values)
         print "inserted %s rows to %s" % (len(table), db.TOURNAMENTS_RESULTS_TABLE)
 
@@ -554,7 +563,7 @@ def Test(*args, **kwargs):
 
     for pair_mode in pair_modes:
         season = 1
-        League(v.TEST_TOURNAMENT_ID, season, teams, coefs, pair_mode, save_to_db=save_to_db)\
+        League(v.TEST_LEAGUE_ID, season, teams, coefs, pair_mode, save_to_db=save_to_db)\
             .test(print_matches, print_ratings)
 
     # if "roundRobin" in args:
@@ -589,10 +598,10 @@ if __name__ == "__main__":
     PRINT_RATINGS = False
     # RESET ALL MATCHES DATA BEFORE TEST
     PRE_TRUNCATE = False
-    PRE_TRUNCATE = True
+    # PRE_TRUNCATE = True
     # RESET ALL MATCHES DATA AFTER TEST
     POST_TRUNCATE = False
-    POST_TRUNCATE = True
+    # POST_TRUNCATE = True
     # SAVE TO DB - to avoid data integrity (if important data in table exists), turn it off
     SAVE_TO_DB = False
     SAVE_TO_DB = True

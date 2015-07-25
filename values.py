@@ -27,11 +27,46 @@ EUROPEAN_LEAGUES_AND_CUPS = [
     "Hungarian First League",
     "Welsh Premier League",
     "Finnish First Division",
-    "Belarusian Premier League",
-    "Georgian Premier League",
     "Belgian First League",
-
+    "Georgian Premier League",
+    "Belarusian Premier League", # ok
+    "Greek Super League",
+    "Austrian Bundesliga",
+    "Kazakh Premier League",
+    "Albanian Super League",
+    "Norwegian Premier Division",
+    "Serbian Super League",
+    "Moldovan First Division", # MDA
+    "Israeli Premier League", #28 (30)
+    "Icelandic Premier League",
+    "Scottish Premiership",
+    "Polish First Division",
+    "Bulgarian A League",
+    "Slovene First League",
+    "Slovak First League",
+    "Lithuanian First Division",
+    "Irish Premier Division",
+    "Montenegrin First League",
+    "Turkish Super League",
+    "Azerbaijani Premier League",
+    "Macedonian First League", # 40
+    "Cypriot First Division",
+    "San Marinese Championship",
+    "Estonian First League",
+    "Luxembourger First Division",
+    "Faroese Premier Division",
+    "Latvian First Division",
+    "Northern Irish Premiership",
+    "Armenian Premier League",
+    "Czech First League",
+    "Bosnian-Herzegovinian Premier League",
+    "Maltese Premier League",
+    "Andorran Premier Division",
+    "Liechtenstein Super League",   # INTEGRATION TO SWISS WAS NOT REALIZED
+    "Gibraltarian Premier League"
 ]
+
+print len(EUROPEAN_LEAGUES_AND_CUPS)+2, "\n"
 
 class Coefficients():
     """
