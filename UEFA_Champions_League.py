@@ -29,7 +29,7 @@ class cur():
     def execute(self):
         return None
 
-class UEFA_League(Cup):
+class UEFA_Champions_League(Cup):
     def __init__(self, id = UEFA_CL_TYPE_ID, season = None, members = None,
                  delta_coefs = C(VALUES_VERSION).getRatingUpdateCoefs("list"),
                  pair_mode = 1,

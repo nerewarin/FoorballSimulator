@@ -293,7 +293,8 @@ def createDB(teamsL, storage = "Postgre", overwrite = False):
 
 
 
-def select(what = "*", table_names = "", where = "", columns = "", sign = "", values = "", suffix = "", fetch = "one"):
+def select(what = "*", table_names = "", where = "", columns = "", sign = "", values = "", suffix = "", fetch = "one",
+           ind = 0):
 
     inputs = (what, table_names, columns, values)
     outputs = []
@@ -318,7 +319,11 @@ def select(what = "*", table_names = "", where = "", columns = "", sign = "", va
     if fetch == "one":
         return CUR.fetchone()[0]
     elif fetch == "all":
-        return CUR.fetchall()[0]
+        # raise Warning, "add index!"
+        if ind == "all":
+            return CUR.fetchall()
+        else:
+            return CUR.fetchall()[ind]
     elif fetch == "colnames":
         return [desc[0] for desc in CUR.description]
     else:

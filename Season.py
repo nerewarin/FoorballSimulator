@@ -5,6 +5,7 @@ from DataStoring import save_ratings, CON, CUR
 import DataStoring as db
 from Leagues import League
 from Cups import Cup
+from UEFA_Champions_League import UEFA_Champions_League
 import values as v
 import util
 
@@ -20,25 +21,41 @@ class Season(object):
         :return:
         """
         self.id, self.year = self.saveSeason()
-        print "self.id, self.year", self.id, self.year
+        # print "self.id, self.year", self.id, self.year
 
 
-
-
-
-
-    #
-    #     pass
     # # TODO 1) see League about converting round_num to 1/4, final, qual , etc
     # # TODO 2) add schemes of UEFA tournaments with the help of reglaments wiki
-    #
-    #     self.season_year = season_year
-    #     teamsL = []
-    #     print "sorting teamsL by Ratings"
-    #     teamsL.sort(key=lambda x: -x.getRating())
 
 
-        # save_ratings(con, cur, [season_year], teamsL)
+    def run(self):
+        # # connect to DB
+        # con, cur = CON, CUR
+
+        # TODO run every match that exists in table "Tournaments"
+        season_tournaments = db.select(what=["id", "type", "id_country"],
+                                            table_names=db.TOURNAMENTS_TABLE, fetch="all", ind = "all")
+        print "season_tournaments=", season_tournaments
+        tourn_classes = [clname[0] for clname in db.select(what="name", table_names=db.TOURNAMENTS_TYPES_TABLE, fetch="all", ind="all")]
+        print "tourn_classes =%s" % tourn_classes
+        for tournament in season_tournaments:
+            tourn_id = tournament[0]
+            # tourn_type_id = tournament[1]
+            classname = tourn_classes[tournament[1] - 1].replace(" ", "_")
+            country_id = tournament[2]
+            print "tourn_id=%s, classname=%s, country_id=%s" %(tourn_id, classname, country_id)
+            classname()
+
+            # if country_id:
+            #     print "play national tournament"
+            # else:
+            #     print "play UEFA tournament"
+        # columns = table_name, tournament_name, tournament_type, tournament_country
+        # counter += gen_national_tournaments(con, cur, columns, "Cup", sorted_countries)
+
+        # after all
+        # save_ratings(con, cur, [self.season_year], teamsL)
+
 
     def saveSeason(self):
         """
@@ -71,21 +88,6 @@ class Season(object):
         new_season_id = db.trySQLquery(query="SELECT id FROM %s ORDER BY ID DESC LIMIT 1"
                                            % db.SEASONS_TABLE, fetch="one")
         return new_season_id, new_season
-
-
-    def run(self):
-        # connect to DB
-        con, cur = CON, CUR
-
-        # TODO run every match that exists in table "Tournaments"
-
-        # columns = table_name, tournament_name, tournament_type, tournament_country
-        # counter += gen_national_tournaments(con, cur, columns, "Cup", sorted_countries)
-
-        # after all
-        save_ratings(con, cur, [self.season_year], teamsL)
-
-
 
 # TEST
 @util.timer
@@ -164,7 +166,7 @@ def Test(*args, **kwargs):
     # RUN SEASON
     for t_ in range(t_num):
         print "\n=======================================\nTEST SEASON %s" % (t_ + 1)
-        Season()
+        Season().run()
 
     if post_truncate:
         db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
@@ -180,7 +182,7 @@ if __name__ == "__main__":
     #     Test("League", team_num = team_num, pair_mode = pair_mode, print_matches = True, print_ratings = False)
 
     # HOW MANY SEASONS WILL BE CREATED DURING THE TEST
-    TESTS_NUM = 10000
+    TESTS_NUM = 1
     # PRINT MATCHES AFTER RUN
     PRINT_MATCHES = False
     PRINT_MATCHES = True
