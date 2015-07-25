@@ -30,7 +30,7 @@ class Match(object):
 
         :return:
         """
-        self.tournament = tournament
+        self.tournament = tournament # from tournaments_played
         self.round = str(round)
         self.name = str(self.tournament) + " " + self.round
 
@@ -72,8 +72,10 @@ class Match(object):
         # representation = self.name
         # new-styled
         if not self.tournament or self.tournament == v.TEST_TOURNAMENT_ID:
-            representation = self.tournament
+            # common case
+            representation = self.tournament + " " + self.round
         else:
+            # test or friendly match
             season_name = db.select(what="name", table_names=db.SEASONS_TABLE, suffix=" ORDER BY ID DESC LIMIT 1")
             # print "season = %s" % season_name
 
@@ -85,7 +87,7 @@ class Match(object):
                                    values=type_id)
 
             # print "tourn_name = %s" % tourn_name
-            representation = season_name + " " + tourn_name
+            representation = season_name + " " + tourn_name + " " + self.round
         return "%s. %s %s %s" % \
                (representation, self.homeName, str(self.getResult())[1:-1].replace(",", ":").replace(" ", "") ,self.guestName)
                # (self.name, self.homeName, str(self.result[0])+ ":" + str(self.result[1]) ,self.guestName)

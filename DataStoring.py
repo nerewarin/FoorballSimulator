@@ -311,8 +311,8 @@ def select(what = "*", table_names = "", where = "", columns = "", sign = "", va
 
     _what, tables, cols, vals = outputs
     select_query = 'SELECT '+ _what + ' FROM ' + tables + where + cols + sign + vals + suffix + ';'
-    # select_query = 'SELECT * FROM ' + tables + ' WHERE '  + cols + " = " + vals + ';'
-    print "select_query = ", select_query
+
+    # print "select_query = ", select_query
 
 
     trySQLquery("execute", select_query)
@@ -364,11 +364,9 @@ def insert(table, columns, values):
         outputs.append(output)
 
     cols, vals = outputs
-    # print "vals = ", vals
-    # print "sting vals", vals
 
     insert_query = 'INSERT INTO ' + table + ' (' + cols + ') VALUES (' + vals + ');'
-    print "insert_query = ",  insert_query
+    # print "insert_query = ",  insert_query
     trySQLquery("execute", insert_query)
 
 

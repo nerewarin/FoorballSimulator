@@ -65,8 +65,8 @@ EUROPEAN_LEAGUES_AND_CUPS = [
     "Liechtenstein Super League",   # INTEGRATION TO SWISS WAS NOT REALIZED
     "Gibraltarian Premier League"
 ]
+# print len(EUROPEAN_LEAGUES_AND_CUPS)+2, "\n"
 
-print len(EUROPEAN_LEAGUES_AND_CUPS)+2, "\n"
 
 class Coefficients():
     """

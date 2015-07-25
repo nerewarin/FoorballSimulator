@@ -120,10 +120,6 @@ class League(object):
         helper func
         runs match and updates League result
         """
-        # match = M.Match(pair, self.delta_coefs, "%s %s. round %s. tour %s(%s). match %s(%s)"  \
-        #     % (self.getName(), self.season,
-        #        roundN, tour+1, tourN+1,
-        #        match_ind+1, matchN+1))
 
         home_ind, guest_ind = tindxs
 

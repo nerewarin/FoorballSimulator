@@ -53,7 +53,8 @@ class Cup(League):
         # self.results - empty list. after run() it will be filled as following:
         # [team_champion, team_finished_in_final, teams_finished_in_semi-final, ... , teams_finished_in_qualRoundn, ...
         # teams_finished_in_qualRound1# ]
-        print "\nWELCOME TO CUP ***", name, season, "***"
+
+        # print "\nWELCOME TO CUP ***", name, season, "***"
 
         state = {st:None for st in state_params}
 
@@ -114,10 +115,12 @@ class Cup(League):
         :return: available seeding modes supported by class
         """
         return (
-            "David&Goliaf", # BEST RATING vs WORST RATING. in every round first index of remaining teams vs last index of remaining teams
-            "rnd", # first index of remaining teams - with random choice of the rest rem.teams
-            #  TODO implement all of this by adding winners and external quilified treems by external seedings
-            "A1_B16" # hardcoded rule: winner of pair A1-B16 will play with winner of A16-B1 and etc.
+            # BEST RATING vs WORST RATING. in every round first index of remaining teams vs last index of remaining teams
+            # "David&Goliaf", - i broke it
+            # first index of remaining teams - with random choice of the rest rem.teams
+            "rnd",
+            # hardcoded rule: winner of pair A1-B16 will play with winner of A16-B1 and etc.
+            "A1_B16"
         )
 
     def rounds_count(self, teams_num):
@@ -250,6 +253,8 @@ class Cup(League):
             for struggleN in range(struggles):
                 team1 = teams.pop(0) # favorite
                 if toss == "David&Goliaf":
+                    # broke it 25.07.15
+                    raise NotImplementedError
                     team2 = teams.pop() # outsider
                 elif toss == "rnd":
                     # TODO fix wild random! or at leat keep track of it to build self.net...
@@ -257,7 +262,8 @@ class Cup(League):
                     teams_num = len(teams)
                     team2 = teams.pop(random.randrange(teams_num/2, teams_num)) # outsider
                 elif toss == "A1_B16":
-                    print "check A1_B16 correctness - now its same as David&Goliaf - who lies?!!"
+                    # print "check A1_B16 correctness - now its same as David&Goliaf - who lies?!!"
+                    # answer: David&Goliaf lies as expected - we not need it mode
                     team2 = teams.pop()
                 elif toss == "not_same_country_and_played_in_group":
                     # for 1/4 Champions League
@@ -288,14 +294,14 @@ class Cup(League):
                     # if more than one pair, enumerate pairs
                     round_name += " p%s" % (struggleN+1)
 
-                id_tournament = self.getID()
+                # id_tournament = self.getID()
                 # match_name = "%s %s. %s.%s"  \
                 #                 % (self.getName(), self.season, round_name, struggleN)
 
                 # PLAY MATCH OR DOUBLE_MATCH
-                struggle = classname(pair, self.delta_coefs, id_tournament, round_name, playoff)
+                struggle = classname(pair, self.delta_coefs, tournament=self.getID(), round = round_name, playoff = playoff, save_to_db=self.save_to_db)
                 struggle.run()
-
+# match = M.Match(pair, self.delta_coefs, , round = round, save_to_db=self.save_to_db)
                 # print "classname %s" % classname
                 results = struggle.getResult(1, 2, casted=True)
                 looser = struggle.getLooser()
@@ -491,7 +497,7 @@ class Cup(League):
         if print_matches:
             print "\nMatches:"
         self.run(print_matches)
-        print "\nWinner:\n%s" % self.getWinner()
+        print "\nWinner:\n%s" % [winner.getName() for winner in self.getWinner()]
         # print "\nresults:\n%s" % [(k, [team.getName() for team in self.results[k]] ) for k in self.results.keys()]
         print "\nresults:"
         for k in self.results.keys():
@@ -518,6 +524,8 @@ def Test(*args, **kwargs):
 
     :return:
     """
+    print "Cups.Test() with args", args, kwargs
+
     # used by clearing inserted rows by test after it runs
     last_m_row = db.trySQLquery(query="SELECT id FROM %s ORDER BY ID DESC LIMIT 1"
                                       % db.MATCHES_TABLE, fetch="one")
@@ -539,6 +547,13 @@ def Test(*args, **kwargs):
     else:
         # default
         team_num = 20
+
+    if "seedings" in kwargs.keys():
+        seedings = kwargs["team_num"]
+    else:
+        # default
+        s =  Cup("no Cup, just getSeedings", "season", [], coefs)
+        seedings = s.getSeedings()
 
     if "print_matches" in kwargs.keys():
         print_matches = kwargs["print_matches"]
@@ -580,6 +595,7 @@ def Test(*args, **kwargs):
 
 
     if pre_truncate:
+        print "pre_truncate!"
         db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
         db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
         db.truncate(db.MATCHES_TABLE)
@@ -602,11 +618,8 @@ def Test(*args, **kwargs):
         # pair_mode = 0 # one match
         # pair_mode = 1 # home + guest every match but the final
         # pair_mode = 2 # home + guest every match
-        s =  Cup("no Cup, just getSeedings", "", teams, coefs, pair_mode)
-        seedings = s.getSeedings()
-        # print "seedings", seedings
         for seeding in seedings:
-            print "TEST CUP: seeding=", seeding ,"pair_mode=", pair_mode
+            print "TEST CUP: seeding=%s, pair_mode=%s" %(seeding, pair_mode)
             # print "teams, coefs, pair_mode, seeding", teams, coefs, pair_mode, seeding
             # old-styled
             # tstcp = Cup("testCup", "2015/2016", teams, coefs, pair_mode, seeding)
@@ -635,15 +648,16 @@ if __name__ == "__main__":
     PRINT_MATCHES = False
     PRINT_MATCHES = True
     # PRINT RATINGS AFTER RUN
-    PRINT_RATINGS = True
     PRINT_RATINGS = False
+    # PRINT_RATINGS = True
     # RESET ALL MATCHES DATA BEFORE TEST
     PRE_TRUNCATE = False
     PRE_TRUNCATE = True
     # RESET ALL MATCHES DATA AFTER TEST
     POST_TRUNCATE = False
-    POST_TRUNCATE = True
+    # POST_TRUNCATE = True
     # SAVE TO DB - to avoid data integrity (if important data in table exists), turn it off
     SAVE_TO_DB = False
     SAVE_TO_DB = True
-    Test("Cup", team_num = 20)
+    Test("Cup", team_num = 20, pre_truncate = PRE_TRUNCATE, post_truncate = POST_TRUNCATE, save_to_db = SAVE_TO_DB,
+         print_matches = PRINT_MATCHES, print_ratings=PRINT_RATINGS)
