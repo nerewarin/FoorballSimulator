@@ -444,8 +444,10 @@ def trySQLquery(func = "execute", query = None, data = None, fetch = None, ind =
             return CUR.fetchall()[ind]
         elif fetch == "one":
             fetched = CUR.fetchone()
-            if fetched: return fetched[ind]
-            else: return None
+            if fetched:
+                return fetched[ind]
+            else:
+                return fetched
         elif fetch == "all_tuples":
             return  (element[ind] for element in CUR.fetchall())
         else:

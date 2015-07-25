@@ -8,7 +8,7 @@ import DataStoring as db
 from Leagues import League, TeamResult
 import Match as M
 import values as v
-from values import Coefficients as C
+from values import Coefficients as C, CUP_TYPE_ID
 from operator import attrgetter, itemgetter
 import random
 import time
@@ -21,9 +21,17 @@ class Cup(League):
     """
     represents Cup, some methods from League were overridden
     """
-    def __init__(self, name, season, members, delta_coefs = C(v.VALUES_VERSION).getRatingUpdateCoefs("list"),
-                 pair_mode = 1, seeding = "A1_B16",
-                 state_params = ("final_stage", ), save_to_db = True, prefix = ""):
+    def __init__(self,
+                 name = None,
+                 season = None,
+                 members = None,
+                 delta_coefs = C(v.VALUES_VERSION).getRatingUpdateCoefs("list"),
+                 pair_mode = 1,
+                 seeding = "A1_B16",
+                 state_params = ("final_stage", ),
+                 save_to_db = True,
+                 prefix = "",
+                 type_id = CUP_TYPE_ID):
         """
 
         :param name: id of tournament stored in db table

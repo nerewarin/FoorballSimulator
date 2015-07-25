@@ -279,8 +279,10 @@ def TournamentSchemas(tournament_id):
 
     to print match, round should include stage+round of stage
     """
-    if tournament_id == UEFA_CL_TYPE_ID:
-        return   [
+    # if tournament_id == UEFA_CL_TYPE_ID:
+    raise NotImplementedError
+
+UEFA_CL_SCHEMA = [
             # stage
             {"Qualification" : {
                     # type of tournament and number of sub-tournaments of this type in this stage
@@ -331,9 +333,10 @@ def TournamentSchemas(tournament_id):
             }
         ]
 
-    elif tournament_id == UEFA_EL_TYPE_ID:
+    # elif tournament_id == UEFA_EL_TYPE_ID:
         # 195 members (48 members in groups)
-        return [
+        # return
+UEFA_EL_SCHEMA = [
             # stage
             {"Qualification" : {
                     # type of tournament and number of sub-tournaments of this type in this stage
@@ -403,23 +406,23 @@ def TournamentSchemas(tournament_id):
 
 
 
-def get_CL_schema():
-    """
-
-    :return: schema of UEFA Champions League Tournament
-    """
-    return TournamentSchemas(UEFA_CL_TYPE_ID)
-
-
-def get_EL_schema():
-    """
-
-    :return: schema of UEFA Champions League Tournament
-    """
-    return TournamentSchemas(UEFA_EL_TYPE_ID)
-
-def get_schema(type_ID):
-    return TournamentSchemas(type_ID)
+# def get_CL_schema():
+#     """
+#
+#     :return: schema of UEFA Champions League Tournament
+#     """
+#     return TournamentSchemas(UEFA_CL_TYPE_ID)
+#
+#
+# def get_EL_schema():
+#     """
+#
+#     :return: schema of UEFA Champions League Tournament
+#     """
+#     return TournamentSchemas(UEFA_EL_TYPE_ID)
+#
+# def get_schema(type_ID):
+#     return TournamentSchemas(type_ID)
 
 if __name__ == "__main__":
     def TestCoefficients():
@@ -437,9 +440,9 @@ if __name__ == "__main__":
 
     def Test_Tournament_schemas():
         print "Test Tournament Schemas"
-        CL_sch =  get_CL_schema()
-        EL_sch =  get_EL_schema()
-        for schema in (CL_sch, EL_sch):
+        # CL_sch =  get_CL_schema()
+        # EL_sch =  get_EL_schema()
+        for schema in (UEFA_CL_SCHEMA, UEFA_EL_SCHEMA):
             print "\n"
             for stage in schema:
                 # print stage

@@ -8,6 +8,7 @@ from Cups import Cup
 from UEFA_Champions_League import UEFA_Champions_League
 import values as v
 import util
+import sys
 
 class Season(object):
 
@@ -20,7 +21,7 @@ class Season(object):
         :param season_year: string like "2014/2015"
         :return:
         """
-        self.id, self.year = self.saveSeason()
+        self.season_id, self.year = self.saveSeason()
         # print "self.id, self.year", self.id, self.year
 
 
@@ -38,13 +39,19 @@ class Season(object):
         print "season_tournaments=", season_tournaments
         tourn_classes = [clname[0] for clname in db.select(what="name", table_names=db.TOURNAMENTS_TYPES_TABLE, fetch="all", ind="all")]
         print "tourn_classes =%s" % tourn_classes
-        for tournament in season_tournaments:
+        # TODO support UEFA
+        # for tournament in season_tournaments:
+        # while UEFA unsupported, run only national tournaments
+        national_tournaments = season_tournaments[2:]
+        for tournament in national_tournaments:
             tourn_id = tournament[0]
             # tourn_type_id = tournament[1]
             classname = tourn_classes[tournament[1] - 1].replace(" ", "_")
             country_id = tournament[2]
-            print "tourn_id=%s, classname=%s, country_id=%s" %(tourn_id, classname, country_id)
-            classname()
+            tourn_class = getattr(sys.modules[__name__], classname)
+            print "tourn_class=%s, tourn_id=%s, classname=%s, country_id=%s" %(tourn_class, tourn_id, classname, country_id)
+            # tourn_class().run()
+            tourn_class(season=self.season_id)
 
             # if country_id:
             #     print "play national tournament"

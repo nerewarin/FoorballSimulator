@@ -9,7 +9,7 @@ import util
 from Leagues import League, TeamResult
 import Match as M
 from values import Coefficients as C, TournamentSchemas as schemas, UEFA_CL_TYPE_ID, \
-    UEFA_EL_TYPE_ID, VALUES_VERSION, UEFA_TOURNAMENTS_ID
+    UEFA_EL_TYPE_ID, VALUES_VERSION, UEFA_TOURNAMENTS_ID, UEFA_CL_SCHEMA, UEFA_EL_SCHEMA
 import values as v
 
 from operator import attrgetter, itemgetter
@@ -33,7 +33,7 @@ class UEFA_Champions_League(Cup):
     def __init__(self, id = UEFA_CL_TYPE_ID, season = None, members = None,
                  delta_coefs = C(VALUES_VERSION).getRatingUpdateCoefs("list"),
                  pair_mode = 1,
-                 seeding = v.get_schema(id), state_params = ("final_stage", )):
+                 seeding = UEFA_CL_SCHEMA, state_params = ("final_stage", )):
     # def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "A1_B16",
     #              state_params = ("final_stage", ), save_to_db = True, prefix = ""):
 
@@ -53,11 +53,17 @@ class UEFA_Champions_League(Cup):
         :param state_params:
         :return:
         """
-        self.con, self.cur =  db.connectGameDB()
+        self.con, self.cur = db.connectGameDB()
         self.id = id
         self.seeding = seeding
         self.season = season
-        self.prev_season = season -1
+        if not season:
+            # self.seasonname = db.trySQLquery(query="SELECT name FROM %s ORDER BY ID DESC LIMIT 1"
+            #                                    % db.SEASONS_TABLE, fetch="one")
+            self.season = db.trySQLquery(query="SELECT id FROM %s ORDER BY ID DESC LIMIT 1"
+                                               % db.SEASONS_TABLE, fetch="one")
+
+        self.prev_season = self.season - 1
 
         if members:
             # EXTERNAL
@@ -69,7 +75,7 @@ class UEFA_Champions_League(Cup):
             self.setMembers()
             self.members = self.getMember()
 
-        super(UEFA_League, self).__init__(id, season, self.members, delta_coefs, state_params)#(self, tournament, season, members, delta_coefs)
+        super(UEFA_Champions_League, self).__init__(id, season, self.members, delta_coefs, state_params)#(self, tournament, season, members, delta_coefs)
 
 
         # self.results - empty list. after run() it will be filled as following:
@@ -105,6 +111,12 @@ class UEFA_Champions_League(Cup):
 
         # TODO round_info  [{"count": x , "toss" : "not_same_country_and_played_in_group"}, {
         # and support it in Cups!
+        if not self.prev_season:
+             # this is the FIRST season - no info about previous tournaments results -
+             # use set members by team rating in country instead of results in national League
+            # or get just already seeded from UEFA site!!!!
+            raise NotImplementedError # T   O DO
+
 
         for stage in self.seeding:
             # print stage
@@ -268,12 +280,12 @@ def Test(*args, **kwargs):
     # TEST CUP CLASS
     if "ids" in kwargs:
         for id in  kwargs["ids"]:
-            tstcp = UEFA_League(id)
+            tstcp = UEFA_Champions_League(id)
 
 # TEST
 if __name__ == "__main__":
     Test(ids = UEFA_TOURNAMENTS_ID)
-
+    # print v.get_schema(UEFA_CL_TYPE_ID)
 
 
 

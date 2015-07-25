@@ -8,7 +8,7 @@ import util
 import Match as M
 import DataStoring as db
 import values as v
-from values import Coefficients as C
+from values import Coefficients as C, LEAGUE_TYPE_ID
 from operator import attrgetter, itemgetter
 from collections import defaultdict
 import random
@@ -27,15 +27,16 @@ class League(object):
 
     """
     def __init__(self,
-                 name,
-                 season,
-                 members,
+                 name = None,
+                 season = None,
+                 members = None,
                  delta_coefs = C(v.VALUES_VERSION).getRatingUpdateCoefs("list"),
                  pair_mode = 1,
                  seeding = "rnd",
                  state_params = ("P","W","D","L","GF","GA","GD","PTS"),
                  save_to_db = True,
-                 prefix = "", type_id = 3):
+                 prefix = "",
+                 type_id = LEAGUE_TYPE_ID):
         """
 
         :param name: League tournament id (type) - not unique id used in tourn_results!
