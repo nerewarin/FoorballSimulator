@@ -99,7 +99,7 @@ class Team():
     def attrib(self, func_index):
         return getattr(self, self.methods[func_index])
 
-def testTeam():
+def Test():
     # old-styled - name instead of id
     # Spartak = Team("Spartak Moscow", "RUS", 1, "Спартак Москва", 56)
 
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     print "Team test"
     start_time = time.time()
     # test team class
-    testTeam()
+    Test()
     print "time = ", time.time() - start_time
     # # print to console all teams
     # DataParsing.printParsedTable(teamsL)

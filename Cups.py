@@ -433,7 +433,8 @@ class Cup(League):
             # print "self.winner" , self.winner
 
             # add team object to the top of the net
-            self.net[self.all_rounds+1] = (self.winners, )
+            # self.net[self.all_rounds+1] = (self.winners, )
+            self.net[self.all_rounds+1] = [(winner.getName(), winner) for winner in self.winners]
 
             # # print result for EVERY round
             # if print_matches:

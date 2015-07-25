@@ -57,6 +57,9 @@ MATCHES_TABLE = "matches"
 TOURNAMENTS_PLAYED_TABLE = "tournaments_played"
 TOURNAMENTS_RESULTS_TABLE = "tournament_results"
 
+# test arguments
+HTML_DATA_SOURCE = "HTML"
+EXCEL_DATA_SOURCE = "Excel"
 
 # CREATE EXCEL TABLE
 def createExcelTable(filename, teamsL, overwrite = False):
@@ -779,7 +782,7 @@ def TestStorage(storage, teamsL, overwrite = False):
 
 
 @util.timer
-def Test(data_source):
+def Test(data_source = HTML_DATA_SOURCE):
     print "DataStoring Test\n"
     # create teams list
     if data_source == "HTML":
@@ -813,6 +816,5 @@ def Test(data_source):
 
 
 if __name__ == "__main__":
-    data_source = "HTML"
-    # data_source = "Excel"
-    Test(data_source)
+    Test(HTML_DATA_SOURCE)
+    # Test(EXCEL_DATA_SOURCE)

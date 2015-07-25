@@ -474,6 +474,13 @@ def Test(iterations = 20, pre_truncate = False, post_truncate = False, save_to_d
     :return:
     """
 
+    # v1.1 coefs
+    with open(os.path.join("", 'VERSION')) as version_file:
+        values_version = version_file.read().strip()
+    coefs = C(values_version).getRatingUpdateCoefs("list")
+    # v1.0 coefs
+    # coefs = C("v1.0").getRatingUpdateCoefs("list")
+
     # # old-styled
     # team1 = Team.Team("Manchester City FC", "ENG", 87.078, "Манчестер Сити", 17)
     # team2 = Team.Team("FC Shakhtar Donetsk", "UKR", 85.899, "Шахтер Донецк", 18)
@@ -569,12 +576,6 @@ def Test(iterations = 20, pre_truncate = False, post_truncate = False, save_to_d
 
 # TEST
 if __name__ == "__main__":
-    # v1.1 coefs
-    with open(os.path.join("", 'VERSION')) as version_file:
-        values_version = version_file.read().strip()
-    coefs = C(values_version).getRatingUpdateCoefs("list")
-    # v1.0 coefs
-    # coefs = C("v1.0").getRatingUpdateCoefs("list")
 
     # for every iteration will be played 1 match and 1 double-matches
     ITERATIONS = 100
