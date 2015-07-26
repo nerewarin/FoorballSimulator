@@ -92,6 +92,14 @@ def test_iterations(iterations):
     for round in range(1, iterations+1):
         print round
 
+def test_args():
+    def foo(*args):
+        for arg in args:
+            print arg
+        print args
+    args = [1,2,32,3,2]
+    foo(*args)
+
 """ test code """
 if __name__ == '__main__':
     # test_roundRobin()
@@ -100,7 +108,8 @@ if __name__ == '__main__':
     # testCounter()
     # testStrings()
     # test_iterations(10)
-    test_orderedDict()
+    # test_orderedDict()
+    test_args()
 
 # TestSortTeamL()
 

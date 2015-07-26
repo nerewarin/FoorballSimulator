@@ -5,6 +5,7 @@ __author__ = 'NereWARin'
 import Team
 import util
 # import Cups
+from Team import Team
 import Match as M
 import DataStoring as db
 import values as v
@@ -29,6 +30,7 @@ class League(object):
     def __init__(self,
                  name = None,
                  season = None,
+                 year = None,
                  members = None,
                  delta_coefs = C(v.VALUES_VERSION).getRatingUpdateCoefs("list"),
                  pair_mode = 1,
@@ -69,6 +71,7 @@ class League(object):
         self.id = name # TODO name = id ? in tourn_played  - only for UEFA. if not, it will be filled in the 1st row of run()
         self.name = name
         self.season = season
+        self.year = None
         self.members = members
         self.delta_coefs = delta_coefs
         self.seeding = seeding # not used in League - used hardcoded roundRobin instead
@@ -115,7 +118,12 @@ class League(object):
         if self.season <= 2:
             print "setMembers by rating for first season"
             # get all team ids from defined country id
-            print self.country_id
+            print "self.country_id=", self.country_id
+            teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ", columns="id_country ",
+                              sign=" = ", values=self.country_id, fetch="all", ind="all")
+            teams_indexes = [team[0] for team in teams_tuples]
+            self.members = [Team(ind) for ind in teams_indexes]
+            pass
         else:
             print "setMembers by position from previous league"
 
@@ -354,7 +362,7 @@ class League(object):
         values = [self.season, self.id]
         # print "values are ", values
         db.insert(db.TOURNAMENTS_PLAYED_TABLE, columns, values)
-        print "new tournament id (%s) of season_id (%s) inserted" % tuple(values)
+        print "new tournament id (%s) of season_id (%s) inserted" % (values[1], values[0])
         # return id
         id =  db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="one", suffix = " ORDER BY id DESC LIMIT 1")
         # assert (id == self.id ), "storeed (%s) and argument (%s) id not equals!" % (id,  self.id)
@@ -583,11 +591,11 @@ def Test(*args, **kwargs):
         # uefa_pos = teamN
         # teams.append(Team.Team("FC team%s" % teamN, "RUS", rating, "Р С™Р С•Р СР В°Р Р…Р Т‘Р В°%s" % teamN, uefa_pos))
         # new-styled
-        teams.append(Team.Team(i+1))
+        teams.append(Team(i+1))
 
     for pair_mode in pair_modes:
-        season = 1
-        League(v.TEST_LEAGUE_ID, season, teams, coefs, pair_mode, save_to_db=save_to_db)\
+        season, year = 1, db.START_SEASON
+        League(v.TEST_LEAGUE_ID, season, year, teams, coefs, pair_mode, save_to_db=save_to_db)\
             .test(print_matches, print_ratings)
 
     # if "roundRobin" in args:

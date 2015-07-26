@@ -19,20 +19,21 @@ import os
 import warnings
 
 # TODO func here aboid importing - delete it if DB is installed on executable env
-def trySQLquery(a,b,c):
-    return a
-
-def connectDB(a="",b="",c="",d=""):
-    return a,cur()
-
-class cur():
-    def execute(self):
-        return None
+# def trySQLquery(a,b,c):
+#     return a
+#
+# def connectDB(a="",b="",c="",d=""):
+#     return a,cur()
+#
+# class cur():
+#     def execute(self):
+#         return None
 
 class UEFA_Champions_League(Cup):
     def __init__(self,
                  id = UEFA_CL_TYPE_ID, # id from Tournaments
                  season = None,
+                 year = None,
                  members = None,
                  delta_coefs = C(VALUES_VERSION).getRatingUpdateCoefs("list"),
                  pair_mode = 1,

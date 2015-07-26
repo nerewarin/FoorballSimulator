@@ -24,6 +24,7 @@ class Cup(League):
     def __init__(self,
                  name = None, # id from Tournaments
                  season = None,
+                 year = None,
                  members = None,
                  delta_coefs = C(v.VALUES_VERSION).getRatingUpdateCoefs("list"),
                  pair_mode = 1,
@@ -55,10 +56,13 @@ class Cup(League):
             if seeding not in self.getSeedings():
                 raise Exception, "call independed Cup but seeding type not found in provided list getSeedings()"
 
-        # super(self.__class__, self).__init__(tournament, season, members, delta_coefs)#(self, tournament, season, members, delta_coefs)
-        # super(Cup, self).__init__(tournament, season, members, delta_coefs, state_params)#(self, tournament, season, members, delta_coefs)
-        super(Cup, self).__init__(name, season, members, delta_coefs, pair_mode, seeding, state_params, save_to_db,
-                                  prefix, type_id)
+        kwargs = locals()
+        del kwargs["self"]
+        # print "kwargs", kwargs, len(kwargs)
+        # for a in kwargs: print a
+        super(Cup, self).__init__(**kwargs)
+        # super(Cup, self).__init__(name, season, year, members, delta_coefs, pair_mode, seeding, state_params, save_to_db,
+        #                           prefix, type_id, country_id)
         self.pair_mode = pair_mode
 
         # self.results - empty list. after run() it will be filled as following:
@@ -657,7 +661,8 @@ def Test(*args, **kwargs):
             # old-styled
             # tstcp = Cup("testCup", "2015/2016", teams, coefs, pair_mode, seeding)
             # new-styled
-            Cup(name=v.TEST_CUP_ID, season=1, members=teams, delta_coefs= coefs, pair_mode=pair_mode,
+            season, year = 1, db.START_SEASON
+            Cup(name=v.TEST_CUP_ID, season=season, year=year, members=teams, delta_coefs= coefs, pair_mode=pair_mode,
                         seeding=seeding, save_to_db=save_to_db)\
                 .test(print_matches, print_ratings)
 
