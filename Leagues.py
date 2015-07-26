@@ -36,7 +36,8 @@ class League(object):
                  state_params = ("P","W","D","L","GF","GA","GD","PTS"),
                  save_to_db = True,
                  prefix = "",
-                 type_id = LEAGUE_TYPE_ID):
+                 type_id = LEAGUE_TYPE_ID,
+                 country_id = None):
         """
 
         :param name: League tournament id (type) - not unique id used in tourn_results!
@@ -66,18 +67,20 @@ class League(object):
         # if (not prefix) and name:
         #     raise ValueError, "League will not be saved cause id is predefined bur type is not UEFA (cause prefix)!"
         self.id = name # TODO name = id ? in tourn_played  - only for UEFA. if not, it will be filled in the 1st row of run()
-        self.type_id = type_id # 3 for League
-
         self.name = name
         self.season = season
-        if not members:
-            self.setMembers()
         self.members = members
         self.delta_coefs = delta_coefs
         self.seeding = seeding # not used in League - used hardcoded roundRobin instead
         self.pair_mode = pair_mode
         self.save_to_db = save_to_db
         self.prefix = prefix
+        self.type_id = type_id # 3 for League
+        self.country_id = country_id # for getMembers
+
+        # get members from database and set to self.members
+        if not members:
+            self.setMembers()
 
         state = {st:0 for st in state_params}
 
@@ -105,11 +108,16 @@ class League(object):
 
     def setMembers(self):
         """
-        defines members for league as a list from database
+        defines members for league/cup as a list from database - logic is the same for both league and cup
         :return:
         """
         self.members = []
-
+        if self.season <= 2:
+            print "setMembers by rating for first season"
+            # get all team ids from defined country id
+            print self.country_id
+        else:
+            print "setMembers by position from previous league"
 
 
     def getID(self):

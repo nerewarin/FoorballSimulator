@@ -437,6 +437,7 @@ def trySQLquery(func = "execute", query = None, data = None, fetch = None, ind =
             return available_funcs[func](query, data)
 
         # if data: print "query = %s" % (query % data)
+        dummy_var = query
         # else: print "query = %s" % (query )
 
         # CUR.execute(query, data)

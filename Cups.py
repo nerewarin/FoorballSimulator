@@ -31,7 +31,8 @@ class Cup(League):
                  state_params = ("final_stage", ),
                  save_to_db = True,
                  prefix = "",
-                 type_id = CUP_TYPE_ID): # id from tournaments_types_names
+                 type_id = CUP_TYPE_ID, # id from tournaments_types_names
+                 country_id = None):
         """
 
         :param name: id of tournament stored in db table

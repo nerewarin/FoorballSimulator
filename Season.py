@@ -52,7 +52,7 @@ class Season(object):
             tourn_class = getattr(sys.modules[__name__], classname)
             print "tourn_class=%s, tourn_id=%s, classname=%s, country_id=%s" %(tourn_class, tourn_id, classname, country_id)
             # tourn_class().run()
-            tourn_class(season=self.season_id)
+            tourn_class(name=tourn_id, season=self.season_id, country_id=country_id)
 
             # if country_id:
             #     print "play national tournament"
@@ -80,12 +80,16 @@ class Season(object):
 
         print "last_season year %s" % last_season
 
+        # seasons will be simulated starting from initial reference season, it should already be in database,
+        # of it it was truncated, create it now
         if not last_season:
-            new_season = "'" + db.START_SEASON + "'"
+            # if initial season was truncated, create it with id=1 and then normally create new_season with id=2
+            initial_season = "'" + db.START_SEASON + "'"
+            db.insert(db.SEASONS_TABLE, columns, initial_season)
+            last_season = db.START_SEASON
 
-        else:
-            # increment string 2014/2015 to 2015/2016
-            new_season = "'" + str([(int(year) + 1) for year in last_season.split("/")])[1:-1].replace(", ", "/") + "'"
+        # increment string 2014/2015 to 2015/2016
+        new_season = "'" + str([(int(year) + 1) for year in last_season.split("/")])[1:-1].replace(", ", "/") + "'"
 
         print "new_season year %s" % new_season
         values = new_season

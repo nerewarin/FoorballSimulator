@@ -30,14 +30,18 @@ class cur():
         return None
 
 class UEFA_Champions_League(Cup):
-    def __init__(self, id = UEFA_CL_TYPE_ID, season = None, members = None,
+    def __init__(self,
+                 id = UEFA_CL_TYPE_ID, # id from Tournaments
+                 season = None,
+                 members = None,
                  delta_coefs = C(VALUES_VERSION).getRatingUpdateCoefs("list"),
                  pair_mode = 1,
-                 seeding = UEFA_CL_SCHEMA, state_params = ("final_stage", )):
-    # def __init__(self, name, season, members, delta_coefs, pair_mode = 1, seeding = "A1_B16",
-    #              state_params = ("final_stage", ), save_to_db = True, prefix = ""):
-
-
+                 seeding = UEFA_CL_SCHEMA,
+                 state_params = ("final_stage", ),
+                 save_to_db = True,
+                 prefix = "",
+                 type_id = UEFA_CL_TYPE_ID, # id from tournaments_types_names
+                 country_id = None):
         """
         UEFA_Champ_L is a tournament, implemented as three tournaments:
         Qualification Cup, Group League, Play-Off Cup.

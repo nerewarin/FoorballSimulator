@@ -8,6 +8,7 @@ import os
 with open(os.path.join("", 'VERSION')) as version_file:
     VALUES_VERSION = version_file.read().strip()
 
+# to store in tournament types names and get in every tournament class name as parameter
 UEFA_CL_TYPE_ID = 1
 UEFA_EL_TYPE_ID = 2
 LEAGUE_TYPE_ID = 3
