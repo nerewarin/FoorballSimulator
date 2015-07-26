@@ -42,15 +42,19 @@ class Season(object):
         # TODO support UEFA
         # for tournament in season_tournaments:
         # while UEFA unsupported, run only national tournaments
-        national_tournaments = season_tournaments[2:]
-        for tournament in national_tournaments:
+        # national_tournaments = season_tournaments[2:]
+        # uefa_tournaments = season_tournaments[:2]
+        # move UEFA tournaments to the end
+        tournaments = season_tournaments[2:] + season_tournaments[:2]
+        for tournament in tournaments:
             tourn_id = tournament[0]
             tourn_type_id = tournament[1]
             # example: tourn_type_id = 3 for league, so index 2 in list of tourn_classes names
             classname = tourn_classes[tourn_type_id - 1].replace(" ", "_")
             country_id = tournament[2]
             tourn_class = getattr(sys.modules[__name__], classname)
-            print "tourn_class=%s, tourn_id=%s, classname=%s, country_id=%s" %(tourn_class, tourn_id, classname, country_id)
+            print "tourn_id=%s, classname=%s, country_id=%s" %\
+                  (tourn_id, classname, country_id)
             # if tourn_id == 82:
             #     pass
 

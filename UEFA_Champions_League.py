@@ -31,7 +31,7 @@ import warnings
 
 class UEFA_Champions_League(Cup):
     def __init__(self,
-                 id = UEFA_CL_TYPE_ID, # id from Tournaments
+                 name = UEFA_CL_TYPE_ID, # id from Tournaments
                  season = None,
                  year = None,
                  members = None,
@@ -58,6 +58,8 @@ class UEFA_Champions_League(Cup):
         :param state_params:
         :return:
         """
+        if country_id:
+            raise ValueError, "UEFA cannot get country as parameter - its international!"
         self.con, self.cur = db.connectGameDB()
         self.id = id
         self.seeding = seeding

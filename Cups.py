@@ -501,7 +501,7 @@ class Cup(League):
 
         columns = db.select(table_names=db.TOURNAMENTS_RESULTS_TABLE, fetch="colnames", where = " LIMIT 0")[1:]
         # TODO edit getName to return readable info about tournament: readable name and season
-        print "\nsaving tournament %s results to database in columns %s" % (self.getName(), columns)
+        # print "\nsaving tournament %s results to database in columns %s" % (self.getName(), columns)
         count = 0
         for round, pairs_info in self.net.iteritems():
 
@@ -516,8 +516,7 @@ class Cup(League):
                 db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, values)
 
                 count += 1
-        # print "inserted %s rows to %s" % (len(self.net.values()), db.TOURNAMENTS_RESULTS_TABLE)
-        print "inserted %s rows to %s" % (count, db.TOURNAMENTS_RESULTS_TABLE)
+        # print "inserted %s rows to %s" % (count, db.TOURNAMENTS_RESULTS_TABLE)
 
 
     def getRoundNames(self):

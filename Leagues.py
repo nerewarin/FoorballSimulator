@@ -361,7 +361,7 @@ class League(object):
         values = [self.season, self.id]
         # print "values are ", values
         db.insert(db.TOURNAMENTS_PLAYED_TABLE, columns, values)
-        print "new tournament id (%s) of season_id (%s) inserted" % (values[1], values[0])
+        # print "new tournament id (%s) of season_id (%s) inserted" % (values[1], values[0])
         # return id
         id =  db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="one", suffix = " ORDER BY id DESC LIMIT 1")
         # assert (id == self.id ), "storeed (%s) and argument (%s) id not equals!" % (id,  self.id)
