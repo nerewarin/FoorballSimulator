@@ -115,18 +115,17 @@ class League(object):
         :return:
         """
         self.members = []
-        if self.season <= 2:
-            print "setMembers by rating for first season"
-            # get all team ids from defined country id
-            print "self.country_id=", self.country_id
+        if self.year <= db.START_SIM_SEASON:
+            # print "setMembers by rating for first season"
+            # get all team ids from defined country id - like they ordered by default in team_info table
+            # print "self.country_id=", self.country_id
             teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ", columns="id_country ",
                               sign=" = ", values=self.country_id, fetch="all", ind="all")
             teams_indexes = [team[0] for team in teams_tuples]
             self.members = [Team(ind) for ind in teams_indexes]
-            pass
         else:
             print "setMembers by position from previous league"
-
+            raise NotImplementedError
 
     def getID(self):
         return self.id
@@ -294,7 +293,7 @@ class League(object):
                 roundN = round + 1
 
 
-                tourN = tour + tours*(round)
+                tourN = tour + tours*(round) + 1
 
                 for match_ind, pair in enumerate(parings):
 
@@ -356,9 +355,9 @@ class League(object):
         """
         insert new row to TOURNAMENTS_PLAYED_TABLE, defining new id
         """
-        print "saving tournament name_id %s to database" % self.id
+        # print "saving tournament name_id %s to database" % self.id
         columns = db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="colnames", suffix = " LIMIT 0")[1:]
-        print "TOURNAMENTS_PLAYED_TABLE columns are ", columns
+        # print "TOURNAMENTS_PLAYED_TABLE columns are ", columns
         values = [self.season, self.id]
         # print "values are ", values
         db.insert(db.TOURNAMENTS_PLAYED_TABLE, columns, values)
@@ -377,16 +376,16 @@ class League(object):
         save League results data in database
         """
 
-        print "\nsaving tournament %s results  to database" % self.getName()
+        # print "\nsaving tournament %s results  to database" % self.getName()
         columns = db.select(table_names=db.TOURNAMENTS_RESULTS_TABLE, fetch="colnames", where = " LIMIT 0")[1:]
-        print "TOURNAMENTS_RESULTS_TABLE columns are ", columns
+        # print "TOURNAMENTS_RESULTS_TABLE columns are ", columns
         for ind, team in enumerate(table):
             # id_team = team.getID()
             id_team = team["Team"].getID()
             pos = ind + 1
             values = [self.id, pos, id_team]
             db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, values)
-        print "inserted %s rows to %s" % (len(table), db.TOURNAMENTS_RESULTS_TABLE)
+        # print "inserted %s rows to %s" % (len(table), db.TOURNAMENTS_RESULTS_TABLE)
 
 
     def test(self,print_matches = False, print_ratings = False):

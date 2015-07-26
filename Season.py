@@ -51,10 +51,13 @@ class Season(object):
             country_id = tournament[2]
             tourn_class = getattr(sys.modules[__name__], classname)
             print "tourn_class=%s, tourn_id=%s, classname=%s, country_id=%s" %(tourn_class, tourn_id, classname, country_id)
-            # if tourn_id == 57:
+            # if tourn_id == 82:
             #     pass
-            # tourn_class().run()
-            tourn_class(name=tourn_id, season=self.season_id, year=self.year, country_id=country_id)
+
+            # RUN TOURNAMENT (members will be collected by tournament itself)
+            tourn = tourn_class(name=tourn_id, season=self.season_id, year=self.year, country_id=country_id)
+            tourn.run()
+
 
             # if country_id:
             #     print "play national tournament"
@@ -172,12 +175,14 @@ def Test(*args, **kwargs):
         post_truncate = False
 
     if pre_truncate:
-        db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
-        db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
-        db.truncate(db.MATCHES_TABLE)
-        # db.truncate(db.SEASONS_TABLE)
-        # delete all seasons but initial
-        db.trySQLquery(query = "DELETE FROM %s WHERE id > '1'" % db.SEASONS_TABLE)
+        # db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
+        # db.truncate(db.TOURNAMENTS_RESULTS_TABLE)
+        # db.truncate(db.MATCHES_TABLE)
+        # # db.truncate(db.SEASONS_TABLE)
+        # # delete all seasons but initial - but serial dowsn't drops
+        # db.trySQLquery(query = "DELETE FROM %s WHERE id > '1'" % db.SEASONS_TABLE)
+        # # better (but slowler) to use full recreation
+        db.Test()
 
     # RUN SEASON
     for t_ in range(t_num):

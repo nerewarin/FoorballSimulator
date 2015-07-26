@@ -39,12 +39,12 @@ def connectGameDB(dbname=DBNAME, user=DBUSER, host = DBHOST, password=DBPASSWORD
 CON, CUR = connectGameDB()
 
 # season that ratings will be filled as initial (defines only tournament of field "tournament" in season - data will be parsed
-# from default "2014/2015" season - initial season has no results so for next season (FIRST_SIM_SEASON)
+# from default "2014/2015" season - initial season has no results so for next season (START_SIM_SEASON)
 # there will be a special logic to compute members of tournament
 # initial season has no simulation results
 START_SEASON = "2014/2015"
 # special setMmembers() logic in tournaments for this season
-FIRST_SIM_SEASON = "'" + str([(int(year) + 1) for year in START_SEASON.split("/")])[1:-1].replace(", ", "/") + "'"
+START_SIM_SEASON = "'" + str([(int(year) + 1) for year in START_SEASON.split("/")])[1:-1].replace(", ", "/") + "'"
 
 
 # table names
