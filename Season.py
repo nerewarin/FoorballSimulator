@@ -45,8 +45,9 @@ class Season(object):
         national_tournaments = season_tournaments[2:]
         for tournament in national_tournaments:
             tourn_id = tournament[0]
-            # tourn_type_id = tournament[1]
-            classname = tourn_classes[tournament[1] - 1].replace(" ", "_")
+            tourn_type_id = tournament[1]
+            # example: tourn_type_id = 3 for league, so index 2 in list of tourn_classes names
+            classname = tourn_classes[tourn_type_id - 1].replace(" ", "_")
             country_id = tournament[2]
             tourn_class = getattr(sys.modules[__name__], classname)
             print "tourn_class=%s, tourn_id=%s, classname=%s, country_id=%s" %(tourn_class, tourn_id, classname, country_id)

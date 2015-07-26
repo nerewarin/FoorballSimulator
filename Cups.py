@@ -22,7 +22,7 @@ class Cup(League):
     represents Cup, some methods from League were overridden
     """
     def __init__(self,
-                 name = None,
+                 name = None, # id from Tournaments
                  season = None,
                  members = None,
                  delta_coefs = C(v.VALUES_VERSION).getRatingUpdateCoefs("list"),
@@ -31,7 +31,7 @@ class Cup(League):
                  state_params = ("final_stage", ),
                  save_to_db = True,
                  prefix = "",
-                 type_id = CUP_TYPE_ID):
+                 type_id = CUP_TYPE_ID): # id from tournaments_types_names
         """
 
         :param name: id of tournament stored in db table
@@ -56,7 +56,8 @@ class Cup(League):
 
         # super(self.__class__, self).__init__(tournament, season, members, delta_coefs)#(self, tournament, season, members, delta_coefs)
         # super(Cup, self).__init__(tournament, season, members, delta_coefs, state_params)#(self, tournament, season, members, delta_coefs)
-        super(Cup, self).__init__(name, season, members, delta_coefs, pair_mode, seeding, state_params)
+        super(Cup, self).__init__(name, season, members, delta_coefs, pair_mode, seeding, state_params, save_to_db,
+                                  prefix, type_id)
         self.pair_mode = pair_mode
 
         # self.results - empty list. after run() it will be filled as following:

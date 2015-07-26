@@ -40,6 +40,7 @@ class League(object):
         """
 
         :param name: League tournament id (type) - not unique id used in tourn_results!
+        # do not pass this parameter to class if league is national cause it wont't be saved in tourn_played
         :param season: id
         :param members: list of teams
         :param delta_coefs: coefficients stored in values to compute ratings changing after match followed bby its result
@@ -61,11 +62,16 @@ class League(object):
         """
 
         # super(League, self).__init__(tournament, season, members, delta_coefs)
+
+        # if (not prefix) and name:
+        #     raise ValueError, "League will not be saved cause id is predefined bur type is not UEFA (cause prefix)!"
         self.id = name # TODO name = id ? in tourn_played  - only for UEFA. if not, it will be filled in the 1st row of run()
         self.type_id = type_id # 3 for League
 
         self.name = name
         self.season = season
+        if not members:
+            self.setMembers()
         self.members = members
         self.delta_coefs = delta_coefs
         self.seeding = seeding # not used in League - used hardcoded roundRobin instead
@@ -91,12 +97,20 @@ class League(object):
             self.table = Table(self.results)
         # else its cup, so self.net will be created instead of table
 
-
     def __str__(self):
         """
         calls __str__ method of Table class
         """
         return str(self.table)
+
+    def setMembers(self):
+        """
+        defines members for league as a list from database
+        :return:
+        """
+        self.members = []
+
+
 
     def getID(self):
         return self.id
@@ -326,10 +340,10 @@ class League(object):
         """
         insert new row to TOURNAMENTS_PLAYED_TABLE, defining new id
         """
-        print "saving tournament type_id %s to database" % self.type_id
+        print "saving tournament name_id %s to database" % self.id
         columns = db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="colnames", suffix = " LIMIT 0")[1:]
         print "TOURNAMENTS_PLAYED_TABLE columns are ", columns
-        values = [self.season, self.type_id]
+        values = [self.season, self.id]
         # print "values are ", values
         db.insert(db.TOURNAMENTS_PLAYED_TABLE, columns, values)
         print "new tournament id (%s) of season_id (%s) inserted" % tuple(values)
