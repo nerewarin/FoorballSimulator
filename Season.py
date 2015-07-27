@@ -4,6 +4,7 @@ __author__ = 'NereWARin'
 from DataStoring import save_ratings, CON, CUR
 import DataStoring as db
 import DataParsing
+from Team import Team, Teams
 from Leagues import League
 from Cups import Cup
 from UEFA_Champions_League import UEFA_Champions_League
@@ -24,6 +25,44 @@ class Season(object):
         """
         self.season_id, self.year = self.saveSeason()
         # print "self.id, self.year", self.id, self.year
+        self.setSeasonTeams()
+
+    def setSeasonTeams(self):
+        """
+        storing all info about previous played tournaments to united dictionary (Team.Teams instance)
+        """
+        self.teams = Teams(self.season_id, self.year)
+        if self.year <= db.START_SIM_SEASON:
+            print "setTeams by rating for first season"
+            # get all team ids from defined country id - like they ordered by default in team_info table
+            # print "self.country_id=", self.country_id
+            teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ", columns="id_country ",
+                              sign=" = ", values=self.country_id, fetch="all", ind="all")
+            teams_indexes = [team[0] for team in teams_tuples]
+            self.teams = [Team(ind) for ind in teams_indexes]
+            print "self.teams", self.teams
+            # if it already sorted, comment all block below
+
+
+        self.members = []
+        if self.year <= db.START_SIM_SEASON:
+            # print "setMembers by rating for first season"
+            # get all team ids from defined country id - like they ordered by default in team_info table
+            # print "self.country_id=", self.country_id
+            teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ", columns="id_country ",
+                              sign=" = ", values=self.country_id, fetch="all", ind="all")
+            teams_indexes = [team[0] for team in teams_tuples]
+            self.members = [Team(ind) for ind in teams_indexes]
+        else:
+            print "setMembers by position from previous league"
+            # raise NotImplementedError
+            teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ", columns="id_country ",
+                              sign=" = ", values=self.country_id, fetch="all", ind="all")
+            # sort by position in league
+        for team in self.members:
+            print team
+        return
+
 
 
     # # TODO 1) see League about converting round_num to 1/4, final, qual , etc
@@ -54,20 +93,20 @@ class Season(object):
             classname = tourn_classes[tourn_type_id - 1].replace(" ", "_")
             country_id = tournament[2]
             tourn_class = getattr(sys.modules[__name__], classname)
-
-            country_name = db.select(what="name", table_names=db.COUNTRIES_TABLE, where=" WHERE ", columns="id", sign=" = ",
+            # abbreviation
+            country_ABV = db.select(what="name", table_names=db.COUNTRIES_TABLE, where=" WHERE ", columns="id", sign=" = ",
                       values=country_id, fetch="one", ind=0)
             print "tourn_id=%s, classname=%s, country_id=%s, country_name=%s" %\
-                  (tourn_id, classname, country_id, country_name)
+                  (tourn_id, classname, country_id, country_ABV)
             # teamnames = DataParsing.parse_domesticleague_results(country_name)
             # print "teamnames", teamnames
             # if tourn_id == 82:
             #     pass
 
             # RUN TOURNAMENT (members will be collected by tournament itself)
-            tourn = tourn_class(name=tourn_id, season=self.season_id, year=self.year, country_id=country_id)
+            tourn = tourn_class(name=tourn_id, season=self.season_id, year=self.year, members = self.teams[tourn_id],
+                                country_id=country_id)
             # tourn.run()
-
 
             # if country_id:
             #     print "play national tournament"

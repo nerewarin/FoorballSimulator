@@ -84,6 +84,8 @@ class League(object):
         # get members from database and set to self.members
         if not members:
             self.setMembers()
+        print "tourn_self.members = ", self.members
+
 
         state = {st:0 for st in state_params}
 
@@ -114,6 +116,7 @@ class League(object):
         defines members for league/cup as a list from database - logic is the same for both league and cup
         :return:
         """
+        print "setMembers_by_Tournament_itself"
         self.members = []
         if self.year <= db.START_SIM_SEASON:
             # print "setMembers by rating for first season"
@@ -129,8 +132,8 @@ class League(object):
             teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ", columns="id_country ",
                               sign=" = ", values=self.country_id, fetch="all", ind="all")
             # sort by position in league
-        for team in self.members:
-            print team
+        # for team in self.members:
+        #     print team
         return
 
     def getID(self):

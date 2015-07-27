@@ -108,9 +108,30 @@ class Teams():
     def __init__(self, season, year):
         self.season = season # id
         self.year = year # id
-        self.setTeams()
+        # self.setTeams()
+        self.teams = {}
+
+    def setTournResults(self, tournament_id, teams):
+        """
+        set prev tournament result as a list of teams sorted by position
+        :param tournament_id:
+        :param teams:
+        :return:
+        """
+        self.teams[tournament_id] = teams
+
+    def getTournResults(self, tournament_id):
+        if tournament_id in self.teams.keys():
+            return self.teams[tournament_id]
+        else:
+            raise KeyError, "no data for getTournResults tournament_tournament_id = %s" %tournament_id
 
     def setTeams(self):
+        """
+        get ALL teams sorted by rating - not realised by me, use individual setting for country and tournament
+        :return:
+        """
+        raise NotImplementedError
         if self.year <= db.START_SIM_SEASON:
             # print "setMembers by rating for first season"
             # get all team ids from defined country id - like they ordered by default in team_info table

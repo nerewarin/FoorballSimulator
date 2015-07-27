@@ -123,7 +123,7 @@ def printParsedTable(teamsL):
         print str(i+1) + ".", util.unicode_to_str(team.getName()), "(" + team.getRuName() + ")" , team.getCountry(), team.getRating()
 
 
-def parse_domesticleague_results(ABC):
+def parse_domesticleague_results(country_ABV):
     """
     - IT CANNOT WORKS CAUSE matches_played XPATH IS DIFFERENT FOR ANY COUNTRY
 
@@ -131,10 +131,10 @@ def parse_domesticleague_results(ABC):
 
     parse UEFA site to get list of teams sorted by current position
     http://www.uefa.com/memberassociations/association=ned/domesticleague/index.html
-    :ABC: country abbreviation like RUS
+    :country_ABV: country abbreviation like RUS
     :return:
     """
-    basic_site = "http://www.uefa.com/memberassociations/association=%s/domesticleague/index.html" % ABC
+    basic_site = "http://www.uefa.com/memberassociations/association=%s/domesticleague/index.html" % country_ABV
     try:
         l_site = html.parse(basic_site)
         # current matches played in off site by first team
