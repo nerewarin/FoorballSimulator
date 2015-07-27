@@ -368,7 +368,7 @@ UEFA_EL_SCHEMA = [
                          # 15 from 3th qualification round of champions league
                          # and 38 winners of prev
                         4 : {tuple(range(8,17)) : "cupwinner",  tuple(range(7,10)) : 3, tuple(range(4,7)) : 4,
-                               tuple(range(1,4)) : 5,   "CL" : 3}
+                               tuple(range(1,4)) : 5,   "CL" : "Qualification 3"}
                         # TODO groupUefa support
                         }
             }
@@ -429,9 +429,6 @@ if __name__ == "__main__":
     def TestCoefficients():
         print "Test Values (coefficients to compute ratings)"
         test_versions = ["v1.0", "v1.1"]
-        print                               {tuple(range(49,55,1))  : 0}
-                                       # champions of leagues 17-48
-        print                               {tuple(range(17,49,1))  : 0}, len(tuple(range(17,49,1)) )
         for version in test_versions:
             test_Coef = Coefficients(version)
             test_Coef.check(version)

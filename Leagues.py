@@ -125,7 +125,13 @@ class League(object):
             self.members = [Team(ind) for ind in teams_indexes]
         else:
             print "setMembers by position from previous league"
-            raise NotImplementedError
+            # raise NotImplementedError
+            teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ", columns="id_country ",
+                              sign=" = ", values=self.country_id, fetch="all", ind="all")
+            # sort by position in league
+        for team in self.members:
+            print team
+        return
 
     def getID(self):
         return self.id

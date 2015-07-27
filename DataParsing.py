@@ -123,7 +123,46 @@ def printParsedTable(teamsL):
         print str(i+1) + ".", util.unicode_to_str(team.getName()), "(" + team.getRuName() + ")" , team.getCountry(), team.getRating()
 
 
+def parse_domesticleague_results(ABC):
+    """
+    - IT CANNOT WORKS CAUSE matches_played XPATH IS DIFFERENT FOR ANY COUNTRY
 
+    - CALL IT ONLY IN OFF-SEASON LIKE JUNE!
+
+    parse UEFA site to get list of teams sorted by current position
+    http://www.uefa.com/memberassociations/association=ned/domesticleague/index.html
+    :ABC: country abbreviation like RUS
+    :return:
+    """
+    basic_site = "http://www.uefa.com/memberassociations/association=%s/domesticleague/index.html" % ABC
+    try:
+        l_site = html.parse(basic_site)
+        # current matches played in off site by first team
+        matches_played = l_site.xpath("//*[@id=\"memberassociations\"]/div[2]/div[3]/div/div[2]/div[1]/div/div/"
+                                         "div[2]/div[1]/table/tbody/tr[1]/td[5]").pop().text_content()
+                                       # //*[@id=\"memberassociations\"]/div[2]/div[3]/div/div[2]/div[1]/div/div/" \
+                                       #          "div[2]/div[1]/table/tbody/tr[1]/td[3]/a
+        print "matches_played", matches_played
+        if matches_played < 10:
+            # not use data from just started league
+            return
+        # else return all teams sorted by position
+        teamnames = []
+        pos = 1
+        while True:
+            try:
+                teamname = l_site.xpath("//*[@id=\"memberassociations\"]/div[2]/div[3]/div/div[2]/div[1]/div/div/"
+                                        "div[2]/div[1]/table/tbody/tr[%s]/td[3]/a" % pos ).pop().text_content()
+                teamnames.append(teamname)
+                pos += 1
+            except:
+                return teamnames
+        # //*[@id="memberassociations"]/div[2]/div[3]/div/div[2]/div[1]/div/div/div[2]/div[1]/table/tbody/tr[1]/td[3]/a
+        # //*[@id="memberassociations"]/div[2]/div[3]/div/div[2]/div[1]/div/div/div[2]/div[1]/table/tbody/tr[18]/td[3]/a
+
+
+    except:
+        return None
 
 # for key, value in teams.iteritems():
 #     print key, value.getCountry(), value.getRating()

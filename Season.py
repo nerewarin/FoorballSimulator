@@ -3,6 +3,7 @@
 __author__ = 'NereWARin'
 from DataStoring import save_ratings, CON, CUR
 import DataStoring as db
+import DataParsing
 from Leagues import League
 from Cups import Cup
 from UEFA_Champions_League import UEFA_Champions_League
@@ -53,14 +54,19 @@ class Season(object):
             classname = tourn_classes[tourn_type_id - 1].replace(" ", "_")
             country_id = tournament[2]
             tourn_class = getattr(sys.modules[__name__], classname)
-            print "tourn_id=%s, classname=%s, country_id=%s" %\
-                  (tourn_id, classname, country_id)
+
+            country_name = db.select(what="name", table_names=db.COUNTRIES_TABLE, where=" WHERE ", columns="id", sign=" = ",
+                      values=country_id, fetch="one", ind=0)
+            print "tourn_id=%s, classname=%s, country_id=%s, country_name=%s" %\
+                  (tourn_id, classname, country_id, country_name)
+            # teamnames = DataParsing.parse_domesticleague_results(country_name)
+            # print "teamnames", teamnames
             # if tourn_id == 82:
             #     pass
 
             # RUN TOURNAMENT (members will be collected by tournament itself)
             tourn = tourn_class(name=tourn_id, season=self.season_id, year=self.year, country_id=country_id)
-            tourn.run()
+            # tourn.run()
 
 
             # if country_id:
