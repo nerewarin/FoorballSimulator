@@ -166,14 +166,14 @@ class UEFA_Champions_League(Cup):
                             # search for tournament_id of League of this country
                             query =  "SELECT id FROM %s" % db.TOURNAMENTS_TABLE + " WHERE type = '%s' and id_country IN '%s';"
                             data =  (tournament_type, countries_ids)
-                            db.trySQLquery(cur.mogrify, query, data)
-                            id_types = cur.fetchall()[0]
+                            db.trySQLquery(self.cur.mogrify, query, data)
+                            id_types = self.cur.fetchall()[0]
 
                             # get from tournaments_played needed results ids
                             query =  "SELECT id FROM %s WHERE id_season = '%s' and id_type IN '%s';"
                             data =  (db.TOURNAMENTS_TABLE, self.season, id_types)
-                            db.trySQLquery(cur.mogrify, query, data)
-                            id_tournaments = cur.fetchall()[0]
+                            db.trySQLquery(self.cur.mogrify, query, data)
+                            id_tournaments = self.cur.fetchall()[0]
 
                         elif source == "CL":
                             id_types = (0, )
@@ -185,8 +185,8 @@ class UEFA_Champions_League(Cup):
                         # get from tournament_results id of team with a given position
                         query =  "SELECT id_team FROM %s WHERE position = '%s' and id_tournaments IN '%s';"
                         data =  (db.TOURNAMENTS_RESULTS_TABLE, position, id_types)
-                        db.trySQLquery(cur.mogrify, pos, data)
-                        id_teams = cur.fetchall()[0]
+                        db.trySQLquery(self.cur.mogrify, pos, data)
+                        id_teams = self.cur.fetchall()[0]
 
                         # add team ids to members of the current stage
                         stage_members += id_teams

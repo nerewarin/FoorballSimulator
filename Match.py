@@ -313,14 +313,35 @@ class DoubleMatch(Match):
         # print "AAA", str(self.getResult(0))[1:-1].replace(",", ":").replace(" ", "")
         # print "AAA", str(self.getResult(0))
         cast_m2 = True
+        # old-styled
+        # return "%s. %s %s %s" % \
+        #              (self.tournament,
+        #               self.homeName,
+        #               # str(self.getResult())[1:-1].replace(",", ":").replace(" ", "")
+        #               str(self.getResult(0))[1:-1].replace(",", ":").replace(" ", "")
+        #               + " (" + str(self.getFirstMatchResult())[1:-1].replace(",", ":").replace(" ", "") + ", "
+        #               + str(self.getSecondMatchResult(cast_m2))[1:-1].replace(",", ":").replace(" ", "") + ")"
+        #              ,self.guestName)
+        if not self.tournament or self.tournament == v.TEST_TOURNAMENT_ID:
+            # common case
+            representation = self.tournament + " " + self.round
+        else:
+            # test or friendly match
+            season_name = db.select(what="name", table_names=db.SEASONS_TABLE, suffix=" ORDER BY ID DESC LIMIT 1")
+            # print "season = %s" % season_name
+
+            # type_id from Tournaments (expected SERIE A) - (not from tournaments_types_names, where expected just "League")
+            type_id = db.select(what="type", table_names=db.TOURNAMENTS_TABLE, where=" WHERE ", columns="id", sign=" = ",
+                                   values=self.tournament)
+
+            tourn_name = db.select(what="name", table_names=db.TOURNAMENTS_TABLE, where=" WHERE ", columns="id", sign=" = ",
+                                   values=type_id)
+
+            # print "tourn_name = %s" % tourn_name
+            representation = season_name + " " + tourn_name + " " + self.round
         return "%s. %s %s %s" % \
-                     (self.tournament,
-                      self.homeName,
-                      # str(self.getResult())[1:-1].replace(",", ":").replace(" ", "")
-                      str(self.getResult(0))[1:-1].replace(",", ":").replace(" ", "")
-                      + " (" + str(self.getFirstMatchResult())[1:-1].replace(",", ":").replace(" ", "") + ", "
-                      + str(self.getSecondMatchResult(cast_m2))[1:-1].replace(",", ":").replace(" ", "") + ")"
-                     ,self.guestName)
+               (representation, self.homeName, str(self.getResult())[1:-1].replace(",", ":").replace(" ", "") ,self.guestName)
+
 
     def run(self, update = True):
         # first digit - team1 goals, second - team2 goals

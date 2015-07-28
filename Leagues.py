@@ -84,7 +84,7 @@ class League(object):
         # get members from database and set to self.members
         if not members:
             self.setMembers()
-        print "tourn_self.members = ", self.members
+        # print "tourn_self.members = ", self.members
 
 
         state = {st:0 for st in state_params}
@@ -428,6 +428,7 @@ class TeamResult():
         return self.result
 
     def get4table(self):
+        # TODO MAYBE I DONT NEED COPY HERE - TEST!
         all = self.result.copy()
         # all["Team"] = self.team.getName()
         # TODO I CHANGED IT IN 21.07  -self.team is no more teamname, its object

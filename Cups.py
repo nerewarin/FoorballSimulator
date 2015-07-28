@@ -109,7 +109,8 @@ class Cup(League):
     def __str__(self):
         string = ""
         for k, v in self.net.iteritems():
-            string += str(k) + ":" + str(v) + "\n"
+            roundname = self.round_names[k]
+            string += str(roundname) + ":" + str(v) + "\n"
             # print "k", k
             # string += self.round_names[k] + ":" + str(v) + "\n"
         return string
@@ -541,9 +542,10 @@ class Cup(League):
         print "\nWinner:\n%s" % [winner.getName() for winner in self.getWinner()]
         # print "\nresults:\n%s" % [(k, [team.getName() for team in self.results[k]] ) for k in self.results.keys()]
         print "\nresults:"
-        for k in self.results.keys():
-            # TODO sort results by round (maybe store them in list)
-            print k, [team.getName() for team in self.results[k]]
+        # for k in self.results.keys():
+        #     # TODO sort results by round (maybe store them in list)
+        #     print k, [team.getName() for team in self.results[k]]
+        print self
         print "\nFinal Net:\n", str(self), "\n"
 
         if print_ratings:

@@ -64,6 +64,7 @@ TOURNAMENTS_RESULTS_TABLE = "tournament_results"
 # test arguments
 HTML_DATA_SOURCE = "HTML"
 EXCEL_DATA_SOURCE = "Excel"
+PRINT_TEAMS = False # prints all teams line-to line as they are stored in Excel file .xls
 
 # CREATE EXCEL TABLE
 def createExcelTable(filename, teamsL, overwrite = False):
@@ -173,7 +174,7 @@ def createDB(teamsL, storage = "Postgre", overwrite = False):
             cur = con.cursor()
             cur.execute('SELECT version()')
             ver = cur.fetchone()
-            print "db ver = ", ver
+            # print "db ver = ", ver
 
         except db.DatabaseError, e:
             print 'Error %s' % e
@@ -183,7 +184,7 @@ def createDB(teamsL, storage = "Postgre", overwrite = False):
         # PRINT EXISTING TABLES
         trySQLquery("execute", """SELECT table_name FROM information_schema.tables
                 WHERE table_schema = 'public'""")
-        print "tables of DB ", [tabletuple[0] for tabletuple in cur.fetchall()]
+        # print "tables of DB ", [tabletuple[0] for tabletuple in cur.fetchall()]
 
 
         # COUNTRIES COUNTER DICT
@@ -778,14 +779,15 @@ def gen_national_tournaments(con, cur, columns, t_type, sorted_countries):
     return counter
 
 
-def TestStorage(storage, teamsL, overwrite = False):
+def TestStorage(storage, teamsL, overwrite = False, print_teams = True):
     if storage == "Excel":
         excelFilename = "initial rating.xls"
         # # read from Excel table (create it if not exists)
         # teamsL = createTeamsFromExcelTable(teamsL, excelFilename)
         createExcelTable(excelFilename, teamsL, overwrite)
         teamsL = createTeamsFromExcelTable(excelFilename)
-        DataParsing.printParsedTable(teamsL)
+        if print_teams:
+            DataParsing.printParsedTable(teamsL)
 
     elif storage == "Postgre":
         createDB(teamsL, "Postgre", overwrite)
@@ -796,7 +798,7 @@ def TestStorage(storage, teamsL, overwrite = False):
 
 
 @util.timer
-def Test(data_source = HTML_DATA_SOURCE):
+def Test(data_source = HTML_DATA_SOURCE, print_teams = False):
     print "DataStoring Test\n"
     # create teams list
     if data_source == "HTML":
@@ -808,7 +810,9 @@ def Test(data_source = HTML_DATA_SOURCE):
     else:
         raise Exception, "unknown argument to test function! Use \"actual\" to download info from UEFA site" \
                          " or \"may 2015\" to use fixed stored data"
-    DataParsing.printParsedTable(teamsL)
+    if print_teams:
+        print "*PRINT_ALL_TEAMS*"
+        DataParsing.printParsedTable(teamsL)
 
     # STORAGES = ["Postgre", "Excel"]
     # STORAGES = ["Excel"]
@@ -824,11 +828,11 @@ def Test(data_source = HTML_DATA_SOURCE):
         print "\nTest storage_type = %s" % storage_type
         time.sleep(DELAY_TIME)
         delays += DELAY_TIME
-        TestStorage(storage_type, teamsL, OVERWRITE)
+        TestStorage(storage_type, teamsL, OVERWRITE, print_teams)
 
         # print time.time() - start_time - delays
 
 
 if __name__ == "__main__":
-    Test(HTML_DATA_SOURCE)
+    Test(HTML_DATA_SOURCE, PRINT_TEAMS)
     # Test(EXCEL_DATA_SOURCE)

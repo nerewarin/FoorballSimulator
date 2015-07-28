@@ -9,6 +9,8 @@ from Leagues import League
 from Cups import Cup
 from UEFA_Champions_League import UEFA_Champions_League
 import values as v
+from values import Coefficients as C, TournamentSchemas as schemas, UEFA_CL_TYPE_ID, \
+    UEFA_EL_TYPE_ID, VALUES_VERSION, UEFA_TOURNAMENTS_ID, UEFA_CL_SCHEMA, UEFA_EL_SCHEMA
 import util
 import sys
 
@@ -23,100 +25,194 @@ class Season(object):
         :param season_year: string like "2014/2015"
         :return:
         """
+        # int id, str year
         self.season_id, self.year = self.saveSeason()
-        # print "self.id, self.year", self.id, self.year
-        self.setSeasonTeams()
+        # classnames of tournaments
+        self.tourn_classes = [clname[0] for clname in db.select(what="name", table_names=db.TOURNAMENTS_TYPES_TABLE,
+                                                           fetch="all", ind="all")]
 
-    def setSeasonTeams(self):
+        # print "self.id, self.year", self.id, self.year
+        season_tournaments = db.select(what=["id", "type", "id_country"],
+                                            table_names=db.TOURNAMENTS_TABLE, fetch="all", ind = "all")
+        print "season_tournaments=", season_tournaments
+        self.tourn_classes = [clname[0] for clname in db.select(what="name", table_names=db.TOURNAMENTS_TYPES_TABLE, fetch="all", ind="all")]
+        print "tourn_classes =%s" % self.tourn_classes
+        # TODO support UEFA
+        # for tournament in season_tournaments:
+        # while UEFA unsupported, run only national tournaments
+        # split tournaments by type
+        self.national_tournaments = season_tournaments[2:]
+        self.nations = len(self.national_tournaments) / 2
+        if self.nations % 2:
+            raise ValueError, "number of Leagues and Cups hould equals"
+
+        self.leagues = self.national_tournaments[:self.nations]
+        self.cups    = self.national_tournaments[self.nations:]
+
+        self.uefa_tournaments = season_tournaments[:2]
+
+        # move UEFA tournaments to the end
+        self.tournaments = self.national_tournaments + self.uefa_tournaments
+
+        # make a dict of {tourn_id - teams}, where teams is list, sorted by rating (if 1st season)
+        # or position from prev. national league
+        self.setNationalResults()
+
+    def getNationalResults(self, tourn_id = None):
+        """
+        return list of teams ordered by result of the last tournament_played
+        :param tourn_id:  id from Tournaments (if None, return full dictionary)
+        :return:
+        """
+        if not tourn_id:
+            return self.teams
+        return self.teams.getTournResults(tourn_id)
+
+    def setNationalResults(self):
         """
         storing all info about previous played tournaments to united dictionary (Team.Teams instance)
         """
         self.teams = Teams(self.season_id, self.year)
-        if self.year <= db.START_SIM_SEASON:
-            print "setTeams by rating for first season"
-            # get all team ids from defined country id - like they ordered by default in team_info table
-            # print "self.country_id=", self.country_id
-            teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ", columns="id_country ",
-                              sign=" = ", values=self.country_id, fetch="all", ind="all")
-            teams_indexes = [team[0] for team in teams_tuples]
-            self.teams = [Team(ind) for ind in teams_indexes]
+
+        # LEAGUES ***********
+        # get last Leagues results and run new Leagues
+        tourn_type_id = self.leagues[0][1] # 0 cause any number is ok
+        classname = self.tourn_classes[tourn_type_id - 1].replace(" ", "_")
+        tourn_class = getattr(sys.modules[__name__], classname)
+        for tournament in self.leagues:
+            tourn_id = tournament[0]
+            # tourn_type_id = tournament[1] - common use in line above
+            country_id = tournament[2]
+
+            if self.year <= db.START_SIM_SEASON:
+                print "setNationalResults by rating for first season"
+
+                # get all team ids from defined country id - like they ordered by default in team_info table
+                # print "self.country_id=", self.country_id
+                teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ", columns="id_country ",
+                                  sign=" = ", values=country_id, fetch="all", ind="all")
+                teams_indexes = [team[0] for team in teams_tuples]
+
+            else:
+                print "setNationalResults by position of previous national leagues results"
+
+                # query to tournament_played table to get id_tournament
+                query_tourn_id = "SELECT id FROM %s WHERE id_season = '%s' AND id_type = '%s';" % \
+                                 (db.TOURNAMENTS_PLAYED_TABLE, self.season_id, tourn_type_id)
+                print "query_tourn_id =", query_tourn_id
+                query_to_results = "SELECT id_team FROM %s WHERE id_tournament = '%s';" % \
+                                   (db.TOURNAMENTS_RESULTS_TABLE, query_tourn_id)
+                print "query_to_results =", query_to_results
+
+                teams_tuples = db.select(what="id", table_names=db.TOURNAMENTS_RESULTS_TABLE, where=" WHERE ",
+                                         columns="id_tournament ", sign=" = ", values=query_tourn_id, fetch="all",
+                                         ind="all")
+                teams_indexes = [team[0] for team in teams_tuples]
+
+            # store teams for league in external class
+            self.teams.setTournResults(tourn_id, [Team(ind) for ind in teams_indexes])
             print "self.teams", self.teams
-            # if it already sorted, comment all block below
 
+            print "tourn_id=%s, classname=%s, country_id=%s" %\
+                  (tourn_id, classname, country_id)
 
-        self.members = []
-        if self.year <= db.START_SIM_SEASON:
-            # print "setMembers by rating for first season"
-            # get all team ids from defined country id - like they ordered by default in team_info table
-            # print "self.country_id=", self.country_id
-            teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ", columns="id_country ",
-                              sign=" = ", values=self.country_id, fetch="all", ind="all")
-            teams_indexes = [team[0] for team in teams_tuples]
-            self.members = [Team(ind) for ind in teams_indexes]
-        else:
-            print "setMembers by position from previous league"
-            # raise NotImplementedError
-            teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ", columns="id_country ",
-                              sign=" = ", values=self.country_id, fetch="all", ind="all")
-            # sort by position in league
-        for team in self.members:
-            print team
-        return
+            # FOR NOW WE ARE READY TO RUN NEW NATIONAL LEAGUE
+            # RUN TOURNAMENT (members will be collected by tournament itself)
+            tourn = tourn_class(name=tourn_id, season=self.season_id, year=self.year,
+                                members = self.teams.getTournResults(tourn_id), country_id=country_id)
+            final_table = tourn.run()
+            # print "final_table\n", final_table
+            # print "NEED TO UPDATE self.teams() WHILE WE REMEMBER ABOUT THIS RESULTS"
 
+            # sort teams by pos from table of just played tournament
+            teams_by_pos = [result["Team"] for result in final_table]
+            # print "teams_by_pos", [team.getID() for team in teams_by_pos]
+            self.teams.setTournResults(tourn_id, teams_by_pos)
+            print "updated self.teams", [team.getID() for team in self.teams.getTournResults(tourn_id)]
 
+        print "\nfinally_print_all_teams"
+        print "self.teams", self.teams, "\n"
+
+        # CUPS ***********
+        # tourn_type_id = self.cups[0][1] # 0 cause any number is ok
+        # classname = self.tourn_classes[tourn_type_id - 1].replace(" ", "_")
+        # tourn_class = getattr(sys.modules[__name__], classname)
+        tourn_class = getattr(sys.modules[__name__], "Cup")
+        for tournament in self.cups:
+            cup_id = tournament[0]
+            # we run national cup using seeding corresponding to national league results
+            # this expression is true while tournaments are stored in this order in database and
+            # in self.national_tournaments
+            league_id = cup_id - self.nations
+            country_id = tournament[2]
+            # cup = tourn_class(name=cup_id, season=self.season_id, year=self.year,
+            cup = Cup(name=cup_id, season=self.season_id, year=self.year,
+                                members = self.teams.getTournResults(league_id), country_id=country_id)
+            cupwinner = cup.run()
+            # print "UPDATE self.teams() FOR NATIONAL CUP WINNER"
+            self.teams.setTournResults(cup_id, cupwinner)
+            print "update winner for cup", [team.getID() for team in self.teams.getTournResults(tourn_id)]
+
+        # UEFA CL ********
+        tourn_class = getattr(sys.modules[__name__], "UEFA_Champions_League")
+        tourn_id = UEFA_CL_TYPE_ID
+        # preparing teams to CL 0 should we do it here or by UEFA Tournament itself?
+        # UEFA_CL_SCHEMA
 
     # # TODO 1) see League about converting round_num to 1/4, final, qual , etc
     # # TODO 2) add schemes of UEFA tournaments with the help of reglaments wiki
 
 
-    def run(self):
-        # # connect to DB
-        # con, cur = CON, CUR
+    # def run(self):
+    #     # # connect to DB
+    #     # con, cur = CON, CUR
+    #
+    #     # TODO run every match that exists in table "Tournaments"
+    #     season_tournaments = db.select(what=["id", "type", "id_country"],
+    #                                         table_names=db.TOURNAMENTS_TABLE, fetch="all", ind = "all")
+    #     print "season_tournaments=", season_tournaments
+    #     tourn_classes = [clname[0] for clname in db.select(what="name", table_names=db.TOURNAMENTS_TYPES_TABLE, fetch="all", ind="all")]
+    #     print "tourn_classes =%s" % tourn_classes
+    #     # TODO support UEFA
+    #     # for tournament in season_tournaments:
+    #     # while UEFA unsupported, run only national tournaments
+    #     # national_tournaments = season_tournaments[2:]
+    #     # uefa_tournaments = season_tournaments[:2]
+    #     # move UEFA tournaments to the end
+    #     tournaments = season_tournaments[2:] + season_tournaments[:2]
+    #     for tournament in tournaments:
+    #         tourn_id = tournament[0]
+    #         tourn_type_id = tournament[1]
+    #         # example: tourn_type_id = 3 for league, so index 2 in list of tourn_classes names
+    #         classname = tourn_classes[tourn_type_id - 1].replace(" ", "_")
+    #         country_id = tournament[2]
+    #         tourn_class = getattr(sys.modules[__name__], classname)
+    #         # abbreviation
+    #         country_ABV = db.select(what="name", table_names=db.COUNTRIES_TABLE, where=" WHERE ", columns="id", sign=" = ",
+    #                   values=country_id, fetch="one", ind=0)
+    #         print "tourn_id=%s, classname=%s, country_id=%s, country_name=%s" %\
+    #               (tourn_id, classname, country_id, country_ABV)
+    #         # teamnames = DataParsing.parse_domesticleague_results(country_name)
+    #         # print "teamnames", teamnames
+    #         # if tourn_id == 82:
+    #         #     pass
+    #
+    #         # RUN TOURNAMENT (members will be collected by tournament itself)
+    #         tourn = tourn_class(name=tourn_id, season=self.season_id, year=self.year, members = self.teams[tourn_id],
+    #                             country_id=country_id)
+    #         # tourn.run()
+    #
+    #         # if country_id:
+    #         #     print "play national tournament"
+    #         # else:
+    #         #     print "play UEFA tournament"
+    #     # columns = table_name, tournament_name, tournament_type, tournament_country
+    #     # counter += gen_national_tournaments(con, cur, columns, "Cup", sorted_countries)
+    #
+    #     # after all
+    #     # save_ratings(con, cur, [self.season_year], teamsL)
 
-        # TODO run every match that exists in table "Tournaments"
-        season_tournaments = db.select(what=["id", "type", "id_country"],
-                                            table_names=db.TOURNAMENTS_TABLE, fetch="all", ind = "all")
-        print "season_tournaments=", season_tournaments
-        tourn_classes = [clname[0] for clname in db.select(what="name", table_names=db.TOURNAMENTS_TYPES_TABLE, fetch="all", ind="all")]
-        print "tourn_classes =%s" % tourn_classes
-        # TODO support UEFA
-        # for tournament in season_tournaments:
-        # while UEFA unsupported, run only national tournaments
-        # national_tournaments = season_tournaments[2:]
-        # uefa_tournaments = season_tournaments[:2]
-        # move UEFA tournaments to the end
-        tournaments = season_tournaments[2:] + season_tournaments[:2]
-        for tournament in tournaments:
-            tourn_id = tournament[0]
-            tourn_type_id = tournament[1]
-            # example: tourn_type_id = 3 for league, so index 2 in list of tourn_classes names
-            classname = tourn_classes[tourn_type_id - 1].replace(" ", "_")
-            country_id = tournament[2]
-            tourn_class = getattr(sys.modules[__name__], classname)
-            # abbreviation
-            country_ABV = db.select(what="name", table_names=db.COUNTRIES_TABLE, where=" WHERE ", columns="id", sign=" = ",
-                      values=country_id, fetch="one", ind=0)
-            print "tourn_id=%s, classname=%s, country_id=%s, country_name=%s" %\
-                  (tourn_id, classname, country_id, country_ABV)
-            # teamnames = DataParsing.parse_domesticleague_results(country_name)
-            # print "teamnames", teamnames
-            # if tourn_id == 82:
-            #     pass
 
-            # RUN TOURNAMENT (members will be collected by tournament itself)
-            tourn = tourn_class(name=tourn_id, season=self.season_id, year=self.year, members = self.teams[tourn_id],
-                                country_id=country_id)
-            # tourn.run()
-
-            # if country_id:
-            #     print "play national tournament"
-            # else:
-            #     print "play UEFA tournament"
-        # columns = table_name, tournament_name, tournament_type, tournament_country
-        # counter += gen_national_tournaments(con, cur, columns, "Cup", sorted_countries)
-
-        # after all
-        # save_ratings(con, cur, [self.season_year], teamsL)
 
 
     def saveSeason(self):

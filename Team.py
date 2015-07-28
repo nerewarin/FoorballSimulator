@@ -111,6 +111,18 @@ class Teams():
         # self.setTeams()
         self.teams = {}
 
+    def str(self):
+        """
+        string representation of dict
+        :return:
+        """
+        representation = "\n print Teams"
+        for k, teams in self.teams.iteritems():
+            representation += "\nid_tourn = %s" % k
+            for i, team in enumerate(teams):
+                representation += "\n%s. %s" % (str(i), str(team))
+        return representation
+
     def setTournResults(self, tournament_id, teams):
         """
         set prev tournament result as a list of teams sorted by position
@@ -186,7 +198,7 @@ class Teams():
         sort all lists of teams (for every country or champ
         :return:
         """
-        pass
+        raise NotImplementedError
         # print "new_team_info", new_team_info
         # teams_info = db.select(what = "id_season, id_team, position", table_names=db.TEAMINFO_TABLE, fetch="all")
         # db.select()
@@ -196,6 +208,7 @@ class Teams():
 
         :return: team object - winner cup of a given id
         """
+        raise NotImplementedError
 
 
 
