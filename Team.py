@@ -133,10 +133,38 @@ class Teams():
         self.teams[tournament_id] = teams
 
     def getTournResults(self, tournament_id):
+        """
+
+        :param tournament_id:
+        :return: list of teams sorted by results in last played tournament (which id is given_
+        """
         if tournament_id in self.teams.keys():
             return self.teams[tournament_id]
         else:
             raise KeyError, "no data for getTournResults tournament_tournament_id = %s" %tournament_id
+
+    def sortedByCountryPos(self, country_positions):
+        """
+        :country_positions: list of country_positions (national tournaments) positions
+        :return: dict of teams where keys are sorted in
+        """
+        # national_tournaments_positions
+        ntp = country_positions * 2 # twice - for leagues and cups
+        # ntp teams - list of teams, sorted by ntp
+        self.ntp_teams = [self.teams[tournament_id + 2] for tournament_id in  ntp]
+        return self.ntp_teams
+
+    def getNTPteams(self, ntp_index = None):
+        """
+        return list of teams of tournament - all the same as getTournResults but ntp is list, sorted by nation rating
+        instead of just country_id
+        :param ntp: index (position of tournament in ntp_list)
+        :return:
+        """
+        if not ntp_index:
+            return self.ntp_teams
+        else:
+            return self.ntp_teams[ntp_index]
 
     def setTeams(self):
         """

@@ -56,11 +56,12 @@ class Cup(League):
             if seeding not in self.getSeedings():
                 raise Exception, "call independed Cup but seeding type not found in provided list getSeedings()"
 
-        kwargs = locals()
-        del kwargs["self"]
+        # kwargs = locals()
+        # del kwargs["self"]
         # print "kwargs", kwargs, len(kwargs)
         # for a in kwargs: print a
-        super(Cup, self).__init__(**kwargs)
+        # super(Cup, self).__init__(**kwargs)
+        super(Cup, self).__init__(**{par:val for par,val in locals().iteritems() if par != "self"}  )
         # super(Cup, self).__init__(name, season, year, members, delta_coefs, pair_mode, seeding, state_params, save_to_db,
         #                           prefix, type_id, country_id)
         self.pair_mode = pair_mode

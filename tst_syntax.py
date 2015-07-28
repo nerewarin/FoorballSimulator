@@ -100,6 +100,12 @@ def test_args():
     args = [1,2,32,3,2]
     foo(*args)
 
+def test_lists_mul():
+    a = [(4, 1), (3, 2), (10, 3), (1, 4), (9, 5), (2, 6), (6, 7), (8, 8), (7, 9), (38, 10), (18, 11), (21, 12), (12, 13), (49, 14), (22, 15), (41, 16), (5, 17), (13, 18), (30, 19), (31, 20), (28, 21), (20, 22), (14, 23), (32, 24), (11, 25), (33, 26), (25, 27), (26, 28), (39, 29), (34, 30), (27, 31), (50, 32), (15, 33), (23, 34), (19, 35), (17, 36), (29, 37), (40, 38), (44, 39), (36, 40), (47, 41), (46, 42), (37, 43), (51, 44), (35, 45), (43, 46), (24, 47), (53, 48), (45, 49), (48, 50), (52, 51), (16, 52), (42, 53), (54, 54)]
+    print len(a), a
+    a = a * 2
+    print len(a), a
+
 """ test code """
 if __name__ == '__main__':
     # test_roundRobin()
@@ -109,7 +115,8 @@ if __name__ == '__main__':
     # testStrings()
     # test_iterations(10)
     # test_orderedDict()
-    test_args()
+    # test_args()
+    test_lists_mul()
 
 # TestSortTeamL()
 
@@ -118,4 +125,3 @@ if __name__ == '__main__':
 # If there is an odd number of units in the list, the implementation will add 'None' to the list. The None item will be matched fairly against each of the units. In sports, a competitor paired with 'None', would have a 'bye' for that round.
 
 # syntax error. ..easy fix: change: "pairings.append(units[i], units[count-i-1])", on line 12, to: "pairings.append((units[i], units[count-i-1]))", and it works, fine!
-
