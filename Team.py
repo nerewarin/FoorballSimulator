@@ -149,7 +149,13 @@ class Teams():
         :return: dict of teams where keys are sorted in
         """
         # national_tournaments_positions
-        ntp = country_positions * 2 # twice - for leagues and cups
+        # twice - for leagues and cups
+        ntp = country_positions + [cup_id + len(country_positions) for cup_id in country_positions]
+        # in other words,
+        # ntp = ntp_leagues + ntp_cups    where
+        # ntp_leagues = [league_teams for league_teams in ntp_leagues]
+        # ntp_cups = [(cup_teams + shift) for cup_teams in ntp_leagues] where shift = len(country_positions)
+
         # ntp teams - list of teams, sorted by ntp
         self.ntp_teams = [self.teams[tournament_id + 2] for tournament_id in  ntp]
         return self.ntp_teams

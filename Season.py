@@ -180,7 +180,10 @@ class Season(object):
         for teams in self.ntp_teams:
             print [team.getID() for team in teams]
         # UEFA_CL_SCHEMA
+        # copy code from UEFA_Champions_league setMembers() ...
 
+        # uefa_cl_members =
+        raise NotImplementedError
 
     # # TODO 1) see League about converting round_num to 1/4, final, qual , etc
     # # TODO 2) add schemes of UEFA tournaments with the help of reglaments wiki
