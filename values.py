@@ -283,6 +283,23 @@ def TournamentSchemas(tournament_id):
     # if tournament_id == UEFA_CL_TYPE_ID:
     raise NotImplementedError
 
+# IN ORIGINAL by
+# https://ru.wikipedia.org/wiki/%D0%9B%D0%B8%D0%B3%D0%B0_%D1%87%D0%B5%D0%BC%D0%BF%D0%B8%D0%BE%D0%BD%D0%BE%D0%B2_%D0%A3%D0%95%D0%A4%D0%90_2014/2015
+# WE SHOULD EXCLUDE Lichtenstein BUT WE BELIEVE THAT THIS NATIONAL LEAGUE WILL BE PLAYED IN NEXT YEARS
+# (SEPARATELY FROM SWISS LEAGUE) SO WE CHANGE
+#                        # 1 round
+#                        # 6 champions of leagues 49-54
+#                        1 : {tuple(range(49,55,1)) : 1},
+#                        # 2 round
+#                        # 31 champions of leagues 17-48 and 3 winners of prev round
+#                        2 : {tuple(range(17,49,1)) : 1}, #  exclude Lichtenstein
+#     TO
+#                        # 1 round
+#                        # 6 champions of leagues 48-54
+#                        1 : {tuple(range(48,54,1)) : 1},
+#                        # 2 round
+#                        # 31 champions of leagues 17-47 and 3 winners of prev round
+#                        2 : {tuple(range(17,48,1)) : 1},
 UEFA_CL_SCHEMA = [
             # stage
             {"Qualification" : {
@@ -297,11 +314,11 @@ UEFA_CL_SCHEMA = [
 
                     "tindx_in_round" : {
                        # 1 round
-                       # 6 champions of leagues 49-54
-                       1 : {tuple(range(49,55,1)) : 1},
+                       # 6 champions of leagues 48-54
+                       1 : {tuple(range(48,54,1)) : 1},
                        # 2 round
-                       # 31 champions of leagues 17-48 and 3 winners of prev round # TODO exclude Lichtenstein
-                       2 : {tuple(range(17,49,1)) : 1},
+                       # 31 champions of leagues 17-47 and 3 winners of prev round
+                       2 : {tuple(range(17,48,1)) : 1},
                        # 3 round
                        # 3 champions of 14-16, 9 silver of 7-15, 1 bronze of 6 and 17 winners of prev
                        3 : {tuple(range(14,17)) : 1, tuple(range(7,16)) : 2, (6,) : 3},

@@ -434,7 +434,10 @@ class Cup(League):
             round = 0
             round_info = self.seeding[round]
             borderI = round_info["count"]
-            toss = round_info["toss"]
+            if "toss" in round_info.keys():
+                toss = round_info["toss"]
+            else:
+                toss = self.seeding
         else:
             raise ValueError, "unsupported argument type for seeding %s" %type(self.seeding)
         self.all_rounds = self.p_rounds + self.q_rounds

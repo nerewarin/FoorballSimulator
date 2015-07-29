@@ -106,6 +106,13 @@ def test_lists_mul():
     a = a * 2
     print len(a), a
 
+def test_divmod():
+    x, y = 50, 15
+    quotient, reminder =  divmod(x, y)
+    print "quotient, reminder of %s/%s = %s , %s" % (x,y , quotient, reminder)
+    # [round_num, parts, round_num, sub_tourn_name, pair_mode] = None
+    # print [round_num, parts, round_num, sub_tourn_name, pair_mode]
+
 """ test code """
 if __name__ == '__main__':
     # test_roundRobin()
@@ -116,7 +123,8 @@ if __name__ == '__main__':
     # test_iterations(10)
     # test_orderedDict()
     # test_args()
-    test_lists_mul()
+    # test_lists_mul()
+    test_divmod()
 
 # TestSortTeamL()
 

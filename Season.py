@@ -13,6 +13,7 @@ from values import Coefficients as C, TournamentSchemas as schemas, UEFA_CL_TYPE
     UEFA_EL_TYPE_ID, VALUES_VERSION, UEFA_TOURNAMENTS_ID, UEFA_CL_SCHEMA, UEFA_EL_SCHEMA
 import util
 import sys
+import warnings
 
 class Season(object):
 
@@ -65,6 +66,23 @@ class Season(object):
         # make a dict of {tourn_id - teams}, where teams is list, sorted by rating (if 1st season)
         # or position from prev. national league
         self.setNationalResults()
+
+        # shift_seed is used to shift indexes of seeded members in cases - if some country has'n got so many counties
+        # to pass them to UEFA cup, so shift nation
+        self.shift_nation = 0
+        # or if member seeded to UEFA_EL by Cup was already seeded to UEFA_CL - so get team from next pos of national
+        # league
+        self.shift_team = 0
+        self.set_UEFA_CL_teams(UEFA_CL_SCHEMA)
+        self.run_UEFA_CL()
+
+            # # TODO 1) see League about converting round_num to 1/4, final, qual , etc
+    # # TODO 2) add schemes of UEFA tournaments with the help of reglaments wiki
+
+    #
+    #     # after all
+    #     # save_ratings(con, cur, [self.season_year], teamsL)
+
 
     def getNationalResults(self, tourn_id = None):
         """
@@ -161,6 +179,11 @@ class Season(object):
             # print "update winner for cup", [team.getID() for team in self.teams.getTournResults(cup_id)]
         print "National Cups (%s) were played and stored in db" % self.nations
 
+
+    def set_UEFA_CL_teams(self, schema):
+        """
+        setting teams for every round by their national results
+        """
         # UEFA CL ********
         tourn_class = getattr(sys.modules[__name__], "UEFA_Champions_League")
         tourn_id = UEFA_CL_TYPE_ID
@@ -179,18 +202,199 @@ class Season(object):
         print "ok sort self.teams by tournament (country) ratings"
         for teams in self.ntp_teams:
             print [team.getID() for team in teams]
-        # UEFA_CL_SCHEMA
-        # copy code from UEFA_Champions_league setMembers() ...
 
-        # uefa_cl_members =
+
+        def shift_tourn(ntp_teams, nations, tourn_id):
+             # get next league - stay in the same half
+            # ifcup, reminder =  divmod(tourn_id, self.nations)
+            # tourn_id = ifcup * self.nations + (reminder + 1) % self.nations
+
+            # get from next-ranked LEAGUE (even if CUP was empty)            # shift
+            tourn_id = (tourn_id + 1) % nations
+            # get again
+            ntt = ntp_teams[tourn_id]
+            return tourn_id, ntt
+
+
+        members = []
+        # define only those members, that are independent of results in
+        members_by_round = []
+        # parsing stored in schema values
+        stages = []
+
+
+        for sub_tourn in schema:
+            # print stage
+            sub_tourn_members = []
+            round_num, parts, seeding, round_num, sub_tourn_name, pair_mode = None, None, None, None, None, None
+            for sub_tourn_name, sub_tourn_info in sub_tourn.iteritems():
+                print "sub_tourn_name %s" % sub_tourn_name
+                # print stage_name, stageV
+                classname = sub_tourn_info["classname"]
+                tourn_class = getattr(sys.modules[__name__], classname)
+
+                parts = sub_tourn_info["parts"] # for Groups
+                pair_mode = sub_tourn_info["pair_mode"]
+                round_info = sub_tourn_info["tindx_in_round"]
+                seeding = {}
+                for round_num, seeded_sources in round_info.items():
+                    print "round_num = %s" % round_num#, members_schema
+                    seeding[round_num] = {}
+                    round_members = []
+                    if round_num == 4: # for test
+                        pass
+
+                    for source, pos in seeded_sources.iteritems():
+                        print "sourcse, pos = ", source, pos
+
+                        # # if individual toss for round is defined
+                        # if source == "toss":
+                        #     seeding[round_num]["toss"] = pos
+
+                        if isinstance(source, tuple):
+                            # getting teams from source
+                            if isinstance(pos, int):
+                                print "seed from national League"
+                                # shift if cup is references to orders Leagues and Cups are stored in ntp, see Teams
+                                shift_ifcup = 0
+                                position = pos
+                            elif pos == "cupwinner":
+                                print "seed from national Cup"
+                                shift_ifcup = self.nations
+                                position = 1
+                            else:
+                                raise Exception, "unknown pos %s type %s" % (pos, type(pos))
+
+                            # tourn_pos is a index of self.ntp, it is stored in schema (see values.py) and points to ntp
+                            for tourn_pos in source:
+                                # national tournament teams list
+                                # -1 cause torn_id start from 1 in db, but index of ntp_teams starts from 0
+                                tourn_id = tourn_pos + shift_ifcup + self.shift_nation - 1
+                                ntt = self.ntp_teams[tourn_id]
+                                # index of ntt list
+                                # -1 cause position start from 1 in db, but index of teams in ntp_teams starts from 0
+                                team_index = (position - 1) + self.shift_team
+                                # check national tournament has this position (ntp exists)
+                                # while len(ntt) < team_index:
+                                #     # if not, next tournament fills vacant position
+                                #     self.shift_nation += 1
+                                #     warnings.warn("national tournament_id %s has not position %s to qualify it to UEFA!" % (
+                                #         tourn_id, team_index )
+                                #     raise NotImplemented
+                                while not ntt[team_index]:
+                                    # if tournament has not got more unseeded teams, tourn will be shifted to next
+                                    warnings.warn("national tournament_id %s has not position %s to qualify it to UEFA!"
+                                                  % (tourn_id, team_index))
+                                    tourn_id, ntt = shift_tourn(self.ntp_teams, self.nations, tourn_id)
+
+                                seeded_team = ntt[team_index]
+                                # seeded_team = ntt.pop(0)
+
+                                # # check team was already seeded in UEFA by another source
+                                # # TODO useful only when seed UEFA_EL - we can skip it for UEFA_CL
+                                # while seeded_team in UEFA_CL.getMembers():
+                                #     # self.shift_team += 1
+                                #     # get team of lower position of the same league
+                                #     team_index += 1
+                                #     if not ntt[team_index]:
+                                #         # if tournament has ot gor more unseeded teams, tourn will be shifted to next
+                                #         tourn_id, ntt = shift_tourn(self.ntp_teams, self.nations, tourn_id)
+                                #
+                                #     seeded_team = ntt[team_index].pop()
+                                round_members.append(seeded_team)
+                    sub_tourn_members += reversed(round_members)
+                    seeding[round_num]["count"] = len(round_members)
+            if not round_num and not parts:
+                warnings.warn("empty round!")
+                # go to next round
+                continue
+
+            if not sub_tourn_name:
+                warnings.warn("no name sub-tournament!")
+                continue
+
+            if not pair_mode:
+                warnings.warn("no pair mode!")
+                continue
+
+            if not seeding:
+                warnings.warn("no seeding collected!")
+                continue
+
+            # prefix = sub_tourn_name
+            # seeding = {round_num : {"count": len(sub_tourn_members)}  }  # - already defined
+            # members = sub_tourn_members
+            # pair_mode = pair_mode
+
+
+
+            # for multiple groups
+            winners = []
+            for ind, part in enumerate(xrange(parts)):
+                part_num = ind + 1
+                uefa_cl = tourn_class(season = self.season_id,
+                                     year = self.year,
+                                     members = sub_tourn_members,
+                                     pair_mode = pair_mode,
+                                     seeding = seeding,
+                                     save_to_db = True,
+                                     prefix = sub_tourn_name,
+                                     type_id = UEFA_CL_TYPE_ID)
+                winners += uefa_cl.run()
+
+
+
+        return
+
+                        #
+                        # # stage_members += [self.ntp_teams[tourn_pos + shift][position] for tourn_pos in source]
+                        # print "stage_members", stage_members
+                        #
+                        #
+                        #     # get list of indexes of countries ids with a given rating from previous season
+                        #     query =  "SELECT id FROM %s " % db.COUNTRY_RATINGS_TABLE + "WHERE id_season = '%s' and position IN %s;"
+                        #     data =  (self.prev_season, source)
+                        #     # print query % data
+                        #     # countries_ids = db.trySQLquery("execute", query, data, fetch = "all_tuples", ind = 0)
+                        #     self.cur.execute(query, data)
+                        #     fetched = self.cur.fetchall()
+                        #     countries_ids = [country_id[0] for country_id in fetched]
+                        #     print "countries_ids", countries_ids
+                        #
+                        #     # search for tournament_id of League of this country
+                        #     query =  "SELECT id FROM %s" % db.TOURNAMENTS_TABLE + " WHERE type = '%s' and id_country IN '%s';"
+                        #     data =  (tournament_type, countries_ids)
+                        #     db.trySQLquery(self.cur.mogrify, query, data)
+                        #     id_types = self.cur.fetchall()[0]
+                        #
+                        #     # get from tournaments_played needed results ids
+                        #     query =  "SELECT id FROM %s WHERE id_season = '%s' and id_type IN '%s';"
+                        #     data =  (db.TOURNAMENTS_TABLE, self.season, id_types)
+                        #     db.trySQLquery(self.cur.mogrify, query, data)
+                        #     id_tournaments = self.cur.fetchall()[0]
+                        #
+                        # elif source == "CL":
+                        #     id_types = (0, )
+                        #     position = pos
+                        #
+                        # else:
+                        #     raise Exception, "unknown source %s ,type %s" % (source, type(source))
+                        #
+                        # # get from tournament_results id of team with a given position
+                        # query =  "SELECT id_team FROM %s WHERE position = '%s' and id_tournaments IN '%s';"
+                        # data =  (db.TOURNAMENTS_RESULTS_TABLE, position, id_types)
+                        # db.trySQLquery(self.cur.mogrify, pos, data)
+                        # id_teams = self.cur.fetchall()[0]
+                        #
+                        # # add team ids to members of the current stage
+                        # stage_members += id_teams
+
+
+    def run_UEFA_CL(self):
         raise NotImplementedError
+        # for part in parts: # for Group ...
 
-    # # TODO 1) see League about converting round_num to 1/4, final, qual , etc
-    # # TODO 2) add schemes of UEFA tournaments with the help of reglaments wiki
 
-    #
-    #     # after all
-    #     # save_ratings(con, cur, [self.season_year], teamsL)
 
 
 
