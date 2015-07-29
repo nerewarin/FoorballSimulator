@@ -427,17 +427,23 @@ class Cup(League):
             round_info = None
             toss = self.seeding
             # print "self.p_rounds %s, self.q_rounds %s" % (self.p_rounds, self.q_rounds)
+            self.round_names = self.roundNames(self.p_rounds, self.q_rounds)
 
         elif isinstance(self.seeding, dict):
-            self.q_rounds = len(self.seeding)
-            self.p_rounds = 0
-            round = 0
+            # self.q_rounds = len(self.seeding)
+            # self.p_rounds = 0
+            self.q_rounds = 0
+            self.p_rounds = len(self.seeding)
+            round = 1
             round_info = self.seeding[round]
+            # border is index started from what, seeded teams are get from self.members
             borderI = round_info["count"]
             if "toss" in round_info.keys():
                 toss = round_info["toss"]
             else:
-                toss = self.seeding
+                toss = "A1_B16"
+            # for UEFA Qualification
+            self.round_names = {round : str(round) for round in self.seeding.keys()}
         else:
             raise ValueError, "unsupported argument type for seeding %s" %type(self.seeding)
         self.all_rounds = self.p_rounds + self.q_rounds
@@ -447,7 +453,7 @@ class Cup(League):
     #     raise AttributeError
     # else:
         # convert number of round to round tournament (1/4, semi-final, etc.)
-        self.round_names = self.roundNames(self.p_rounds, self.q_rounds)
+
 
         # print round_names
 
@@ -461,14 +467,24 @@ class Cup(League):
             _teams = seeded + winners
             pair_mode = get_pairmode(round)
             self.results, loosers, winners = RunRoundAndUpdate(round, pair_mode, self.results, _teams, toss)
-            # UPDATE LIST OF REMAINING TEAMS
+
+            # if final round, break - cup complete!
+            if round == self.all_rounds:
+                break
+
+            # update list of remaining teams
             for seeded_team in seeded:
                 teams.remove(seeded_team)
 
+            # prepare border for next round
             if round_info:
-                round_info = self.seeding[round]
+                next_round = round + 1
+                round_info = self.seeding[next_round]
                 borderI = round_info["count"]
-                toss = round_info["toss"]
+                if "toss" in round_info.keys():
+                    toss = round_info["toss"]
+                else:
+                    toss = "A1_B16"
             else:
                 # national
                 borderI = 0

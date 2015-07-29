@@ -82,6 +82,8 @@ class Season(object):
     #
     #     # after all
     #     # save_ratings(con, cur, [self.season_year], teamsL)
+    # TODO recompute and save countries rating in db
+    # TODO save teams rating in db
 
 
     def getNationalResults(self, tourn_id = None):
@@ -222,7 +224,8 @@ class Season(object):
         # parsing stored in schema values
         stages = []
 
-
+        # winners of every sub-tournament will be added to next sub-tournament
+        winners = []
         for sub_tourn in schema:
             # print stage
             sub_tourn_members = []
@@ -329,19 +332,29 @@ class Season(object):
 
 
             # for multiple groups
-            winners = []
-            for ind, part in enumerate(xrange(parts)):
-                part_num = ind + 1
+            sub_winners = []
+            # add winners from previous sub-tournament
+            members = winners + sub_tourn_members[::-1]
+
+            # split members by parts
+            # if sub-tournament has classname = "League"
+            # for part in xrange(parts):
+            # baskets = [basket for ]             for part in xrange(parts):
+
+            # TODO UEFA TOURNAMENT SHOULD BE REGISTERED IN DATABASE
+            for part in xrange(parts):
+                part_num = part + 1
+
                 uefa_cl = tourn_class(season = self.season_id,
                                      year = self.year,
-                                     members = sub_tourn_members,
+                                     members = members,
                                      pair_mode = pair_mode,
                                      seeding = seeding,
                                      save_to_db = True,
                                      prefix = sub_tourn_name,
                                      type_id = UEFA_CL_TYPE_ID)
-                winners += uefa_cl.run()
-
+                sub_winners += uefa_cl.run()
+            winners = sub_winners
 
 
         return
