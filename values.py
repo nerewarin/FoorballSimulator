@@ -295,7 +295,7 @@ def TournamentSchemas(tournament_id):
 #                        2 : {tuple(range(17,49,1)) : 1}, #  exclude Lichtenstein
 #     TO
 #                        # 1 round
-#                        # 6 champions of leagues 48-54
+#                        # 6 champions of leagues 48-53
 #                        1 : {tuple(range(48,54,1)) : 1},
 #                        # 2 round
 #                        # 31 champions of leagues 17-47 and 3 winners of prev round
@@ -314,7 +314,7 @@ UEFA_CL_SCHEMA = [
 
                     "tindx_in_round" : {
                        # 1 round
-                       # 6 champions of leagues 48-54
+                       # 6 champions of leagues 48-53 (all but 54)
                        1 : {tuple(range(48,54,1)) : 1},
                        # 2 round
                        # 31 champions of leagues 17-47 and 3 winners of prev round
@@ -345,7 +345,11 @@ UEFA_CL_SCHEMA = [
                     "classname" : "Cup",
                     "parts" : 1,
                     "pair_mode" : 1, # one match in final
-                    "tindx_in_round" : {1 : {}}
+                    "tindx_in_round" : {1 : {"toss" : "not_same_country_and_played_in_group"},  # 1/8
+                                        2 : {"toss" : "rnd"}  ,                                 # 1/4
+                                        3 : {},                                                 # 1/2
+                                        4 : {}                                                  # final
+                                        }
                         # simple cup of 16 winners of groups
                 }
             }
@@ -353,7 +357,15 @@ UEFA_CL_SCHEMA = [
 
     # elif tournament_id == UEFA_EL_TYPE_ID:
         # 195 members (48 members in groups)
-        # return
+
+# CHANGES FROM ORIGINAL from wiki:
+# 1. WE SHOULD EXCLUDE Lichtenstein BUT WE BELIEVE THAT THIS NATIONAL LEAGUE WILL BE PLAYED IN NEXT YEARS
+# (SEPARATELY FROM SWISS LEAGUE) SO WE CHANGE
+# 2. instead of Fairplay we can just get next - rated teams (2 of them are cutted by Lichtenstein rule 52-2 (from EL q)
+# and 54-1 (from CL q1) - so we exchange EL_q1 :
+# tuple(range(27,53)) : 2 => tuple(range(27,54)) : 2 , tuple(54, ) : 1
+# 3. use 6th place for ENG of FRANCE, instead of "League Cup" winners in reality
+
 UEFA_EL_SCHEMA = [
             # stage
             {"Qualification" : {
@@ -364,19 +376,17 @@ UEFA_EL_SCHEMA = [
                     "pair_mode" : 2,
                     # every tour is a row of dict {round tournament : dict{country ind : team pos of national league}}
                     "tindx_in_round" : {
-                        # 1 round
-                        # 20 cup winners 35-54, 26 silver of 27-53 # TODO exclude Lichtenstein or not when teams already parsed
-                        # 29 bronze 22-51, 3 "FairPlay"
-                        # TODO instead of Fairplay we can just get next -rated teams
-                        1 : {tuple(range(35,55)) : "cupwinner",  tuple(range(27,53)) : 2, tuple(range(22,52)) : 3, (0,1,2) : "FairPlay"},
+                        # 1 round: count=78
+                        # 20 cup winners 35-54, 1 winner of 54*, 28* silver of 27-54*, 29 bronze 22-52
+                        1 : {tuple(range(35,55)) : "cupwinner",  (54, ) : 1, tuple(range(27,54)) : 2,
+                             tuple(range(22,52)) : 3},
                         # 2 round
                          # 15 cup winners 20-34, 11 silver 16-26, 6 bronze 16-21, 6 fourth 10-15, 3 fifth 7-9,
                          # and 38 winners of prev
                         2 : {tuple(range(20,35)) : "cupwinner",  tuple(range(16,27)) : 2, tuple(range(16,22)) : 3,
-                               tuple(range(10,16)) : 4,  tuple(range(7,10)) : 3},
+                               tuple(range(10,16)) : 4,  tuple(range(7,10)) : 5},
                         # 3 round
                          # 3 cup winners 17-19, 6 bronze 10-15, 3 fourth 7-9, 3 fifth 4-6, 3 sixth 1-3,
-                        # # TODO if sixth from ENG of FRANCE, use cup winners of special national "League Cup"
                          # and 38 winners of prev
                         3 : {tuple(range(17,20)) : "cupwinner",  tuple(range(10,16)) : 3, tuple(range(7,10)) : 4,
                                tuple(range(4,7)) : 5,  tuple(range(1,4)) : 6}, # or league cup see todo above
@@ -416,13 +426,14 @@ UEFA_EL_SCHEMA = [
                         # simple cup of
                         # 24 winners of prev
                         # 8 from Group round of champions league (3th places)
-                        1 : {"CL" : "Group"}}
+                        1 : {"CL" : "Group 3th places"}}
 
                         }
             }
         ]
 
-
+RESERVE_EL_TEAMS = [{53:3}, {54:3}, {1:7}, {2:7}, {3:7}, {4:6}, {5:6}, {6:6}, {7:6}, {8:6}, {9:6}, {10:6},
+                    {11:5}, {12:5}, {13:5}, {15:4}] # to be continued...
 
 # def get_CL_schema():
 #     """
@@ -462,7 +473,7 @@ if __name__ == "__main__":
             for stage in schema:
                 # print stage
                 for stage_name, stageV in stage.iteritems():
-                    print stage_name
+                    print "stage_name", stage_name
                     # print stage_name, stageV
                     for attrK, attrV in stageV.iteritems():
                         if isinstance(attrV, list):

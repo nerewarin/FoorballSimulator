@@ -197,7 +197,7 @@ class Cup(League):
         # register ID or tournament if unregistered yet
         if not self.prefix:
             # if unregistered yet - register now (for national Leagues)
-            self.id = self.saveTounramentPlayed()
+            self.name_id = self.saveTounramentPlayed()
         # else (already registered) - so stored in self.id
 
         teams = list(self.getMember())
@@ -217,10 +217,7 @@ class Cup(League):
         # round 4 (qual 1)            8 9       4 13   5 12             7 10      3 14   6 11
         # // number = index in members + 1
 
-        # TODO save PQplaces in table for Cup-tournament. if not exists, compute it
-
-        # TODO save rounds tournament from rounds num for every Cup-tournament.
-
+        ####################### start helper functions block #######################
         def PQplaces(p_rounds, q_rounds):
             """
             p_rounds - number of play-off rounds in cup
@@ -341,7 +338,7 @@ class Cup(League):
                 # PLAY MATCH OR DOUBLE_MATCH
                 struggle = classname(pair, self.delta_coefs, tournament=self.getID(), round = round_name, playoff = playoff, save_to_db=self.save_to_db)
                 struggle.run()
-# match = M.Match(pair, self.delta_coefs, , round = round, save_to_db=self.save_to_db)
+
                 # print "classname %s" % classname
                 results = struggle.getResult(1, 2, casted=True)
                 looser = struggle.getLooser()
@@ -388,11 +385,11 @@ class Cup(League):
 
             # if print_matches:
             #     for stage, result in enumerate(self.results):
-            #         print "results (loosers) of stage %s len of %s : %s" % (stage, len(self.results[stage]), [team.getName() for team in self.results[stage]])
+            #         print "results (loosers) of stage %s len of %s : %s" % (stage, len(self.results[stage]), [
+            #             team.getName() for team in self.results[stage]])
 
             # return results, teams
             return res, loosers, winners
-
 
         def get_pairmode(round):
             """
@@ -404,17 +401,8 @@ class Cup(League):
             else:
                 pairmode = self.pair_mode
             return pairmode
+        ####################### end helper functions block #######################
 
-
-
-
-            # TODO: to support self.q_rounds > 1, need recompute qpairs and qteamsI with special logic: compute by
-            # TODO: rounds_count only if external schema does't exists (else get it from additional class parameters,
-            # TODO: UEFA is good example of that situation)
-
-
-    # try:
-        # print "teams_num", teams_num
         # borderI - number of teams that skip first qualification round
         if isinstance(self.seeding, str):
             # national Cups
@@ -442,8 +430,12 @@ class Cup(League):
                 toss = round_info["toss"]
             else:
                 toss = "A1_B16"
-            # for UEFA Qualification
-            self.round_names = {round : str(round) for round in self.seeding.keys()}
+
+            if "qual" in self.prefix.lower():
+                # for UEFA Qualification
+                self.round_names = {round : str(round) for round in self.seeding.keys()}
+            else:
+                self.round_names = self.roundNames(self.p_rounds, self.q_rounds)
         else:
             raise ValueError, "unsupported argument type for seeding %s" %type(self.seeding)
         self.all_rounds = self.p_rounds + self.q_rounds

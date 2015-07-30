@@ -113,6 +113,12 @@ def test_divmod():
     # [round_num, parts, round_num, sub_tourn_name, pair_mode] = None
     # print [round_num, parts, round_num, sub_tourn_name, pair_mode]
 
+def testIndexes():
+    group_members = [[1,2,3], [3,5], [], []]
+    for part in xrange(4):
+        for member in group_members[part]:
+            print member, type(member)
+
 """ test code """
 if __name__ == '__main__':
     # test_roundRobin()
@@ -124,7 +130,8 @@ if __name__ == '__main__':
     # test_orderedDict()
     # test_args()
     # test_lists_mul()
-    test_divmod()
+    # test_divmod()
+    testIndexes()
 
 # TestSortTeamL()
 

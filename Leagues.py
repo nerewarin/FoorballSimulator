@@ -68,10 +68,21 @@ class League(object):
 
         # if (not prefix) and name:
         #     raise ValueError, "League will not be saved cause id is predefined bur type is not UEFA (cause prefix)!"
-        self.id = name # TODO name = id ? in tourn_played  - only for UEFA. if not, it will be filled in the 1st row of run()
-        self.name = name
-        self.season = season
-        self.year = None
+        self.name_id = name # TODO name = id ? in tourn_played  - only for UEFA. if not, it will be filled in the 1st row of run()
+        self.name = name   # split two vars to one
+        # if came id, set it
+        if isinstance(season, int) or isinstance(season, str):
+            # test season
+            self.season = season
+        else:
+            # if came object, get id
+            self.season = season.getID()
+        if not season:
+            # self.seasonname = db.trySQLquery(query="SELECT name FROM %s ORDER BY ID DESC LIMIT 1"
+            #                                    % db.SEASONS_TABLE, fetch="one")
+            self.season = db.trySQLquery(query="SELECT id FROM %s ORDER BY ID DESC LIMIT 1"
+                                               % db.SEASONS_TABLE, fetch="one")
+        self.year = year
         self.members = members
         self.delta_coefs = delta_coefs
         self.seeding = seeding # not used in League - used hardcoded roundRobin instead
@@ -82,7 +93,8 @@ class League(object):
         self.country_id = country_id # for getMembers
 
         # get members from database and set to self.members
-        if not members:
+        # for UEFA, setMembers overrides witk additional parameters
+        if not members and type_id not in v.UEFA_TOURNAMENTS_ID:
             self.setMembers()
         # print "tourn_self.members = ", self.members
 
@@ -114,6 +126,7 @@ class League(object):
     def setMembers(self):
         """
         defines members for league/cup as a list from database - logic is the same for both league and cup
+        ntp_teams and nations are used only by UEFA setMembers
         :return:
         """
         print "setMembers_by_Tournament_itself"
@@ -137,7 +150,7 @@ class League(object):
         return
 
     def getID(self):
-        return self.id
+        return self.name_id
 
     def getName(self):
         return self.name
@@ -232,7 +245,7 @@ class League(object):
         else:
             # unregistered yet - for national Leagues
             # saving tournament id before run to pass id to matches correctly
-            self.id = self.saveTounramentPlayed()
+            self.name_id = self.saveTounramentPlayed()
 
 
         teams = self.getMember()
@@ -367,17 +380,17 @@ class League(object):
         # print "saving tournament name_id %s to database" % self.id
         columns = db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="colnames", suffix = " LIMIT 0")[1:]
         # print "TOURNAMENTS_PLAYED_TABLE columns are ", columns
-        values = [self.season, self.id]
+        values = [self.season, self.name_id]
         # print "values are ", values
         db.insert(db.TOURNAMENTS_PLAYED_TABLE, columns, values)
         # print "new tournament id (%s) of season_id (%s) inserted" % (values[1], values[0])
         # return id
-        id =  db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="one", suffix = " ORDER BY id DESC LIMIT 1")
+        name_id =  db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="one", suffix = " ORDER BY id DESC LIMIT 1")
         # assert (id == self.id ), "storeed (%s) and argument (%s) id not equals!" % (id,  self.id)
         # print "id", id
         # print "id[0]", id[0]
         # return id[0]
-        return id
+        return name_id
 
 
     def saveToDB(self, table):
@@ -392,7 +405,7 @@ class League(object):
             # id_team = team.getID()
             id_team = team["Team"].getID()
             pos = ind + 1
-            values = [self.id, pos, id_team]
+            values = [self.name_id, pos, id_team]
             db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, values)
         # print "inserted %s rows to %s" % (len(table), db.TOURNAMENTS_RESULTS_TABLE)
 

@@ -143,11 +143,21 @@ class Teams():
         else:
             raise KeyError, "no data for getTournResults tournament_tournament_id = %s" %tournament_id
 
-    def sortedByCountryPos(self, country_positions):
+    def sortedByCountryPos(self, season_id):
         """
+        :season_id: id of current season (but we will use id of previous season)
         :country_positions: list of country_positions (national tournaments) positions
         :return: dict of teams where keys are sorted in
         """
+
+        # get country ratings for this season - list of tuples [(country_id, position), ...]
+        # country_positions = db.select(what="id_country, position", table_names=db.COUNTRY_RATINGS_TABLE, where=" WHERE ",
+        #                             columns="id_season", sign=" = ", values=(self.season_id-1), fetch="all", ind="all")
+        country_positions = db.select(what="id_country", table_names=db.COUNTRY_RATINGS_TABLE, where=" WHERE ",
+                                    columns="id_season", sign=" = ", values=(season_id-1), fetch="all", ind="all")
+        country_positions = [country[0] for country in country_positions]
+        print "country_positions", country_positions
+
         # national_tournaments_positions
         # twice - for leagues and cups
         ntp = country_positions + [cup_id + len(country_positions) for cup_id in country_positions]
