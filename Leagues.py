@@ -71,12 +71,13 @@ class League(object):
         self.name_id = name # TODO name = id ? in tourn_played  - only for UEFA. if not, it will be filled in the 1st row of run()
         self.name = name   # split two vars to one
         # if came id, set it
-        if isinstance(season, int) or isinstance(season, str):
-            # test season
-            self.season = season
-        else:
-            # if came object, get id
-            self.season = season.getID()
+        self.season = season
+        # if isinstance(season, int) or isinstance(season, str):
+        #     # test season
+        #     self.season = season
+        # else:
+        #     # if came object, get id
+        #     self.season = season.getID()
         if not season:
             # self.seasonname = db.trySQLquery(query="SELECT name FROM %s ORDER BY ID DESC LIMIT 1"
             #                                    % db.SEASONS_TABLE, fetch="one")
@@ -93,8 +94,9 @@ class League(object):
         self.country_id = country_id # for getMembers
 
         # get members from database and set to self.members
-        # for UEFA, setMembers overrides witk additional parameters
-        if not members and type_id not in v.UEFA_TOURNAMENTS_ID:
+        ## for UEFA, setMembers overrides with additional parameters
+        # if not members and type_id not in v.UEFA_TOURNAMENTS_ID:
+        if not members: #and type_id not in v.UEFA_TOURNAMENTS_ID:
             self.setMembers()
         # print "tourn_self.members = ", self.members
 
@@ -380,9 +382,15 @@ class League(object):
         # print "saving tournament name_id %s to database" % self.id
         columns = db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="colnames", suffix = " LIMIT 0")[1:]
         # print "TOURNAMENTS_PLAYED_TABLE columns are ", columns
-        values = [self.season, self.name_id]
+        if isinstance(self.season, int):
+            self.season_id = self.season
+        else:
+            self.season_id = self.season.getID()
+        values = [self.season_id, self.name_id]
         # print "values are ", values
         db.insert(db.TOURNAMENTS_PLAYED_TABLE, columns, values)
+                  # output = "OUTPUT %s.id"%db.TOURNAMENTS_PLAYED_TABLE, fetch = "one")
+
         # print "new tournament id (%s) of season_id (%s) inserted" % (values[1], values[0])
         # return id
         name_id =  db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="one", suffix = " ORDER BY id DESC LIMIT 1")

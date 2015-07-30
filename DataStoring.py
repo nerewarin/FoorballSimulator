@@ -338,7 +338,7 @@ def select(what = "*", table_names = "", where = "", columns = "", sign = "", va
         raise NotImplementedError, "unknown fetch parameter"
 
 
-def insert(table, columns, values):
+def insert(table, columns, values, output = "", fetch = None):
     """
 
     :param table:
@@ -354,32 +354,32 @@ def insert(table, columns, values):
     for ind, input in enumerate(inputs):
 
         if isinstance(input, list):
-            output = ""
+            _output = ""
             for input_part in input:
                 # if ind == 1 and isinstance(input_part, str):  # only for string values!
                 if ind == 1 : #only for  values!
                     # if isinstance(input_part, str):
                 #     # add additional quotes to format values as ('%s', ..)
                 #     print "AHAA"
-                    output += ("'" + str(input_part) + "', ")
+                    _output += ("'" + str(input_part) + "', ")
                     # output += ("\'" + str(input_part) + "\', ")
                     # else:
 
                 else:
-                    output += (str(input_part) + ", ")
+                    _output += (str(input_part) + ", ")
                 # output += (str(input_part) + ", ")
                 # print "output", output
-            output = output[:-2]
+            _output = _output[:-2]
             # print "output = ", output
         else:
-            output = str(input)
-        outputs.append(output)
+            _output = str(input)
+        outputs.append(_output)
 
     cols, vals = outputs
 
-    insert_query = 'INSERT INTO ' + table + ' (' + cols + ') VALUES (' + vals + ');'
+    insert_query = 'INSERT INTO ' + table + " " + output + " " +  ' (' + cols + ') VALUES (' + vals + ');'
     # print "insert_query = ",  insert_query
-    trySQLquery("execute", insert_query)
+    return trySQLquery("execute", insert_query, fetch=fetch)
 
 
 def truncate(table):

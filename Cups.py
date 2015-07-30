@@ -50,11 +50,11 @@ class Cup(League):
         :return:
         """
         if prefix:
-            if not isinstance(seeding, dict):
-                raise Exception, "seeding must be a list of dicts roundN:[seeded_teams]"
+            if not isinstance(seeding, dict) and not isinstance(seeding, list):
+                raise Exception, "seeding must be a list of dicts roundN:[seeded_teams], not %s" % type(seeding)
         else:
             if seeding not in self.getSeedings():
-                raise Exception, "call independed Cup but seeding type not found in provided list getSeedings()"
+                raise Exception, "call independened Cup but seeding type not found in provided list getSeedings()"
 
         # kwargs = locals()
         # del kwargs["self"]
@@ -118,7 +118,8 @@ class Cup(League):
 
     def getNet(self):
         """
-        for print or display in web, has format self.net[round].append((pair[0].getName(), pair[1].getName(), results))
+        for print or display in web, has format
+        self.net[round].append((pair[0].getName(), pair[1].getName(), results, looser TeamObj))
         where result can be (0:0) or ((1:1), (2:2)) - # TODO CHECK BY TEST
 
         :return:
@@ -519,9 +520,20 @@ class Cup(League):
         for round, pairs_info in self.net.iteritems():
 
             # pos = self.prefix +
-            pos = self.round_names[round]
+            if round in self.round_names.keys():
+                pos = self.round_names[round] # TODO rename pos to final stage
+            else:
+                print "not round %s in self.round_names!" % round
+                if self.prefix:
+                    print "its ok, just break"
+                    break
+                else:
+                    raise KeyError, "no name for round %s in self.net" % round
             if pos == "winner" and len(pairs_info) > 1:
                 pos = "winners"
+                # winners of sub-tournament not finish tournament - their results will be filled in next round
+                # break
+                print "multiple winners for round %s !!" #round
             for pair_info in pairs_info:
                 id_team = pair_info[-1].getID()
                 # id_team2 = pair_info[1].getName()

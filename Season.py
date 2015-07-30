@@ -130,7 +130,7 @@ class Season(object):
             # FOR NOW WE ARE READY TO RUN NEW NATIONAL LEAGUE
             # RUN TOURNAMENT (members will be collected by tournament itself)
             # tourn = tourn_class(name=tourn_id, season=self.season_id, year=self.year, # TODO SEASON OBJ INSTEAD OF ID
-            tourn = tourn_class(name=tourn_id, season=self, year=self.year,
+            tourn = tourn_class(name=tourn_id, season=self.getID(), year=self.year,
                                 members = self.teams.getTournResults(tourn_id), country_id=country_id)
             final_table = tourn.run()
             # print "final_table\n", final_table
@@ -448,7 +448,7 @@ class Season(object):
                                      type_id = UEFA_CL_TYPE_ID)
 
         # save for future access to UEFA_EL for seeding
-        self.UEFA_CL_members = UEFA_CL_tourn.getMembers()
+        self.UEFA_CL_members = UEFA_CL_tourn.getMember()
 
         results = UEFA_CL_tourn.run()
         print results

@@ -335,6 +335,7 @@ UEFA_CL_SCHEMA = [
                     "parts" : 8,
                     "pair_mode" : 2,
                     "tindx_in_round" : {
+                        # count=22
                         # 13 champions of 1-13, 6 silver 1-6, 3 bronze 1-3   and 10 winners of qualification
                         # no tournament or None -named round (cause its exclusive)
                         1 : {tuple(range(1,14,1)) : 1, tuple(range(1,7,1)) : 2, tuple(range(1,4,1)) : 3 }}
@@ -376,7 +377,7 @@ UEFA_EL_SCHEMA = [
                     "pair_mode" : 2,
                     # every tour is a row of dict {round tournament : dict{country ind : team pos of national league}}
                     "tindx_in_round" : {
-                        # 1 round: count=78
+                        # count=78
                         # 20 cup winners 35-54, 1 winner of 54*, 28* silver of 27-54*, 29 bronze 22-52
                         1 : {tuple(range(35,55)) : "cupwinner",  (54, ) : 1, tuple(range(27,54)) : 2,
                              tuple(range(22,52)) : 3},

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'NereWARin'
 
-import Team
+from Team import Team
 from Cups import Cup
 import DataStoring as db
 import util
@@ -41,7 +41,7 @@ class UEFA_Champions_League(Cup):
                  seeding = UEFA_CL_SCHEMA,
                  state_params = ("final_stage", ),
                  save_to_db = True,
-                 prefix = "",
+                 prefix = "UEFA",
                  type_id = UEFA_CL_TYPE_ID, # id from tournaments_types_names
                  country_id = None
                  ):
@@ -75,10 +75,12 @@ class UEFA_Champions_League(Cup):
         #     self.season = db.trySQLquery(query="SELECT id FROM %s ORDER BY ID DESC LIMIT 1"
         #                                        % db.SEASONS_TABLE, fetch="one")
 
-        print "\nWELCOME TO UEFA LEAGUE *** id = %s season_id = %s ***" % (name, season.getID())
+
         super(UEFA_Champions_League, self).__init__(**{par:val for par,val in locals().iteritems()
                                                        if par != "self" })
                                                         # if par not in ("self", "ntp_teams", "nations")})
+        # if
+        print "\nWELCOME TO UEFA LEAGUE *** id = %s season_id = %s ***" % (name, season.getID())
         # moved to League (super)
         # if members:
         #     # EXTERNAL
@@ -147,7 +149,7 @@ class UEFA_Champions_League(Cup):
             # tourn_class = None
             classname = None
 
-            assert sub_tourn.keys() == 1, "unexpected sub_tourn keys > 1"
+            assert len(sub_tourn.keys()) == 1, "unexpected sub_tourn keys (%s) > 1 " % len(sub_tourn.keys())
             # v1 the same as
             # sub_tourn_name = sub_tourn.keys()[0]
             # sub_tourn_info = sub_tourn[sub_tourn_name]
@@ -216,9 +218,23 @@ class UEFA_Champions_League(Cup):
                                 seeded_team = ntt[team_index]
                                 # seeded_team = ntt.pop(0)
 
+                                def check_seed_in_CL(name, season, seeded_team):
+                                    if name == UEFA_CL_TYPE_ID:
+                                        # see in self members
+                                        if seeded_team in round_members:
+                                            return True
+                                        elif seeded_team in sub_tourn_members:
+                                            return True
+                                        elif seeded_team in [other_sub[2] for other_sub in  self.sub_schems]:
+                                            return True
+                                        return False
+                                    elif name == UEFA_CL_TYPE_ID: # if EL
+                                        # see in memebers CL stored in Season
+                                        return season.check_seed_in_CL(seeded_team)
+
                                 # # check team was already seeded in UEFA by another source
                                 # # TODO useful only when seed UEFA_EL - we can skip it for UEFA_CL
-                                while self.season.check_seed_in_CL(seeded_team):
+                                while check_seed_in_CL(self.name, self.season, seeded_team):
                                     # self.shift_team += 1
                                     # get team of lower position of the same league
                                     team_index += 1
@@ -243,11 +259,12 @@ class UEFA_Champions_League(Cup):
 
         # common list of members used for quick search by another tournament (UEFA_EL) - maybe it will be unused
         self.members = []
-        for members in self.sub_schems:
+        for members in reversed(self.sub_schems):
             # get sub_tourn_members   from  sub_schems and add them to the common list
             self.members += members[2]
         # reverse back - now its from favorite to outsider
         self.members = self.members[::-1]
+        print "ok UEFA setMembers"
         return self.members
 
 
@@ -298,22 +315,28 @@ class UEFA_Champions_League(Cup):
             # split members by parts
             # if sub-tournament has classname = "League"
             if classname == "League": # or prefix == "Group" (or starts from group)
+                # sort teams by rating
+                members = sort_by_ratings(members)
+                pass
                 # split by 4 baskets
                 baskets_count = 4
-                assert len(members) % baskets_count == 0, "baskets lenghts cannot be equal!"
+                assert len(members) % baskets_count == 0, "teams in baskets cannot be equal!"
                 basket_len = len(members) / baskets_count
                 baskets = []
-                for part in xrange(parts):
-                    basket = members[basket_len*part : basket_len*(part+1)]
-                    baskets += basket
+                for basket_num in xrange(baskets_count):
+                    basket = members[basket_len*basket_num : basket_len*(basket_num+1)]
+                    baskets.append(basket) # TODO APPEND
 
                 # define group members Group
-                group_members = [[], [], [], []]
+                group_members = [[] for part in xrange(parts)]
                 attempts = 1000
-                while members or attempts:
+                while members and attempts:
                     for part in xrange(parts):
                         for basket in baskets:
                             unchecked_candidates = list(basket)
+                            if not unchecked_candidates:
+                                print  "groups seeded successfully"
+                                break
                             candidate = random.choice(unchecked_candidates)
                             checked = False
                             # check no same country in the group
@@ -326,26 +349,35 @@ class UEFA_Champions_League(Cup):
                                 for member in group_members[part]:
                                     if member.getCountry() == candidate.getCountry():
                                         checked = False
-                                        unchecked_candidates.remove(candidate)
-                                if not checked:
-                                    if not unchecked_candidates:
-                                        # unlucky! but no way
-                                        print "cannot found candidate with the different country for %s" % candidate
+                                        # unchecked_candidates.remove(candidate)
+                                        new_candidate = random.choice(unchecked_candidates)
+                                        while candidate == new_candidate and check_attempts:
+                                            check_attempts -= 1
+                                            new_candidate = random.choice(unchecked_candidates)
+                                        candidate = new_candidate
                                         break
-                                    candidate = random.choice(unchecked_candidates)
+                                # if not checked:
+                                #     if not unchecked_candidates:
+                                #         # unlucky! but no way
+                                #         print "cannot found candidate with the different country for %s" % candidate
+                                #         break
+                                #     candidate = random.choice(unchecked_candidates)
 
                             group_members[part].append(candidate)
+                            basket.remove(candidate)
                             members.remove(candidate)
                 print "TOSS group_members is ok!\n" % group_members
+                self.set_group_members(group_members)
 
             for part in xrange(parts):
                 part_num = part + 1
                 # if parts > 1, so its groups
+                print "run UEFA part_num=%s" % part_num
                 if classname == "League":
                     members = group_members[baskets_count*part : baskets_count*(part+1)]
                     prefix = sub_tourn_name + " %s" % part_num
                 else:
-                    prefix = sub_tourn_name
+                    prefix = sub_tourn_name  # TODO + UEFA CHAMPIONS League
                 sub_tournament = tourn_class(name = self.name_id,
                                      season = self.season,
                                      year = self.year,
@@ -354,14 +386,20 @@ class UEFA_Champions_League(Cup):
                                      seeding = rounds_info,
                                      # save_to_db = True, # by default
                                      prefix = prefix,
-                                     type_id = UEFA_CL_TYPE_ID)
+                                     type_id = UEFA_CL_TYPE_ID) # TODO !!!
                 sub_winners += sub_tournament.run()
             pre_winners = sub_winners
 
 
         return
 
+    def set_group_members(self, members):
+        """
 
+        :param members: list of lists_of_teams, combinated by played in Group
+        :return:
+        """
+        self.group_members = members
 
     def test(self, print_matches = False, print_ratings = False):
         print "\nTEST CUP CLASS\n"
@@ -388,15 +426,27 @@ class UEFA_Champions_League(Cup):
 
 
 
-
+def sort_by_ratings(teams):
+    """
+    sort list of teams by ratings and return in descending order [favorite ... outsider]
+    :param teams:
+    :return:
+    """
+    # return teams.sort(key=lambda x: x.getUefaPos(), reverse=False)
+    return sorted(teams, key=lambda x: x.getUefaPos())
 
 
 @util.timer
 def Test(*args, **kwargs):
+    # test sort_by_ratings
+    teams_unsorted = [Team(1), Team(15), Team(20), Team(2)]
+    teams_sorted = sort_by_ratings(teams_unsorted)
+    assert (teams_sorted == [teams_unsorted[ind] for ind in (0,3,1,2)]), "test sort_by_ratings fails!"
+
     # TEST CUP CLASS
     if "ids" in kwargs:
         for id in  kwargs["ids"]:
-            tstcp = UEFA_Champions_League(id)
+            tstcp = UEFA_Champions_League(name=id)
 
 # TEST
 if __name__ == "__main__":
