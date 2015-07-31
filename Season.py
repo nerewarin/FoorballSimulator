@@ -79,6 +79,7 @@ class Season(object):
             return self.teams
         return self.teams.getTournResults(tourn_id)
 
+    @util.timer
     def RunNationalTournaments(self):
         """
         storing all info about previous played tournaments to united dictionary (Team.Teams instance)

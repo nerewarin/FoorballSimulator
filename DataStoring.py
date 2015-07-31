@@ -355,30 +355,38 @@ def insert(table, columns, values, output = "", fetch = None):
 
         if isinstance(input, list):
             _output = ""
-            for input_part in input:
+            for i, input_part in enumerate(input):
                 # if ind == 1 and isinstance(input_part, str):  # only for string values!
                 if ind == 1 : #only for  values!
+                    if isinstance(input_part, list) or isinstance(input_part, tuple):
+                        _output += "("
+                        for j, vals in enumerate(input_part):
+                            _output += ("'" + str(vals) + "', ")
+                            if j == len(input_part) - 1:
+                                # last team - delete comma and close brace
+                                _output = _output[:-2] + "),"
                     # if isinstance(input_part, str):
                 #     # add additional quotes to format values as ('%s', ..)
-                #     print "AHAA"
-                    _output += ("'" + str(input_part) + "', ")
-                    # output += ("\'" + str(input_part) + "\', ")
-                    # else:
-
+                    else:
+                        # single values portion
+                        sb = ""
+                        if not i: sb = "("
+                        _output += (sb + "'" + str(input_part) + "', ")
                 else:
                     _output += (str(input_part) + ", ")
-                # output += (str(input_part) + ", ")
                 # print "output", output
-            _output = _output[:-2]
+            _output = _output[:-2] + ")"
             # print "output = ", output
         else:
-            _output = str(input)
+            _output = "(" + str(input) + ")"
         outputs.append(_output)
 
     cols, vals = outputs
 
-    insert_query = 'INSERT INTO ' + table + " " + output + " " +  ' (' + cols + ') VALUES (' + vals + ');'
+    # insert_query = 'INSERT INTO ' + table + " " + output + " " +  ' (' + cols + ') VALUES (' + vals + ');'
+    insert_query = 'INSERT INTO ' + table + " " + output + " " +  ' (' + cols + ' VALUES ' + vals + ';'
     # print "insert_query = ",  insert_query
+    # print insert_query
     return trySQLquery("execute", insert_query, fetch=fetch)
 
 

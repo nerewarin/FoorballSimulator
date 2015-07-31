@@ -409,13 +409,15 @@ class League(object):
         # print "\nsaving tournament %s results  to database" % self.getName()
         columns = db.select(table_names=db.TOURNAMENTS_RESULTS_TABLE, fetch="colnames", where = " LIMIT 0")[1:]
         # print "TOURNAMENTS_RESULTS_TABLE columns are ", columns
+        multi_values = []
         for ind, team in enumerate(table):
             # id_team = team.getID()
             id_team = team["Team"].getID()
             pos = ind + 1
             values = [self.name_id, pos, id_team]
-            db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, values)
-        # print "inserted %s rows to %s" % (len(table), db.TOURNAMENTS_RESULTS_TABLE)
+            multi_values.append(values)
+            # db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, values) # 0.424000sec if make insert for every to row
+        db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, multi_values) # 0.028000 if write by single insert
 
 
     def test(self,print_matches = False, print_ratings = False):
