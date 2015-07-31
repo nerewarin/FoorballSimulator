@@ -355,7 +355,7 @@ class Season(object):
 
 
 
-
+    #
                         #
                         # # stage_members += [self.ntp_teams[tourn_pos + shift][position] for tourn_pos in source]
                         # print "stage_members", stage_members

@@ -282,6 +282,8 @@ class UEFA_Champions_League(Cup):
             # tourn_class, sub_tourn_name, members, rounds_info, parts, pair_mode = sub_schema
             classname, sub_tourn_name, members, rounds_info, parts, pair_mode = sub_schema
             tourn_class = getattr(sys.modules[__name__], classname)
+            print "classname %s, sub_tourn_name %s, seeded_members %s, rounds_info %s, parts %s, pair_mode %s" % (
+            classname, sub_tourn_name, members, rounds_info, parts, pair_mode)
 
             if not parts:
                 warnings.warn("empty round!")
@@ -368,12 +370,14 @@ class UEFA_Champions_League(Cup):
                 print "TOSS group_members is ok!\n" % group_members
                 self.set_group_members(group_members)
 
+            # RUN SUB_TOURNAMENTS
             for part in xrange(parts):
                 part_num = part + 1
                 # if parts > 1, so its groups
                 print "run UEFA part_num=%s" % part_num
                 if classname == "League":
-                    members = group_members[baskets_count*part : baskets_count*(part+1)]
+                    # members = group_members[baskets_count*part : baskets_count*(part+1)]
+                    members = group_members[part]
                     prefix = sub_tourn_name + " %s" % part_num
                 else:
                     prefix = sub_tourn_name  # TODO + UEFA CHAMPIONS League
@@ -386,7 +390,14 @@ class UEFA_Champions_League(Cup):
                                      # save_to_db = True, # by default
                                      prefix = prefix,
                                      type_id = UEFA_CL_TYPE_ID) # TODO !!!
-                sub_winners += sub_tournament.run()
+                if classname == "League":
+                    # filter two first teams
+                    group_results = sub_tournament.run()
+                    first_place = group_results[0]["Team"]
+                    second_place = group_results[1]["Team"]
+                    sub_winners = [first_place] + sub_winners + [second_place]
+                else:
+                    sub_winners += sub_tournament.run()
             pre_winners = sub_winners
 
 

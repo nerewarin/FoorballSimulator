@@ -181,10 +181,11 @@ class Cup(League):
         names[rounds] = "Final"
         # names[rounds-1] = "Semi-Final"
 
-        for round in range(q_rounds + 1, rounds):
+        for round in range(q_rounds, rounds):
             names[round] = "1/%s-Final" % (2**(rounds-round))
 
-        names[q_rounds] = "Qualification Play-Off"
+        if q_rounds:
+            names[q_rounds] = "Qualification Play-Off"
         for round in range(1, q_rounds):
             names[round] = "Qualification round %s" % round
 
@@ -307,6 +308,7 @@ class Cup(League):
                         id_tournament = self.name
                         round = "" # TODO  CONSISTS GROUP !!!!!
                         values = [id_tournament, round, team1.getID(), team2.getID()]
+                        # TODO NOT IMPLEMENTED!
                         # TODO SQL select id from %s where        db.MATCHES_TABLE
                         warnings.warn("constraint for played_in_group not implemented!")
                         return False
