@@ -563,7 +563,7 @@ class Cup(League):
         # print "Matches columns are ", columns
         columns = columns[1:] # (exclusive id) - its auto-incremented
         db.insert(db.MATCHES_TABLE, columns, multi_values)
-        print "Cups: inserted %s matches" % len(multi_values)
+        # print "Cups: inserted %s matches" % len(multi_values)
 
 
     def getRoundNames(self):
@@ -579,7 +579,7 @@ class Cup(League):
         """
 
         print "\nTEST CUP CLASS\n"
-        print "pair_mode = %s\nseeding = %s\n" % (self.pair_mode, self.seeding)
+        print "pair_mode = %s\nseeding = %s\nmembers_num = %s\n" % (self.pair_mode, self.seeding, len(self.getMember()))
         print "initial Net:"
         print self#.printTable()
         if print_matches:
@@ -708,7 +708,7 @@ def Test(*args, **kwargs):
         # pair_mode = 1 # home + guest every match but the final
         # pair_mode = 2 # home + guest every match
         for seeding in seedings:
-            print "TEST CUP: seeding=%s, pair_mode=%s" %(seeding, pair_mode)
+            # print "TEST CUP: seeding=%s, pair_mode=%s" %(seeding, pair_mode)
             # print "teams, coefs, pair_mode, seeding", teams, coefs, pair_mode, seeding
             # old-styled
             # tstcp = Cup("testCup", "2015/2016", teams, coefs, pair_mode, seeding)

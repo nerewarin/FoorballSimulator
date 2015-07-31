@@ -318,7 +318,7 @@ def select(what = "*", table_names = "", where = "", columns = "", sign = "", va
     _what, tables, cols, vals = outputs
     select_query = 'SELECT '+ _what + ' FROM ' + tables + where + cols + sign + vals + suffix + ';'
 
-    print "select_query = ", select_query
+    # print "select_query = ", select_query
 
 
     trySQLquery("execute", select_query)

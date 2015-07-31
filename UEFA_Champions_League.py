@@ -155,8 +155,7 @@ class UEFA_Champions_League(Cup):
             # sub_tourn_info = sub_tourn[sub_tourn_name]
             # v2
             for sub_tourn_name, sub_tourn_info in sub_tourn.iteritems():
-                print "sub_tourn_name %s" % sub_tourn_name
-                # print stage_name, stageV
+                # print "sub_tourn_name %s" % sub_tourn_name
                 classname = sub_tourn_info["classname"]
                 # tourn_class = getattr(sys.modules[__name__], classname)
 
@@ -165,14 +164,14 @@ class UEFA_Champions_League(Cup):
                 rounds_info = sub_tourn_info["tindx_in_round"]
                 # borders = {}
                 for round_num, seeded_sources in rounds_info.items():
-                    print "round_num = %s" % round_num#, members_schema
+                    # print "round_num = %s" % round_num#, members_schema
                     rounds_info[round_num] = {}
                     round_members = []
                     if round_num == 4: # for test
                         pass
 
                     for source, pos in seeded_sources.iteritems():
-                        print "sourcse, pos = ", source, pos
+                        # print "sourcse, pos = ", source, pos
 
                         # # if individual toss for round is defined
                         # if source == "toss":
@@ -181,12 +180,12 @@ class UEFA_Champions_League(Cup):
                         if isinstance(source, tuple):
                             # getting teams from source
                             if isinstance(pos, int):
-                                print "seed from national League"
+                                # print "seed from national League"
                                 # shift if cup is references to orders Leagues and Cups are stored in ntp, see Teams
                                 shift_ifcup = 0
                                 position = pos
                             elif pos == "cupwinner":
-                                print "seed from national Cup"
+                                # print "seed from national Cup"
                                 shift_ifcup = nations
                                 position = 1
                             else:

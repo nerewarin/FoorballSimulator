@@ -41,9 +41,9 @@ class Season(object):
         # print "self.id, self.year", self.id, self.year
         season_tournaments = db.select(what=["id", "type", "id_country"],
                                             table_names=db.TOURNAMENTS_TABLE, fetch="all", ind = "all")
-        print "season_tournaments=", season_tournaments
+        # print "season_tournaments=", season_tournaments
         self.tourn_classes = [clname[0] for clname in db.select(what="name", table_names=db.TOURNAMENTS_TYPES_TABLE, fetch="all", ind="all")]
-        print "tourn_classes =%s" % self.tourn_classes
+        # print "tourn_classes =%s" % self.tourn_classes
         # TODO support UEFA
         # for tournament in season_tournaments:
         # while UEFA unsupported, run only national tournaments
@@ -79,7 +79,7 @@ class Season(object):
             return self.teams
         return self.teams.getTournResults(tourn_id)
 
-    @util.timer
+    # @util.timer # profit 6 sec to 1 sec by multi-values inserting
     def RunNationalTournaments(self):
         """
         storing all info about previous played tournaments to united dictionary (Team.Teams instance)
@@ -489,7 +489,7 @@ class Season(object):
         """
         print "saving season to database"
         columns = db.select(table_names=db.SEASONS_TABLE, fetch="colnames", suffix = " LIMIT 0")[1:]
-        print "SEASONS_TABLE columns are ", columns
+        # print "SEASONS_TABLE columns are ", columns
         # values = db.select(table_names=db.SEASONS_TABLE, fetch="one", suffix = " LIMIT 0")[1:]
 
         last_season = db.trySQLquery(query="SELECT name FROM %s ORDER BY ID DESC LIMIT 1"
