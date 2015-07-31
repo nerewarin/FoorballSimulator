@@ -62,6 +62,7 @@ class Match(object):
         self.winner = "not played" # or not updated in run() method - debug it!
         self.looser = "not played"
         self.outcome = "not played"
+        self.insert_values = []
 
     def __str__(self):
         """
@@ -82,6 +83,11 @@ class Match(object):
             # type_id from Tournaments (expected SERIE A) - (not from tournaments_types_names, where expected just "League")
             type_id = db.select(what="type", table_names=db.TOURNAMENTS_TABLE, where=" WHERE ", columns="id", sign=" = ",
                                    values=self.tournament)
+            # type_id = db.select(what="type", table_names=db.TOURNAMENTS_PLAYED_TABLE, where=" WHERE ", columns="id", sign=" = ",
+            #                        values=self.name_id)
+            #
+            # type_name_id = db.select(what="type", table_names=db.TOURNAMENTS_TABLE, where=" WHERE ", columns="id", sign=" = ",
+            #                        values=type_played_id)
 
             tourn_name = db.select(what="name", table_names=db.TOURNAMENTS_TABLE, where=" WHERE ", columns="id", sign=" = ",
                                    values=type_id)
@@ -276,18 +282,37 @@ class Match(object):
         """
         self.homeID = self.home.getID()
         self.guestID = self.guest.getID()
-        # columns = db.trySQLquery(CUR.execute())"id" "SELECT * FROM %s LIMIT 0" % db.MATCHES_TABLE
-        columns = db.select(table_names=db.MATCHES_TABLE, fetch="colnames", suffix = " LIMIT 0")
-        # print "Matches columns are ", columns
-        columns = columns[1:]
-        # print "Matches columns (exclusive id) are ", columns
+
         values = [self.tournament, self.round, self.homeID, self.guestID, self.getResult()[0], self.getResult()[1]]
-        # print "values are ", values
-        if not self.tournament or self.tournament == v.TEST_TOURNAMENT_ID:
-            # print "friendly ot test match, id_tournament column will not be filled"
-            columns = columns[1:]
-            values = values[1:]
-        db.insert(db.MATCHES_TABLE, columns, values)
+
+        if self.save_to_db == "multi_values":
+            # return values to insert all matches by tournment.saveToDB() by one insert
+            self.set_insert_values(values)
+        else:
+            # or insert right now
+            # columns = db.trySQLquery(CUR.execute())"id" "SELECT * FROM %s LIMIT 0" % db.MATCHES_TABLE
+            columns = db.select(table_names=db.MATCHES_TABLE, fetch="colnames", suffix = " LIMIT 0")
+            # print "Matches columns are ", columns
+            columns = columns[1:] # (exclusive id) - its auto-incremented
+            # print "Matches columns (exclusive id) are ", columns
+
+            # print "values are ", values
+            if not self.tournament or self.tournament == v.TEST_TOURNAMENT_ID:
+                # print "friendly ot test match, so id_tournament column will not be filled"
+                columns = columns[1:]
+                values = values[1:]
+            # insert single row
+            db.insert(db.MATCHES_TABLE, columns, values)
+
+    def get_insert_values(self):
+        """
+        returns list of values to insert to db by one line for all matches of tournament
+        """
+        return self.insert_values
+
+    def set_insert_values(self, values):
+        # self.insert_values.append(values)
+        self.insert_values.append(values)
 
 
 class DoubleMatch(Match):
@@ -344,14 +369,24 @@ class DoubleMatch(Match):
 
 
     def run(self, update = True):
+        self.insert_values = []
         # first digit - team1 goals, second - team2 goals
         # forward: 1 - team1 , 2 - team2
-        match1_score = list(Match((self.home, self.guest), self.deltaCoefs, self.tournament, self.round + " m1", False,
-                                  self.result_format, self.mode, save_to_db = self.save_to_db).run())
+        match1 = Match((self.home, self.guest), self.deltaCoefs, self.tournament, self.round + " m1", False,
+                                  self.result_format, self.mode, save_to_db = "multi_values")
+                                  # self.result_format, self.mode, save_to_db = self.save_to_db)
+        match1_score = list(match1.run())
 
         # reversed: 1 - team2 , 2 - team1
-        match2_score = list(Match((self.guest, self.home), self.deltaCoefs, self.tournament, self.round + " m2", False,
-                                  self.result_format, self.mode, save_to_db = self.save_to_db).run())
+        match2 = Match((self.guest, self.home), self.deltaCoefs, self.tournament, self.round + " m2", False,
+                                  self.result_format, self.mode, save_to_db = "multi_values")
+                                  # self.result_format, self.mode, save_to_db = self.save_to_db)
+        match2_score = list(match2.run())
+
+        if self.save_to_db:
+            self.set_insert_values(match1.get_insert_values()[0])
+            self.set_insert_values(match2.get_insert_values()[0])
+
 
         # like in match1_score, first digit - team1 goals, second - team2 result
         # 1 - team1 , 2 - team2

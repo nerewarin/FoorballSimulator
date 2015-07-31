@@ -195,6 +195,10 @@ class Cup(League):
         generate matches, every match team rating and result updates
         after all, table updates and returns
         """
+
+        # collecting match values to insert all matches of League to db at once
+        self.match_values = []
+
         # register ID or tournament if unregistered yet
         if not self.prefix:
             # if unregistered yet - register now (for national Leagues)
@@ -242,7 +246,7 @@ class Cup(League):
             # return borderI, qpairs
             return -borderI
 
-        def cupRound(_teams_, round, pair_mode, toss, print_matches = False):
+        def cupRound(self, _teams_, round, pair_mode, toss, print_matches = False):
             """
             teams - only those teams that will play in that round
 
@@ -337,8 +341,12 @@ class Cup(League):
                 #                 % (self.getName(), self.season, round_name, struggleN)
 
                 # PLAY MATCH OR DOUBLE_MATCH
-                struggle = classname(pair, self.delta_coefs, tournament=self.getID(), round = round_name, playoff = playoff, save_to_db=self.save_to_db)
+                # struggle = classname(pair, self.delta_coefs, tournament=self.getID(), round = round_name, playoff = playoff, save_to_db=self.save_to_db"multi_values")
+                struggle = classname(pair, self.delta_coefs, tournament=self.getID(), round = round_name,
+                                     playoff = playoff, save_to_db="multi_values")
                 struggle.run()
+                # collecting match values to insert all matches of League to db at once
+                self.match_values.append(struggle.get_insert_values())
 
                 # print "classname %s" % classname
                 results = struggle.getResult(1, 2, casted=True)
@@ -366,7 +374,7 @@ class Cup(League):
 
             return loosers, winners
 
-        def RunRoundAndUpdate(round, pair_mode, results, teams, toss):
+        def RunRoundAndUpdate(self, round, pair_mode, results, teams, toss):
             # try:
             #
             # except:
@@ -376,7 +384,7 @@ class Cup(League):
             # # create new list for pair in round
             # self.net[round] = []
 
-            loosers, winners = cupRound(teams, round, pair_mode, toss, print_matches)
+            loosers, winners = cupRound(self, teams, round, pair_mode, toss, print_matches)
 
             # UPDATE RESULTS
             # TODO choose results form and net form
@@ -459,7 +467,7 @@ class Cup(League):
             # seeded = [self.getMember(i) for i in range(len(seeded))]
             _teams = seeded + winners
             pair_mode = get_pairmode(round)
-            self.results, loosers, winners = RunRoundAndUpdate(round, pair_mode, self.results, _teams, toss)
+            self.results, loosers, winners = RunRoundAndUpdate(self, round, pair_mode, self.results, _teams, toss)
 
             # if final round, break - cup complete!
             if round == self.all_rounds:
@@ -542,8 +550,20 @@ class Cup(League):
                 # db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, values)
 
         db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, multi_values)
-        # print "inserted %s rows to %s" % (len(multi_values), db.TOURNAMENTS_RESULTS_TABLE)
+        # print "inserted %s rows to %s"  % (len(multi_values), db.TOURNAMENTS_RESULTS_TABLE)
 
+        # save matches results by one insert
+        multi_values = []
+        for struggle_values in self.match_values:
+            for match_values in struggle_values:
+                # print "match_values", match_values
+                multi_values.append(match_values)
+        # print  "Cup multi-values", multi_values
+        columns = db.select(table_names=db.MATCHES_TABLE, fetch="colnames", suffix = " LIMIT 0")
+        # print "Matches columns are ", columns
+        columns = columns[1:] # (exclusive id) - its auto-incremented
+        db.insert(db.MATCHES_TABLE, columns, multi_values)
+        print "Cups: inserted %s matches" % len(multi_values)
 
 
     def getRoundNames(self):

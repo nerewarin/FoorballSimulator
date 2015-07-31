@@ -194,10 +194,12 @@ class League(object):
 
         # new-style
 
-        # match = M.Match(pair, self.delta_coefs, tournament=season_name + " " + str(tourn_name), round = round, save_to_db=self.save_to_db)
-        match = M.Match(pair, self.delta_coefs, tournament=self.getID(), round = round, save_to_db=self.save_to_db)
-
+        # match = M.Match(pair, self.delta_coefs, tournament=self.getID(), round = round, save_to_db=self.save_to_db)
+        match = M.Match(pair, self.delta_coefs, tournament=self.getID(), round = round, save_to_db="multi_values")
         match_score = match.run()
+        # collecting match values to insert all matches of League to db at once
+        self.match_values.append(match.get_insert_values())
+
         self.home_mathes_count[home_ind] += 1
 
         if print_matches:
@@ -234,6 +236,9 @@ class League(object):
         generate matches, every match team rating and result updates
         after all, table updates and returns
         """
+        # collecting match values to insert all matches of League to db at once
+        self.match_values = []
+
         if self.prefix:
             # if League is a part of tournament (for example, UEFA),
             # get id from last played tournament stored in database
@@ -418,6 +423,17 @@ class League(object):
             multi_values.append(values)
             # db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, values) # 0.424000sec if make insert for every to row
         db.insert(db.TOURNAMENTS_RESULTS_TABLE, columns, multi_values) # 0.028000 if write by single insert
+
+        # save matches results
+        multi_values = []
+        for struggle_values in self.match_values:
+            for match_values in struggle_values:
+                multi_values.append(match_values)
+
+        columns = db.select(table_names=db.MATCHES_TABLE, fetch="colnames", suffix = " LIMIT 0")
+        # print "Matches columns are ", columns
+        columns = columns[1:] # (exclusive id) - its auto-incremented
+        db.insert(db.MATCHES_TABLE, columns, multi_values)
 
 
     def test(self,print_matches = False, print_ratings = False):
