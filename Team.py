@@ -156,7 +156,7 @@ class Teams():
         country_positions = db.select(what="id_country", table_names=db.COUNTRY_RATINGS_TABLE, where=" WHERE ",
                                     columns="id_season", sign=" = ", values=(season_id-1), fetch="all", ind="all")
         country_positions = [country[0] for country in country_positions]
-        print "country_positions", country_positions
+        # print "country_positions", country_positions
 
         # national_tournaments_positions
         # twice - for leagues and cups

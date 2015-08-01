@@ -300,25 +300,38 @@ class Cup(League):
 
                 elif toss == "not_same_country_and_played_in_group":
                     teams_num = len(teams)
+                    half_len = teams_num / 2
+                    # *** WARNING!
                     # here we might have first places of Group in the first half of list teams, 2nd places in 2nd half
+                    # [H1, G1, F1, E1, D1, C1, B1, A1, A2, B2, C2, D2, E2, F2, G2]
                     # for 1/8 Champions League
-                    team1 = teams[random.randrange(teams_num/2)]  # 1 half
-                    team2 = teams[random.randrange(teams_num/2, teams_num)] # 2 half
+                    t1_ind = random.randrange(half_len)             # 1 half
+                    t2_ind = random.randrange(half_len, teams_num)  # 2 half
+                    team1 = teams[t1_ind]
+                    team2 = teams[t2_ind]
 
-                    def played_in_group(team1, team2):
-                        columns = ["id_tournament", "round", "id_team1", "id_team2"]
-                        id_tournament = self.name
-                        round = "" # TODO  CONSISTS GROUP !!!!!
-                        values = [id_tournament, round, team1.getID(), team2.getID()]
-                        # TODO NOT IMPLEMENTED!
-                        # TODO SQL select id from %s where        db.MATCHES_TABLE
-                        warnings.warn("constraint for played_in_group not implemented!")
+                    def played_in_group(t1_ind, t2_ind):
+                        # while list has form
+                        # we can only check indexes
+                        half1_ind = t1_ind # % teams_num - no effect
+                        half2_ind = t2_ind % teams_num
+
+                        if half1_ind == (half_len - half2_ind - 1):
+                            return True
                         return False
+                        # columns = ["id_tournament", "round", "id_team1", "id_team2"]
+                        # id_tournament = self.name
+                        # round = "" # TODO  CONSISTS GROUP !!!!!
+                        # values = [id_tournament, round, team1.getID(), team2.getID()]
+                        # # TODO NOT IMPLEMENTED!
+                        # # TODO SQL select id from %s where        db.MATCHES_TABLE
+                        # warnings.warn("constraint for played_in_group not implemented!")
+                        # return False
 
                     attempts = 100
-                    while team1.getCountry() == team2.getCountry() or played_in_group:
-                        team1 = teams[random.randrange(teams_num/2)]  # 1 half
-                        team2 = teams[random.randrange(teams_num/2, teams_num)] # 2 half
+                    while team1.getCountry() == team2.getCountry() or played_in_group(t1_ind, t2_ind):
+                        team1 = teams[random.randrange(half_len)]  # 1 half
+                        team2 = teams[random.randrange(half_len, teams_num)] # 2 half
                         attempts -= 1
                         if not attempts:
                             warnings.warn("cannot find opponent")
@@ -502,7 +515,7 @@ class Cup(League):
             assert len(winners) == 1, "Cup ends with more than one winner!"
             self.winners = winners
         else:
-            # for qualificaton for example
+            # for qualificaton for exampl9e
             self.winners = winners
         # print "self.winner" , self.winner
 

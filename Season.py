@@ -476,7 +476,7 @@ class Season(object):
         # save for future access to UEFA_EL for seeding
         UEFA_EL_members = UEFA_EL_tourn.getMember()
 
-        results = UEFA_EL_members.run()
+        results = UEFA_EL_tourn.run()
         print results
 
 
