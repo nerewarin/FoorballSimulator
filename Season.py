@@ -454,6 +454,12 @@ class Season(object):
         results = UEFA_CL_tourn.run()
         print results
 
+    def get_UEFA_CL_members(self):
+        """
+        used by UEFA_EL to check cup winner not already seeded in CL this season
+        """
+        return self.UEFA_CL_members
+
     def check_seed_in_CL(self, team):
         """
         used for UEFA Europe League to check if cup winners were already seed in Champion League
@@ -468,13 +474,13 @@ class Season(object):
                                      year = self.year,
                                      # members = members,
                                      # pair_mode = pair_mode,
-                                     # seeding = seeding,
+                                     seeding = UEFA_EL_SCHEMA,
                                      save_to_db = True,
                                      # prefix = sub_tourn_name,
                                      type_id = UEFA_EL_TYPE_ID)
 
-        # save for future access to UEFA_EL for seeding
-        UEFA_EL_members = UEFA_EL_tourn.getMember()
+        # # save for future access to UEFA_EL for seeding
+        # UEFA_EL_members = UEFA_EL_tourn.getMember()
 
         results = UEFA_EL_tourn.run()
         print results

@@ -137,17 +137,17 @@ class UEFA_Champions_League(Cup):
         # winners of every sub-tournament will be added to next sub-tournament
         winners = []
 
-        # UEFA tournament consosts of sub_tournemants - Qualification, Group, Pla-off which are played in order
+        # UEFA tournament consists of sub_tournemants - Qualification, Group, Pla-off which are played in order
         for sub_tourn in self.seeding: # schema - list of dicts
             # print stage
             sub_tourn_members = []
-            round_num, parts, seeding, round_num, sub_tourn_name, pair_mode = None, None, None, None, None, None
-
+            classname, round_num, parts, seeding, round_num, sub_tourn_name, pair_mode = \
+                None, None, None, None, None, None, None
             rounds_info = {}
-            parts = None
-            pair_mode = None
+            # parts = None
+            # pair_mode = None
             # tourn_class = None
-            classname = None
+            # classname = None
 
             assert len(sub_tourn.keys()) == 1, "unexpected sub_tourn keys (%s) > 1 " % len(sub_tourn.keys())
             # v1 the same as
@@ -167,11 +167,11 @@ class UEFA_Champions_League(Cup):
                     # print "round_num = %s" % round_num#, members_schema
                     rounds_info[round_num] = {}
                     round_members = []
-                    if round_num == 4: # for test
+                    if round_num == 4: # TODO for test
                         pass
 
                     for source, pos in seeded_sources.iteritems():
-                        # print "sourcse, pos = ", source, pos
+                        print "sourcse, pos = ", source, pos
 
                         # # if individual toss for round is defined
                         # if source == "toss":
@@ -193,9 +193,9 @@ class UEFA_Champions_League(Cup):
 
                             # tourn_pos is a index of self.ntp, it is stored in schema (see values.py) and points to ntp
                             for tourn_pos in source:
-                                # national tournament teams list
                                 # -1 cause torn_id start from 1 in db, but index of ntp_teams starts from 0
-                                tourn_id = tourn_pos + shift_ifcup + shift_nation - 1
+                                tourn_id = tourn_pos + shift_ifcup + shift_nation - 1 # index of list ntp_teams
+                                # national tournament teams list
                                 ntt = ntp_teams[tourn_id]
                                 # index of ntt list
                                 # -1 cause position start from 1 in db, but index of teams in ntp_teams starts from 0
@@ -207,7 +207,7 @@ class UEFA_Champions_League(Cup):
                                 #     warnings.warn("national tournament_id %s has not position %s to qualify it to UEFA!" % (
                                 #         tourn_id, team_index )
                                 #     raise NotImplemented
-                                while not ntt[team_index]:
+                                while team_index > (len(ntt) - 1): # league is too small!
                                     # if tournament has not got more unseeded teams, tourn will be shifted to next
                                     warnings.warn("national tournament_id %s has not position %s to qualify it to UEFA!"
                                                   % (tourn_id, team_index))
@@ -217,8 +217,8 @@ class UEFA_Champions_League(Cup):
                                 seeded_team = ntt[team_index]
                                 # seeded_team = ntt.pop(0)
 
-                                def check_seed_in_CL(name, season, seeded_team):
-                                    if name == UEFA_CL_TYPE_ID:
+                                def check_seed_in_CL(type, season, seeded_team):
+                                    if type == UEFA_CL_TYPE_ID:
                                         # see in self members
                                         if seeded_team in round_members:
                                             return True
@@ -227,15 +227,16 @@ class UEFA_Champions_League(Cup):
                                         elif seeded_team in [other_sub[2] for other_sub in  self.sub_schems]:
                                             return True
                                         return False
-                                    elif name == UEFA_CL_TYPE_ID: # if EL
+                                    elif type == UEFA_CL_TYPE_ID: # if EL
                                         # see in memebers CL stored in Season
                                         return season.check_seed_in_CL(seeded_team)
 
                                 # # check team was already seeded in UEFA by another source
                                 # # TODO useful only when seed UEFA_EL - we can skip it for UEFA_CL
-                                while check_seed_in_CL(self.name, self.season, seeded_team):
+                                while check_seed_in_CL(self.type_id, self.season, seeded_team):
                                     # self.shift_team += 1
                                     # get team of lower position of the same league
+                                    print "seed_in_CL, shift_tourn!"
                                     team_index += 1
                                     if not ntt[team_index]:
                                         # if tournament has ot gor more unseeded teams, tourn will be shifted to next
@@ -249,6 +250,8 @@ class UEFA_Champions_League(Cup):
 
                         elif source == "CL":
                             # get member from just played UEFA_CL : "Qualification 3" or 4 or Group...
+                            cl_members = self.season.get_UEFA_CL_members()
+                            print cl_members
                             raise NotImplemented
 
                     sub_tourn_members += reversed(round_members)
@@ -305,7 +308,7 @@ class UEFA_Champions_League(Cup):
             if not rounds_info:
                 warnings.warn("no rounds_info collected!")
 
-            # prefix = sub_tourn_name
+            # sourcse, pos =  = sub_tourn_name
             # seeding = {round_num : {"count": len(sub_tourn_members)}  }  # - already defined
             # members = sub_tourn_members
             # pair_mode = pair_mode
