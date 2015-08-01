@@ -338,7 +338,8 @@ class League(object):
 
                     # new-styled
                     # only united "round" will be used as a readable of match in DB
-                    roundname = self.prefix + "tour %s " % tourN
+                    # t is tour
+                    roundname = self.prefix + "t%s " % tourN
 
                     # self.RunMatchUpdateResults(tindxs, roundN, tour, tourN, match_ind + prefix, matchN, print_matches)
                     self.RunMatchUpdateResults(tindxs, roundname, print_matches)

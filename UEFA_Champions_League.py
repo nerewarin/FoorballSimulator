@@ -277,6 +277,11 @@ class UEFA_Champions_League(Cup):
         # register ID of tournament if unregistered yet
         self.name_id = self.saveTounramentPlayed()
 
+        # fot Matches (not use cause id_tournament column references to tourn_type_name through tournaments_played)
+        # tourn_type_name = db.select(what="name", table_names=db.TOURNAMENTS_TYPES_TABLE, where=" WHERE ", columns="id",
+        #                             sign=" = ", values=self.type_id)
+        # print "tourn_type_name: %s" %  tourn_type_name
+
         pre_winners = []
         for sub_schema in self.sub_schems:
             # tourn_class, sub_tourn_name, members, rounds_info, parts, pair_mode = sub_schema
@@ -375,12 +380,18 @@ class UEFA_Champions_League(Cup):
                 part_num = part + 1
                 # if parts > 1, so its groups
                 print "run UEFA part_num=%s" % part_num
+                print "sub_tourn_name = %s" % sub_tourn_name
                 if classname == "League":
                     # members = group_members[baskets_count*part : baskets_count*(part+1)]
                     members = group_members[part]
-                    prefix = sub_tourn_name + " %s" % part_num
+                    # prefix = tourn_type_name + " " + sub_tourn_name + " %s" % part_num
+                    prefix = sub_tourn_name + " %s " % part_num
                 else:
-                    prefix = sub_tourn_name  # TODO + UEFA CHAMPIONS League
+                    # prefix = tourn_type_name + " " + sub_tourn_name
+                    prefix = sub_tourn_name + " "
+
+                if classname == "Cup":
+                    pass # catching problem (debug breakpoint)
                 sub_tournament = tourn_class(name = self.name_id,
                                      season = self.season,
                                      year = self.year,

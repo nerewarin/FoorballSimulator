@@ -299,6 +299,8 @@ class Cup(League):
                     team2 = teams.pop()
 
                 elif toss == "not_same_country_and_played_in_group":
+                    teams_num = len(teams)
+                    # here we might have first places of Group in the first half of list teams, 2nd places in 2nd half
                     # for 1/8 Champions League
                     team1 = teams[random.randrange(teams_num/2)]  # 1 half
                     team2 = teams[random.randrange(teams_num/2, teams_num)] # 2 half
@@ -344,7 +346,7 @@ class Cup(League):
 
                 # PLAY MATCH OR DOUBLE_MATCH
                 # struggle = classname(pair, self.delta_coefs, tournament=self.getID(), round = round_name, playoff = playoff, save_to_db=self.save_to_db"multi_values")
-                struggle = classname(pair, self.delta_coefs, tournament=self.getID(), round = round_name,
+                struggle = classname(pair, self.delta_coefs, tournament=self.getID(), round = self.prefix + round_name,
                                      playoff = playoff, save_to_db="multi_values")
                 struggle.run()
                 # collecting match values to insert all matches of League to db at once
