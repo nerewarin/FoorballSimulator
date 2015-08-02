@@ -259,13 +259,13 @@ class Season(object):
 
         # save group_third_places
         self.CL_EL_seeding = UEFA_CL_tourn.get_group3()
-        # get Qual 3 and Qual 4 losers
+        # get Qual 3 and Qual 4 loosers indexes
         q3 = [i[0] for i in db.select(what="id_team", table_names=db.TOURNAMENTS_RESULTS_TABLE, where=" WHERE ",
                                      columns="position", sign=" LIKE ", values="'Q%3'", fetch="all", ind="all")]
         q4 = [i[0] for i in db.select(what="id_team", table_names=db.TOURNAMENTS_RESULTS_TABLE, where=" WHERE ",
                                      columns="position", sign=" LIKE ", values="'Q%4'", fetch="all", ind="all")]
-        self.CL_EL_seeding["Qualification 3"] = q3
-        self.CL_EL_seeding["Qualification 4"] = q4
+        self.CL_EL_seeding["Qualification 3"] = [self.teams.get_team(ind-1) for ind in q3]
+        self.CL_EL_seeding["Qualification 4"] = [self.teams.get_team(ind-1) for ind in q4]
         # print "self.teams", self.teams
         # print "self.teams", self.teams.sortedByID(), len(self.teams.sortedByID())
         # print "self.teams", self.teams[q3[0]]

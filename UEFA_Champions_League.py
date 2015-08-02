@@ -9,7 +9,7 @@ import util
 from Leagues import League, TeamResult
 import Match as M
 from values import Coefficients as C, TournamentSchemas as schemas, UEFA_CL_TYPE_ID, \
-    UEFA_EL_TYPE_ID, VALUES_VERSION, UEFA_TOURNAMENTS_ID, UEFA_CL_SCHEMA, UEFA_EL_SCHEMA
+    UEFA_EL_TYPE_ID, VALUES_VERSION, UEFA_TOURNAMENTS_ID, UEFA_CL_SCHEMA, UEFA_EL_SCHEMA, RESERVED_EL_TEAMS
 import values as v
 
 from operator import attrgetter, itemgetter
@@ -190,40 +190,57 @@ class UEFA_Champions_League(Cup):
                                 seeded_team = ntt[team_index]
                                 # seeded_team = ntt.pop(0)
 
-                                def check_seed_in_CL(type, season, seeded_team):
-                                    if type == UEFA_CL_TYPE_ID:
-                                        # see in self members
-                                        if seeded_team in round_members:
-                                            return True
-                                        elif seeded_team in sub_tourn_members:
-                                            return True
-                                        elif seeded_team in [other_sub[2] for other_sub in  self.sub_schems]:
-                                            return True
-                                        return False
-                                    elif type == UEFA_CL_TYPE_ID: # if EL
-                                        # see in memebers CL stored in Season
-                                        return season.check_seed_in_CL(seeded_team)
+                                def check_already_seeded_in_UEFA(type, season, seeded_team):
+                                    # look at current lists
+                                    if (seeded_team in round_members) or (seeded_team in sub_tourn_members) or \
+                                            (seeded_team in [other_sub[2] for other_sub in  self.sub_schems]):
+                                        return True
 
+                                    if type == UEFA_EL_TYPE_ID:
+                                        # additionally see in members CL stored in Season
+                                        return season.check_seed_in_CL(seeded_team)
+                                    # not found - ok, team is ready to be seeded
+                                    return False
+
+                                    # if type == UEFA_CL_TYPE_ID:
+                                    #     # see in self members
+                                    #     if seeded_team in round_members:
+                                    #         return True
+                                    #     elif seeded_team in sub_tourn_members:
+                                    #         return True
+                                    #     elif seeded_team in [other_sub[2] for other_sub in  self.sub_schems]:
+                                    #         return True
+                                    #     return False
+                                    # elif type == UEFA_EL_TYPE_ID: # if EL
+                                    #     # see in members CL stored in Season
+                                    #     is_in_CL = season.check_seed_in_CL(seeded_team)
+                                    #     # see in current members EL
+                                    #     is_in_EL = season.check_seed_in_EL(seeded_team)
+                                    #     return (is_in_CL or is_in_EL)
+
+                                if source == (35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54):
+                                    pass
+                                    # for debug
                                 # # check team was already seeded in UEFA by another source
                                 # # TODO useful only when seed UEFA_EL - we can skip it for UEFA_CL
-                                while check_seed_in_CL(self.type_id, self.season, seeded_team):
+                                while check_already_seeded_in_UEFA(self.type_id, self.season, seeded_team):
                                     # self.shift_team += 1
                                     # get team of lower position of the same league
                                     print "seed_in_CL, shift_tourn!"
                                     team_index += 1
-                                    if not ntt[team_index]:
-                                        # if tournament has ot gor more unseeded teams, tourn will be shifted to next
+                                    if team_index > (len(ntt) - 1):
+                                        # if tournament has ot got more unseeded teams, tourn will be shifted to next
                                         tourn_id, ntt = shift_tourn(ntp_teams, nations, tourn_id)
                                         # TODO we check one tournament but not others!  we can make "reserve" tag in schema for additional list of teams and pop from it
-                                    seeded_team = ntt[team_index].pop()
+                                    seeded_team = ntt[team_index]#.pop()
                                 round_members.append(seeded_team)
 
                         elif source == "toss":
                             rounds_info[round_num]["toss"] = pos
 
                         elif source == "CL":
-                            team = self.season.get_CL_EL_seeding(pos)
-                            print "seed_from_CL", team
+                            round_members += self.season.get_CL_EL_seeding(pos)
+                            # print "seed_from_CL", team
                             # # its good for checking
                             # cl_members = self.season.get_UEFA_CL_members()
                             # print "cl_members", len(cl_members), cl_members
@@ -379,7 +396,7 @@ class UEFA_Champions_League(Cup):
                                      seeding = rounds_info,
                                      # save_to_db = True, # by default
                                      prefix = prefix,
-                                     type_id = UEFA_CL_TYPE_ID) # TODO !!!
+                                     type_id = self.type_id) # TODO !!!
                 if classname == "League":
                     # filter two first teams
                     group_results = sub_tournament.run()
