@@ -169,7 +169,7 @@ class Season(object):
             cup = Cup(name=cup_id, season=self.season_id, year=self.year,
                                 members = self.teams.getTournResults(league_id), country_id=country_id)
             cupwinner = cup.run()[0]
-            cupwinner_id  = cupwinner.getID()
+            cupwinner_id  = [cupwinner.getID()]
             self.teams.setTournResults(cup_id, cupwinner_id)
             # print "update winner for cup", [team.getID() for team in self.teams.getTournResults(cup_id)]
         print "National Cups (%s) were played and stored in db" % self.nations
@@ -266,8 +266,8 @@ class Season(object):
                                      columns="position", sign=" LIKE ", values="'Q%4'", fetch="all", ind="all")]
         self.CL_EL_seeding["Qualification 3"] = q3
         self.CL_EL_seeding["Qualification 4"] = q4
-        print "self.teams", self.teams
-        print "self.teams", self.teams.sortedByID(), len(self.teams.sortedByID())
+        # print "self.teams", self.teams
+        # print "self.teams", self.teams.sortedByID(), len(self.teams.sortedByID())
         # print "self.teams", self.teams[q3[0]]
 
     def get_CL_EL_seeding(self, key = None):

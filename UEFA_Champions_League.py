@@ -169,7 +169,7 @@ class UEFA_Champions_League(Cup):
                                 # -1 cause torn_id start from 1 in db, but index of ntp_teams starts from 0
                                 tourn_id = tourn_pos + shift_ifcup + shift_nation - 1 # index of list ntp_teams
                                 # national tournament teams list
-                                ntt = ntp_teams[tourn_id]
+                                ntt = ntp_teams[tourn_id] # list of teams for league or cup winner for cup
                                 # index of ntt list
                                 # -1 cause position start from 1 in db, but index of teams in ntp_teams starts from 0
                                 team_index = (position - 1) + shift_team

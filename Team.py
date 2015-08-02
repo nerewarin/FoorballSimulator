@@ -189,7 +189,26 @@ class Teams():
         # ntp_cups = [(cup_teams + shift) for cup_teams in ntp_leagues] where shift = len(country_positions)
 
         # ntp teams - list of teams, sorted by ntp
-        self.ntp_teams = [self.tourn_teams[tournament_id + 2] for tournament_id in  ntp]
+        # self.ntp_teams = [self.tourn_teams[tournament_id + 2] for tournament_id in  ntp]
+        # print "self.ntp_teams v1", len(self.ntp_teams), self.ntp_teams
+        # for ntp_team in self.ntp_teams:
+        #     print ntp_team
+
+
+        self.ntp_teams = []
+        for tournament_id in ntp:
+            tourn_teams = []
+            teams_indexes = self.tourn_teams[tournament_id + 2]
+            if isinstance(teams_indexes, list):
+                # for every pos in League
+                for ind in teams_indexes:
+                    tourn_teams.append(self.teams[ind - 1])
+                self.ntp_teams.append(tourn_teams)
+            elif isinstance(teams_indexes, int):
+                # cup winner
+                self.ntp_teams.append(self.teams[teams_indexes - 1])
+        # self.ntp_teams = [[self.teams[ind - 1] for ind in self.tourn_teams[tournament_id + 2]] for tournament_id in ntp]
+        # print "self.ntp_teams v2", self.ntp_teams
         return self.ntp_teams
 
     def getNTPteams(self, ntp_index = None):
