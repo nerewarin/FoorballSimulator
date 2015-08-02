@@ -247,7 +247,10 @@ class UEFA_Champions_League(Cup):
                             # print "cl_members", len(cl_members), cl_members
 
                     sub_tourn_members += reversed(round_members)
-                    rounds_info[round_num]["count"] = len(round_members)
+                    rounds_info[round_num]["count"] = len(round_members) # TODO round_members = 8 but group_winners = 24! count should be 0!
+                    if sub_tourn_name == "Play-Off":
+                        pass
+                        rounds_info[round_num]["count"] = 0
 
             self.sub_schems.append((classname, sub_tourn_name, sub_tourn_members[::-1], rounds_info, parts, pair_mode))
 
