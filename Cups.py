@@ -458,8 +458,8 @@ class Cup(League):
                 toss = "A1_B16"
 
             if "qual" in self.prefix.lower():
-                # for UEFA Qualification
-                self.round_names = {round : str(round) for round in self.seeding.keys()}
+                # for UEFA Qualification round_name like "Qualification 1"
+                self.round_names = {round : self.prefix + str(round) for round in self.seeding.keys()}
             else:
                 self.round_names = self.roundNames(self.p_rounds, self.q_rounds)
         else:

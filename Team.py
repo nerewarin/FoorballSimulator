@@ -105,11 +105,13 @@ class Teams():
     """
     all teams container - used for store all team data in RAM to quick access instead of get from database every time
     """
-    def __init__(self, season, year):
+    def __init__(self, season, year, nations):
         self.season = season # id
         self.year = year # id
+        self.nations = nations
         # self.setTeams()
         self.teams = {}
+        # self.teams = {}
 
     def str(self):
         """
@@ -182,60 +184,15 @@ class Teams():
         else:
             return self.ntp_teams[ntp_index]
 
+    def sortedByID(self):
+        return [tourn_id for tourn_id in self.teams]
+
     def setTeams(self):
         """
         get ALL teams sorted by rating - not realised by me, use individual setting for country and tournament
         :return:
         """
         raise NotImplementedError
-        if self.year <= db.START_SIM_SEASON:
-            # print "setMembers by rating for first season"
-            # get all team ids from defined country id - like they ordered by default in team_info table
-            # print "self.country_id=", self.country_id
-            teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ", columns="id_country ",
-                              sign=" = ", values=self.country_id, fetch="all", ind="all")
-            teams_indexes = [team[0] for team in teams_tuples]
-            self.teams = [Team(ind) for ind in teams_indexes]
-            print "self.teams", self.teams
-            # if it already sorted, comment all block below
-
-            # another sort variants
-            # teams_info = db.select(what = "id, name, runame, id_country", table_names=db.TEAMINFO_TABLE, fetch="all")
-            teams_info = db.select(what = "id", table_names=db.TEAMINFO_TABLE, fetch="all")
-            self.teams = [Team(team_info[0]) for team_info in teams_info] # make teams by id
-            print "self.teams", self.teams
-            self.teams = db.select(what="id_team", table_names=db.TEAM_RATINGS_TABLENAME, where=" WHERE ",
-                                   columns="id_season", values=self.season, suffix="ORDER BY position", fetch="all")
-            print "self.sorted_teams", self.teams
-
-        else:
-            print "setMembers by position from previous league"
-            # raise NotImplementedError
-            teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ", columns="id_country ",
-                              sign=" = ", values=self.country_id, fetch="all", ind="all")
-            # sort by position in league
-
-
-
-
-
-        # TODO see below
-        # convert self.teams to form convenient to extract by tournaments
-        # form = { tournament_id : [pos1, pos2...] if League
-
-        # countries id sorted by rating
-        countries_ids =  db.select(what="id_country", table_names=db.COUNTRY_RATINGS_TABLE, where=" WHERE ",
-                               columns="id_season", values=self.season, suffix="ORDER BY position", fetch="all")
-        print "countries_ids", countries_ids
-        countries_ids = [id[0] for id in countries_ids]
-        print "countries_ids", countries_ids
-
-        # fill self.teams to form
-        # {id_country1 : {pos1..posN of League : team_id, "cupwinner":team_id} ... id_countryN,
-        # "CL" : {"Qualification 3, 4, Group" : team_id }
-        for country_id in countries_ids:
-            self.teams[country_id] = {}
-            # get leagues
 
     def sortTeamsByPos(self):
         """

@@ -62,38 +62,11 @@ class UEFA_Champions_League(Cup):
         """
         if country_id:
             warnings.warn("UEFA not uses country as parameter - its international!")
-        # self.con, self.cur = db.connectGameDB()
-        # self.id = id
-        # self.seeding = seeding
-        # self.season = season
-        # self.prev_season = self.season - 1
-
-        # moved to League (super)
-        # if not season:
-        #     # self.seasonname = db.trySQLquery(query="SELECT name FROM %s ORDER BY ID DESC LIMIT 1"
-        #     #                                    % db.SEASONS_TABLE, fetch="one")
-        #     self.season = db.trySQLquery(query="SELECT id FROM %s ORDER BY ID DESC LIMIT 1"
-        #                                        % db.SEASONS_TABLE, fetch="one")
-
 
         super(UEFA_Champions_League, self).__init__(**{par:val for par,val in locals().iteritems()
                                                        if par != "self" })
                                                         # if par not in ("self", "ntp_teams", "nations")})
-        # if
         print "\nWELCOME TO UEFA LEAGUE *** id = %s season_id = %s ***" % (name, season.getID())
-        # moved to League (super)
-        # if members:
-        #     # EXTERNAL
-        #     # all members came as arguments and were initially sorted
-        #     # self.members = members
-        #     # noved to super
-        #     pass
-        # if not members:
-        #     # INTERNAL
-        #     # class will get all teams from database by itself
-        #
-        #     self.members = self.setMembers()
-        #     # self.members = self.getMember()
 
 
     def setMembers(self):
@@ -249,10 +222,11 @@ class UEFA_Champions_League(Cup):
                             rounds_info[round_num]["toss"] = pos
 
                         elif source == "CL":
-                            # get member from just played UEFA_CL : "Qualification 3" or 4 or Group...
-                            cl_members = self.season.get_UEFA_CL_members()
-                            print cl_members
-                            raise NotImplemented
+                            team = self.season.get_CL_EL_seeding(pos)
+                            print "seed_from_CL", team
+                            # # its good for checking
+                            # cl_members = self.season.get_UEFA_CL_members()
+                            # print "cl_members", len(cl_members), cl_members
 
                     sub_tourn_members += reversed(round_members)
                     rounds_info[round_num]["count"] = len(round_members)
@@ -285,6 +259,10 @@ class UEFA_Champions_League(Cup):
         #                             sign=" = ", values=self.type_id)
         # print "tourn_type_name: %s" %  tourn_type_name
 
+        # dict of CL loosers that will be transferred to EL seeding
+        self.CL_EL_seeding = {"Qualification 3" : [], "Qualification 4" : [], "Group 3th places" : []}
+
+        # parse schema
         pre_winners = []
         for sub_schema in self.sub_schems:
             # tourn_class, sub_tourn_name, members, rounds_info, parts, pair_mode = sub_schema
@@ -312,7 +290,6 @@ class UEFA_Champions_League(Cup):
             # seeding = {round_num : {"count": len(sub_tourn_members)}  }  # - already defined
             # members = sub_tourn_members
             # pair_mode = pair_mode
-
 
 
             # for multiple groups
@@ -344,7 +321,7 @@ class UEFA_Champions_League(Cup):
                         for basket in baskets:
                             unchecked_candidates = list(basket)
                             if not unchecked_candidates:
-                                print  "groups seeded successfully"
+                                print  "groups_seeded_successfully"
                                 break
                             candidate = random.choice(unchecked_candidates)
                             checked = False
@@ -382,8 +359,7 @@ class UEFA_Champions_League(Cup):
             for part in xrange(parts):
                 part_num = part + 1
                 # if parts > 1, so its groups
-                print "run UEFA part_num=%s" % part_num
-                print "sub_tourn_name = %s" % sub_tourn_name
+                print "run UEFA part_num=%s" % part_num, "sub_tourn_name = %s" % sub_tourn_name
                 if classname == "League":
                     # members = group_members[baskets_count*part : baskets_count*(part+1)]
                     members = group_members[part]
@@ -409,13 +385,22 @@ class UEFA_Champions_League(Cup):
                     group_results = sub_tournament.run()
                     first_place = group_results[0]["Team"]
                     second_place = group_results[1]["Team"]
+                    # if its CL, if will be used used for EL
+                    third_place = group_results[2]["Team"]
                     sub_winners = [first_place] + sub_winners + [second_place]
+                    self.CL_EL_seeding["Group 3th places"].append(third_place)
                 else:
-                    sub_winners += sub_tournament.run()
+                    # classname == "Cup"
+                    sub_results = sub_tournament.run()
+                    sub_winners += sub_results
             pre_winners = sub_winners
-
-
         return
+
+    def get_group3(self):
+        """
+        :return: dict {"Qualification 3" : [Team...Team], "Qualification 4" : [], "Group 3th places" : []}
+        """
+        return self.CL_EL_seeding
 
     def set_group_members(self, members):
         """
