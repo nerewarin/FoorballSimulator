@@ -427,8 +427,12 @@ UEFA_EL_SCHEMA = [
                         # simple cup of
                         # 24 winners of prev
                         # 8 from Group round of champions league (3th places)
-                        1 : {"CL" : "Group 3th places"}}
-
+                        1 : {"CL" : "Group 3th places", "toss" : "not_same_country_and_played_in_group"}, # 1/16
+                        2 : {"toss" : "rnd"},   # 1/8
+                        3 : {"toss" : "rnd"},   # 1/4
+                        4 : {"toss" : "rnd"},   # 1/2
+                        5 : {}   # final
+                                       }
                         }
             }
         ]

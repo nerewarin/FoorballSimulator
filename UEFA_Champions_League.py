@@ -218,15 +218,16 @@ class UEFA_Champions_League(Cup):
                                     #     is_in_EL = season.check_seed_in_EL(seeded_team)
                                     #     return (is_in_CL or is_in_EL)
 
-                                if source == (35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54):
-                                    pass
-                                    # for debug
+                                # if source == (35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54):
+                                #     pass
+                                #     # for debug
                                 # # check team was already seeded in UEFA by another source
                                 # # TODO useful only when seed UEFA_EL - we can skip it for UEFA_CL
                                 while check_already_seeded_in_UEFA(self.type_id, self.season, seeded_team):
                                     # self.shift_team += 1
                                     # get team of lower position of the same league
-                                    print "seed_in_CL, shift_tourn!"
+
+                                    # print "seed_in_CL, shift_tourn!"
                                     team_index += 1
                                     if team_index > (len(ntt) - 1):
                                         # if tournament has ot got more unseeded teams, tourn will be shifted to next
@@ -267,7 +268,6 @@ class UEFA_Champions_League(Cup):
         :param print_matches:
         :return:
         """
-
         # register ID of tournament if unregistered yet
         self.name_id = self.saveTounramentPlayed()
 
