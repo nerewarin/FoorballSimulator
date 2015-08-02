@@ -110,8 +110,15 @@ class Teams():
         self.year = year # id
         self.nations = nations
         # self.setTeams()
-        self.teams = {}
+
+        # create list of ALL TEAMS OBJECTS
+        teams_num = db.select(what="id", table_names=db.TEAMINFO_TABLE, suffix=" ORDER BY id DESC LIMIT 1", fetch="one")
+        # print "teams_num = %s" % teams_num
+        self.teams = [Team(ind) for ind in xrange(1, teams_num + 1)]
         # self.teams = {}
+
+        # dictionary of teams sorted by tournament ID
+        self.tourn_teams = {}
 
     def str(self):
         """
@@ -119,20 +126,26 @@ class Teams():
         :return:
         """
         representation = "\n print Teams"
-        for k, teams in self.teams.iteritems():
+        # for k, teams in self.teams.iteritems():
+        for k, teams in self.tourn_teams.iteritems():
             representation += "\nid_tourn = %s" % k
             for i, team in enumerate(teams):
                 representation += "\n%s. %s" % (str(i), str(team))
         return representation
 
-    def setTournResults(self, tournament_id, teams):
+    def get_team(self, ind="all"):
+        if ind=="all":
+            return self.teams
+        return self.teams[ind]
+
+    def setTournResults(self, tournament_id, teams_indexes):
         """
         set prev tournament result as a list of teams sorted by position
         :param tournament_id:
         :param teams:
         :return:
         """
-        self.teams[tournament_id] = teams
+        self.tourn_teams[tournament_id] = teams_indexes
 
     def getTournResults(self, tournament_id):
         """
@@ -140,8 +153,15 @@ class Teams():
         :param tournament_id:
         :return: list of teams sorted by results in last played tournament (which id is given_
         """
-        if tournament_id in self.teams.keys():
-            return self.teams[tournament_id]
+        if tournament_id in self.tourn_teams.keys():
+            # teams = []
+            # for pos, team_ind in enumerate(self.tourn_teams[tournament_id]):
+            #     teams.append(self.teams[team_ind - 1])
+            # return teams
+            # return self.teams[self.tourn_teams[tournament_id] - 1]
+
+            return [self.teams[ind-1] for ind in self.tourn_teams[tournament_id]]
+            return self.tourn_teams[tournament_id]
         else:
             raise KeyError, "no data for getTournResults tournament_tournament_id = %s" %tournament_id
 
@@ -169,7 +189,7 @@ class Teams():
         # ntp_cups = [(cup_teams + shift) for cup_teams in ntp_leagues] where shift = len(country_positions)
 
         # ntp teams - list of teams, sorted by ntp
-        self.ntp_teams = [self.teams[tournament_id + 2] for tournament_id in  ntp]
+        self.ntp_teams = [self.tourn_teams[tournament_id + 2] for tournament_id in  ntp]
         return self.ntp_teams
 
     def getNTPteams(self, ntp_index = None):

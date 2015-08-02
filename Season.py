@@ -62,7 +62,6 @@ class Season(object):
         self.tournaments = self.national_tournaments + self.uefa_tournaments
 
 
-
     def getID(self):
         return self.season_id
 
@@ -101,8 +100,8 @@ class Season(object):
 
                 # get all team ids from defined country id - like they ordered by default in team_info table
                 # print "self.country_id=", self.country_id
-                teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ", columns="id_country ",
-                                  sign=" = ", values=country_id, fetch="all", ind="all")
+                teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ",
+                                         columns="id_country ", sign=" = ", values=country_id, fetch="all", ind="all")
                 teams_indexes = [team[0] for team in teams_tuples]
 
             else:
@@ -122,7 +121,8 @@ class Season(object):
                 teams_indexes = [team[0] for team in teams_tuples]
 
             # store teams for league in external class
-            self.teams.setTournResults(tourn_id, [Team(ind) for ind in teams_indexes])
+            # self.teams.setTournResults(tourn_id, [Team(ind) for ind in teams_indexes])
+            self.teams.setTournResults(tourn_id, teams_indexes)
             # print "self.teams", self.teams
             #
             # print "tourn_id=%s, classname=%s, country_id=%s" %\
@@ -137,10 +137,17 @@ class Season(object):
             # print "final_table\n", final_table
             # print "NEED TO UPDATE self.teams() WHILE WE REMEMBER ABOUT THIS RESULTS"
 
-            # sort teams by pos from table of just played tournament
-            teams_by_pos = [result["Team"] for result in final_table]
+            # TEAMS
+            # # sort teams by pos from table of just played tournament
+            # teams_by_pos = [result["Team"] for result in final_table]
+            # # print "teams_by_pos", [team.getID() for team in teams_by_pos]
+            # self.teams.setTournResults(tourn_id, teams_by_pos)
+            # # print "updated self.teams", [team.getID() for team in self.teams.getTournResults(tourn_id)]
+
+            # IDS
+            teams_ind_by_pos = [result["Team"].getID() for result in final_table]
             # print "teams_by_pos", [team.getID() for team in teams_by_pos]
-            self.teams.setTournResults(tourn_id, teams_by_pos)
+            self.teams.setTournResults(tourn_id, teams_ind_by_pos)
             # print "updated self.teams", [team.getID() for team in self.teams.getTournResults(tourn_id)]
 
         # print "\nfinally_print_all_teams"
@@ -161,8 +168,9 @@ class Season(object):
             country_id = tournament[2]
             cup = Cup(name=cup_id, season=self.season_id, year=self.year,
                                 members = self.teams.getTournResults(league_id), country_id=country_id)
-            cupwinner = cup.run()
-            self.teams.setTournResults(cup_id, cupwinner)
+            cupwinner = cup.run()[0]
+            cupwinner_id  = cupwinner.getID()
+            self.teams.setTournResults(cup_id, cupwinner_id)
             # print "update winner for cup", [team.getID() for team in self.teams.getTournResults(cup_id)]
         print "National Cups (%s) were played and stored in db" % self.nations
 
@@ -178,7 +186,7 @@ class Season(object):
 
         # sort self.teams by tournament (country) ratings
         self.ntp_teams = self.teams.sortedByCountryPos(self.season_id)
-        # print "ok sort self.teams by tournament (country) ratings"
+        print "ok sort self.teams by tournament (country) ratings"
         # for teams in self.ntp_teams:
         #     print [team.getID() for team in teams]
         return self.ntp_teams
@@ -194,6 +202,10 @@ class Season(object):
         # and then run
         self.RunNationalTournaments()
         print "ok RunNationalTournaments\n"
+        print "print ratings"
+        print [team.getRating() for team in self.teams.get_team()]
+        # for team in self.teams.get_team():
+        #     print team.getRating()
 
         # # shift_seed is used to shift indexes of seeded members in cases - if some country has'n got so many counties
         # # to pass them to UEFA cup, so shift nation
@@ -216,11 +228,17 @@ class Season(object):
         """
         self.run_UEFA_Champions_League()
         print "ok run_UEFA_Champions_League\n"
-
+        print "print ratings"
+        print [team.getRating() for team in self.teams.get_team()]
+        # for team in self.teams.get_team():
+        #     print team.getRating()
 
         self.run_UEFA_Europa_League()
         print "ok run_UEFA_Europa_League\n"
-
+        print "print ratings"
+        print [team.getRating() for team in self.teams.get_team()]
+        # for team in self.teams.get_team():
+        #     print team.getRating()
 
     def run_UEFA_Champions_League(self):
         # RUN UEFA CL
