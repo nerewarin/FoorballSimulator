@@ -1,7 +1,6 @@
 # !/usr/bin/python
 # -*- coding: utf-8 -*-
 __author__ = 'NereWARin'
-from DataStoring import save_ratings, CON, CUR
 import DataStoring as db
 import DataParsing
 from Team import Team, Teams
@@ -44,8 +43,7 @@ class Season(object):
         # print "season_tournaments=", season_tournaments
         self.tourn_classes = [clname[0] for clname in db.select(what="name", table_names=db.TOURNAMENTS_TYPES_TABLE, fetch="all", ind="all")]
         # print "tourn_classes =%s" % self.tourn_classes
-        # TODO support UEFA
-        # for tournament in season_tournaments:
+
         # while UEFA unsupported, run only national tournaments
         # split tournaments by type
         self.national_tournaments = season_tournaments[2:]
@@ -123,10 +121,6 @@ class Season(object):
             # store teams for league in external class
             # self.teams.setTournResults(tourn_id, [Team(ind) for ind in teams_indexes])
             self.teams.setTournResults(tourn_id, teams_indexes)
-            # print "self.teams", self.teams
-            #
-            # print "tourn_id=%s, classname=%s, country_id=%s" %\
-            #       (tourn_id, classname, country_id)
 
             # FOR NOW WE ARE READY TO RUN NEW NATIONAL LEAGUE
             # RUN TOURNAMENT (members will be collected by tournament itself)

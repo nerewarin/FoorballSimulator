@@ -140,15 +140,9 @@ class UEFA_Champions_League(Cup):
                     # print "round_num = %s" % round_num#, members_schema
                     rounds_info[round_num] = {}
                     round_members = []
-                    if round_num == 4: # TODO for test
-                        pass
 
                     for source, pos in seeded_sources.iteritems():
-                        print "sourcse, pos = ", source, pos
-
-                        # # if individual toss for round is defined
-                        # if source == "toss":
-                        #     seeding[round_num]["toss"] = pos
+                        # print "sourcse, pos = ", source, pos
 
                         if isinstance(source, tuple):
                             # getting teams from source
@@ -174,12 +168,6 @@ class UEFA_Champions_League(Cup):
                                 # -1 cause position start from 1 in db, but index of teams in ntp_teams starts from 0
                                 team_index = (position - 1) + shift_team
                                 # check national tournament has this position (ntp exists)
-                                # while len(ntt) < team_index:
-                                #     # if not, next tournament fills vacant position
-                                #     self.shift_nation += 1
-                                #     warnings.warn("national tournament_id %s has not position %s to qualify it to UEFA!" % (
-                                #         tourn_id, team_index )
-                                #     raise NotImplemented
                                 while team_index > (len(ntt) - 1): # league is too small!
                                     # if tournament has not got more unseeded teams, tourn will be shifted to next
                                     warnings.warn("national tournament_id %s has not position %s to qualify it to UEFA!"
@@ -202,32 +190,10 @@ class UEFA_Champions_League(Cup):
                                     # not found - ok, team is ready to be seeded
                                     return False
 
-                                    # if type == UEFA_CL_TYPE_ID:
-                                    #     # see in self members
-                                    #     if seeded_team in round_members:
-                                    #         return True
-                                    #     elif seeded_team in sub_tourn_members:
-                                    #         return True
-                                    #     elif seeded_team in [other_sub[2] for other_sub in  self.sub_schems]:
-                                    #         return True
-                                    #     return False
-                                    # elif type == UEFA_EL_TYPE_ID: # if EL
-                                    #     # see in members CL stored in Season
-                                    #     is_in_CL = season.check_seed_in_CL(seeded_team)
-                                    #     # see in current members EL
-                                    #     is_in_EL = season.check_seed_in_EL(seeded_team)
-                                    #     return (is_in_CL or is_in_EL)
-
-                                # if source == (35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54):
-                                #     pass
-                                #     # for debug
                                 # # check team was already seeded in UEFA by another source
-                                # # TODO useful only when seed UEFA_EL - we can skip it for UEFA_CL
                                 while check_already_seeded_in_UEFA(self.type_id, self.season, seeded_team):
-                                    # self.shift_team += 1
                                     # get team of lower position of the same league
-
-                                    # print "seed_in_CL, shift_tourn!"
+                                    # if League or Cup member out of range, shift tournament to next
                                     team_index += 1
                                     if team_index > (len(ntt) - 1):
                                         # if tournament has ot got more unseeded teams, tourn will be shifted to next
@@ -241,15 +207,10 @@ class UEFA_Champions_League(Cup):
 
                         elif source == "CL":
                             round_members += self.season.get_CL_EL_seeding(pos)
-                            # print "seed_from_CL", team
-                            # # its good for checking
-                            # cl_members = self.season.get_UEFA_CL_members()
-                            # print "cl_members", len(cl_members), cl_members
 
                     sub_tourn_members += reversed(round_members)
                     rounds_info[round_num]["count"] = len(round_members) # TODO round_members = 8 but group_winners = 24! count should be 0!
                     if sub_tourn_name == "Play-Off":
-                        pass
                         rounds_info[round_num]["count"] = 0
 
             self.sub_schems.append((classname, sub_tourn_name, sub_tourn_members[::-1], rounds_info, parts, pair_mode))
@@ -379,7 +340,7 @@ class UEFA_Champions_League(Cup):
             for part in xrange(parts):
                 part_num = part + 1
                 # if parts > 1, so its groups
-                print "run UEFA part_num=%s" % part_num, "sub_tourn_name = %s" % sub_tourn_name
+                # print "run UEFA part_num=%s" % part_num, "sub_tourn_name = %s" % sub_tourn_name
                 if classname == "League":
                     # members = group_members[baskets_count*part : baskets_count*(part+1)]
                     members = group_members[part]
