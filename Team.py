@@ -140,7 +140,7 @@ class Teams():
 
     def setTournResults(self, tournament_id, teams_indexes):
         """
-        set prev tournament result as a list of teams sorted by position
+        set prev tournament results as a list of teams sorted by position
         :param tournament_id:
         :param teams:
         :return:
@@ -163,6 +163,7 @@ class Teams():
             return [self.teams[ind-1] for ind in self.tourn_teams[tournament_id]]
             return self.tourn_teams[tournament_id]
         else:
+            return None
             raise KeyError, "no data for getTournResults tournament_tournament_id = %s" %tournament_id
 
     def sorted_by_rating(self):
