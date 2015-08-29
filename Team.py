@@ -188,7 +188,7 @@ class Teams():
         # print "country_positions", country_positions
 
         # national_tournaments_positions
-        # twice - for leagues and cups
+        # twice - for national_leagues and cups
         ntp = country_positions + [cup_id + len(country_positions) for cup_id in country_positions]
         # in other words,
         # ntp = ntp_leagues + ntp_cups    where

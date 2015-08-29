@@ -268,7 +268,7 @@ class League(object):
         tours = teams_num - 1 + odd_league
 
         # if 0, first match starts with favorite at home (as guest otherwise)
-        # it is important in leagues of two members and pair_mode = 0, cause only one match is played in this case
+        # it is important in national_leagues of two members and pair_mode = 0, cause only one match is played in this case
         self.rnd_role = random.randint(0,1)
         # if print_matches:
             # print "self.rnd_role" , self.rnd_role

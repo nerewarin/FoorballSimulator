@@ -288,17 +288,17 @@ def TournamentSchemas(tournament_id):
 # WE SHOULD EXCLUDE Lichtenstein BUT WE BELIEVE THAT THIS NATIONAL LEAGUE WILL BE PLAYED IN NEXT YEARS
 # (SEPARATELY FROM SWISS LEAGUE) SO WE CHANGE
 #                        # 1 round
-#                        # 6 champions of leagues 49-54
+#                        # 6 champions of national_leagues 49-54
 #                        1 : {tuple(range(49,55,1)) : 1},
 #                        # 2 round
-#                        # 31 champions of leagues 17-48 and 3 winners of prev round
+#                        # 31 champions of national_leagues 17-48 and 3 winners of prev round
 #                        2 : {tuple(range(17,49,1)) : 1}, #  exclude Lichtenstein
 #     TO
 #                        # 1 round
-#                        # 6 champions of leagues 48-53
+#                        # 6 champions of national_leagues 48-53
 #                        1 : {tuple(range(48,54,1)) : 1},
 #                        # 2 round
-#                        # 31 champions of leagues 17-47 and 3 winners of prev round
+#                        # 31 champions of national_leagues 17-47 and 3 winners of prev round
 #                        2 : {tuple(range(17,48,1)) : 1},
 UEFA_CL_SCHEMA = [
             # stage
@@ -314,10 +314,10 @@ UEFA_CL_SCHEMA = [
 
                     "tindx_in_round" : {
                        # 1 round
-                       # 6 champions of leagues 48-53 (all but 54)
+                       # 6 champions of national_leagues 48-53 (all but 54)
                        1 : {tuple(range(48,54,1)) : 1},
                        # 2 round
-                       # 31 champions of leagues 17-47 and 3 winners of prev round
+                       # 31 champions of national_leagues 17-47 and 3 winners of prev round
                        2 : {tuple(range(17,48,1)) : 1},
                        # 3 round
                        # 3 champions of 14-16, 9 silver of 7-15, 1 bronze of 6 and 17 winners of prev

@@ -52,14 +52,16 @@ class Season(object):
         if self.nations % 2:
             raise ValueError, "number of Leagues and Cups hould equals"
 
-        self.leagues = self.national_tournaments[:self.nations]
-        self.cups    = self.national_tournaments[self.nations:]
+        self.national_leagues = self.national_tournaments[:self.nations]
+        self.national_cups    = self.national_tournaments[self.nations:]
 
         self.uefa_tournaments = season_tournaments[:2]
 
         # move UEFA tournaments to the end
         self.tournaments = self.national_tournaments + self.uefa_tournaments
 
+        # create teams instances and get all its data from database
+        self.teams = Teams(self.season_id, self.year, self.nations)
 
     def getID(self):
         return self.season_id
@@ -82,15 +84,22 @@ class Season(object):
         """
         storing all info about previous played tournaments to united dictionary (Team.Teams instance)
         """
-        self.teams = Teams(self.season_id, self.year, self.nations)
+        self.RunNationalLeagues()
+        self.RunNationalCups()
 
-        # LEAGUES ***********
-        # get last Leagues results and run new Leagues
-        tourn_type_id = self.leagues[0][1] # 0 cause any number is ok
+    def RunNationalLeagues(self):
+        """
+        run all national leagues:
+        - get tournaments ids from season_tournaments
+        - get members for every national league
+        - run league simulation
+        - store tournament_played, tournament_results, matches
+        ratings of teams updated in team instances (in RAM)
+        """
+        tourn_type_id = self.national_leagues[0][1] # 0 cause any number is ok
         classname = self.tourn_classes[tourn_type_id - 1].replace(" ", "_")
         tourn_class = getattr(sys.modules[__name__], classname)
-
-        for tournament in self.leagues:
+        for tournament in self.national_leagues:
             tourn_id = tournament[0]
             # tourn_type_id = tournament[1] - already defined above
             country_id = tournament[2]
@@ -105,7 +114,8 @@ class Season(object):
                 teams_indexes = [team[0] for team in teams_tuples]
 
             else:
-                # print "setNationalResults by position of previous national leagues results"
+                # print "setNationalResults by position of previous national national_leagues results"
+                # get last Leagues results and run new Leagues
 
                 # query to tournament_played table to get id_tournament from prev season
                 query_tourn_id = "SELECT id FROM %s WHERE id_season = '%s' AND id_type = '%s';" % \
@@ -150,19 +160,24 @@ class Season(object):
         print "National leagues (%s) were played and stored in db" % self.nations
         # print "self.teams", self.teams, "\n"
 
-        # CUPS ***********
-        # tourn_type_id = self.cups[0][1] # 0 cause any number is ok
-        # classname = self.tourn_classes[tourn_type_id - 1].replace(" ", "_")
-        # tourn_class = getattr(sys.modules[__name__], classname)
+    def RunNationalCups(self):
+        """
+        run all national leagues:
+        - get tournaments ids from season_tournaments
+        - get members for every national cup by getting members in order of pos from national tournament results
+        - run league simulationpos
+        - store tournament_played, tournament_results, matches
+        ratings of teams updated in team instances (in RAM)
+        """
         tourn_class = getattr(sys.modules[__name__], "Cup")
-        for tournament in self.cups:
+        for tournament in self.national_cups:
             cup_id = tournament[0]
             # we run national cup using seeding corresponding to national league results
             # this expression is true while tournaments are stored in this order in database and
             # in self.national_tournaments
             league_id = cup_id - self.nations
             country_id = tournament[2]
-            cup = Cup(name=cup_id, season=self.season_id, year=self.year,
+            cup = tourn_class(name=cup_id, season=self.season_id, year=self.year,
                                 members = self.teams.getTournResults(league_id), country_id=country_id)
             cupwinner = cup.run()[0]
             cupwinner_id  = [cupwinner.getID()]
