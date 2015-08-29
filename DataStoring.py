@@ -539,7 +539,7 @@ def fill_teams_ratings(season_id, teamsL):
     for ind, team in enumerate(teamsL):
         # team_id = get_id_from_value(cur, TEAMINFO_TABLE, "name", team.getName())
         if season_id < 2:
-            # first season - no info about id in team instance
+            # first season - null id attribute in all team instances so use indexes
             team_id = ind + 1
         else:
             team_id = team.getID()
