@@ -165,6 +165,13 @@ class Teams():
         else:
             raise KeyError, "no data for getTournResults tournament_tournament_id = %s" %tournament_id
 
+    def sorted_by_rating(self):
+        """
+        :return: list of teams sorted by current rating
+        """
+        teamsL = sorted(self.teams, key=lambda x: x.getRating(), reverse = True)
+        return teamsL
+
     def sortedByCountryPos(self, season_id):
         """
         :season_id: id of current season (but we will use id of previous season)
@@ -249,8 +256,6 @@ class Teams():
         :return: team object - winner cup of a given id
         """
         raise NotImplementedError
-
-
 
 
 def Test():

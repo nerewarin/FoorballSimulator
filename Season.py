@@ -27,6 +27,7 @@ class Season(object):
         """
         # int id, str year
         self.season_id, self.year = self.saveSeason()
+        self.prev_season = self.season_id - 1
         if self.year <= db.START_SIM_SEASON:
             print "setNationalResults by rating for first season"
         else:
@@ -88,6 +89,7 @@ class Season(object):
         tourn_type_id = self.leagues[0][1] # 0 cause any number is ok
         classname = self.tourn_classes[tourn_type_id - 1].replace(" ", "_")
         tourn_class = getattr(sys.modules[__name__], classname)
+
         for tournament in self.leagues:
             tourn_id = tournament[0]
             # tourn_type_id = tournament[1] - already defined above
@@ -105,9 +107,9 @@ class Season(object):
             else:
                 # print "setNationalResults by position of previous national leagues results"
 
-                # query to tournament_played table to get id_tournament
+                # query to tournament_played table to get id_tournament from prev season
                 query_tourn_id = "SELECT id FROM %s WHERE id_season = '%s' AND id_type = '%s';" % \
-                                 (db.TOURNAMENTS_PLAYED_TABLE, self.season_id, tourn_type_id)
+                                 (db.TOURNAMENTS_PLAYED_TABLE, self.prev_season, tourn_type_id)
                 print "query_tourn_id =", query_tourn_id
                 query_to_results = "SELECT id_team FROM %s WHERE id_tournament = '%s';" % \
                                    (db.TOURNAMENTS_RESULTS_TABLE, query_tourn_id)
@@ -218,18 +220,26 @@ class Season(object):
     #     self.update_countries_ratings()
         self.save_ratings_to_db()
 
-    def update_countries_ratings(self):
+    def save_countries_ratings(self):
+        """
+        store updated countries ratings
+        """
+        raise NotImplementedError
+
+    def save_teams_ratings(self):
+        """
+        store updated teams ratings
+        """
+        team_ratings = [format(team.getRating(), '.3f') for team in self.teams.get_team()]
         raise NotImplementedError
 
     def save_ratings_to_db(self):
         """
         save new counties and teams ratings in database
         """
-        # store countries ratings
-        # TODO
-        # store teams ratings
-        team_ratings = [format(team.getRating(), '.3f') for team in self.teams.get_team()]
-        pass
+        print "save_ratings_to_db after season %s" % self.year
+        db.fill_countries_ratings(self.season_id, self.teams.get_team())
+        db.fill_teams_ratings(self.season_id, self.teams.sorted_by_rating())
 
 
     def RunUEFATournaments(self):
@@ -316,8 +326,6 @@ class Season(object):
 
         results = UEFA_EL_tourn.run()
         print results
-
-
 
 
     def saveSeason(self):
@@ -440,6 +448,8 @@ def Test(*args, **kwargs):
         print "\n=======================================\nTEST SEASON %s" % (t_ + 1)
         tst_season = Season()
         tst_season.run()
+        # tst_season = Season()
+        # tst_season.run()
 
     if post_truncate:
         db.truncate(db.TOURNAMENTS_PLAYED_TABLE)

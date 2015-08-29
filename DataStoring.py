@@ -502,9 +502,9 @@ def save_ratings(con, cur, seasons, teamsL):
         # else:
         #     raise TypeError, "unknown season type"
 
-        fill_teams_ratings(con, cur, season_id, teamsL)
+        fill_teams_ratings(season_id, teamsL)
 
-        fill_countries_ratings(con, cur, season_id, teamsL)
+        fill_countries_ratings(season_id, teamsL)
 
 
 def fill_season(con, cur, season):
@@ -525,7 +525,7 @@ def fill_season(con, cur, season):
     return season_id
 
 
-def fill_teams_ratings(con, cur, season_id, teamsL):
+def fill_teams_ratings(season_id, teamsL):
     """
     add new rows to (id, season, teamID, rating, uefa_pos)
     teamsL must be sorted
@@ -538,19 +538,23 @@ def fill_teams_ratings(con, cur, season_id, teamsL):
     """
     for ind, team in enumerate(teamsL):
         # team_id = get_id_from_value(cur, TEAMINFO_TABLE, "name", team.getName())
-        team_id = ind + 1
+        if season_id < 2:
+            # first season - no info about id in team instance
+            team_id = ind + 1
+        else:
+            team_id = team.getID()
         position = ind + 1
-        rating = team.getRating()
+        rating = format(team.getRating(), '.3f')
         # print "team_id %s, season %s, rating %s, position %s" % (team_id, season_id, rating, position)
         columns = ("id_season", "id_team", "rating", "position")
         values = (season_id, team_id, rating, position)
         data = [TEAM_RATINGS_TABLENAME] + list(columns) + list(values)
         trySQLquery("execute", "INSERT INTO %s (%s, %s, %s, %s) VALUES ('%s', '%s', '%s', '%s');" % tuple(data))
-        con.commit()
+        CON.commit()
     print "inserted %s rows to %s" % (len(teamsL), TEAM_RATINGS_TABLENAME)
 
 
-def fill_countries_ratings(con, cur, season_id, teamsL):
+def fill_countries_ratings(season_id, teamsL):
     """
     for given season adds new rows to country_ratings table
 
@@ -609,7 +613,7 @@ def fill_countries_ratings(con, cur, season_id, teamsL):
         # print query
         trySQLquery("execute", query)
     print "inserted %s rows to %s" % (position, COUNTRY_RATINGS_TABLE)
-    con.commit()
+    CON.commit()
 
 
 
