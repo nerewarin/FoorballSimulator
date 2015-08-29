@@ -176,7 +176,7 @@ class Teams():
         """
         :season_id: id of current season (but we will use id of previous season)
         :country_positions: list of country_positions (national tournaments) positions
-        :return: dict of teams where keys are sorted in
+        :return: dict of teams where keys are country_ids sorted by its rating and
         """
 
         # get country ratings for this season - list of tuples [(country_id, position), ...]
@@ -187,7 +187,7 @@ class Teams():
         country_positions = [country[0] for country in country_positions]
         # print "country_positions", country_positions
 
-        # national_tournaments_positions
+        # ntp is NATIONAL TOURNAMENTS POSITIONS
         # twice - for national_leagues and cups
         ntp = country_positions + [cup_id + len(country_positions) for cup_id in country_positions]
         # in other words,

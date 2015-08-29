@@ -61,6 +61,7 @@ class Season(object):
         self.tournaments = self.national_tournaments + self.uefa_tournaments
 
         # create teams instances and get all its data from database
+        # Teams contains method setTournResults to quick access to results of current tournament used by cups and UEFA
         self.teams = Teams(self.season_id, self.year, self.nations)
 
     def getID(self):
@@ -82,7 +83,7 @@ class Season(object):
     # @util.timer # profit 6 sec to 1 sec by multi-values inserting
     def RunNationalTournaments(self):
         """
-        storing all info about previous played tournaments to united dictionary (Team.Teams instance)
+        run national leagues and cups, storing all results in database
         """
         self.RunNationalLeagues()
         self.RunNationalCups()
@@ -92,7 +93,7 @@ class Season(object):
         run all national leagues:
         - get tournaments ids from season_tournaments
         - get members for every national league
-        - run league simulation
+        - run leagues simulations
         - store tournament_played, tournament_results, matches
         ratings of teams updated in team instances (in RAM)
         """
@@ -165,7 +166,7 @@ class Season(object):
         run all national leagues:
         - get tournaments ids from season_tournaments
         - get members for every national cup by getting members in order of pos from national tournament results
-        - run league simulationpos
+        - run cups simulations
         - store tournament_played, tournament_results, matches
         ratings of teams updated in team instances (in RAM)
         """
@@ -328,6 +329,7 @@ class Season(object):
     def run_UEFA_Europa_League(self):
         tourn_class = getattr(sys.modules[__name__], "UEFA_Champions_League") # TODO NEED NEW CLASS OR NOT?
         UEFA_EL_tourn = tourn_class(season = self,
+                                    name = UEFA_EL_TYPE_ID,
                                      year = self.year,
                                      # members = members,
                                      # pair_mode = pair_mode,
@@ -463,8 +465,8 @@ def Test(*args, **kwargs):
         print "\n=======================================\nTEST SEASON %s" % (t_ + 1)
         tst_season = Season()
         tst_season.run()
-        # tst_season = Season()
-        # tst_season.run()
+        tst_season = Season()
+        tst_season.run()
 
     if post_truncate:
         db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
