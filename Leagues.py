@@ -140,6 +140,8 @@ class League(object):
             teams_tuples = db.select(what="id", table_names=db.TEAMINFO_TABLE, where=" WHERE ", columns="id_country ",
                               sign=" = ", values=self.country_id, fetch="all", ind="all")
             teams_indexes = [team[0] for team in teams_tuples]
+
+            # TODO ERROR! WE SHOULD NOT CREATE NEW TEAM INSTANCES! use already defined Teams instance!
             self.members = [Team(ind) for ind in teams_indexes]
         else:
             print "setMembers by position from previous league"
