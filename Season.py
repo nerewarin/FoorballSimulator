@@ -90,7 +90,7 @@ class Season(object):
         tourn_class = getattr(sys.modules[__name__], classname)
         for tournament in self.leagues:
             tourn_id = tournament[0]
-            # tourn_type_id = tournament[1] - common use in line above
+            # tourn_type_id = tournament[1] - already defined above
             country_id = tournament[2]
 
             if self.year <= db.START_SIM_SEASON:
@@ -215,6 +215,22 @@ class Season(object):
     #     # save_ratings(con, cur, [self.season_year], teamsL)
     # TODO recompute and save countries rating in db
     # TODO save teams rating in db
+    #     self.update_countries_ratings()
+        self.save_ratings_to_db()
+
+    def update_countries_ratings(self):
+        raise NotImplementedError
+
+    def save_ratings_to_db(self):
+        """
+        save new counties and teams ratings in database
+        """
+        # store countries ratings
+        # TODO
+        # store teams ratings
+        team_ratings = [format(team.getRating(), '.3f') for team in self.teams.get_team()]
+        pass
+
 
     def RunUEFATournaments(self):
         """
@@ -223,14 +239,14 @@ class Season(object):
         self.run_UEFA_Champions_League()
         print "ok run_UEFA_Champions_League\n"
         print "print ratings"
-        print [team.getRating() for team in self.teams.get_team()]
+        print [format(team.getRating(), '.3f') for team in self.teams.get_team()]
         # for team in self.teams.get_team():
         #     print team.getRating()
 
         self.run_UEFA_Europa_League()
         print "ok run_UEFA_Europa_League\n"
         print "print ratings"
-        print [team.getRating() for team in self.teams.get_team()]
+        print [format(team.getRating(), '.3f') for team in self.teams.get_team()]
         # for team in self.teams.get_team():
         #     print team.getRating()
 

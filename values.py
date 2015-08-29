@@ -103,7 +103,7 @@ class Coefficients():
         # self.version = version
         if version[1] == "1": #"v1.x"
 
-            self.scaler = 0.01 # to scale to rating UEFA format
+            self.scaler = 0.5 # to scale to rating UEFA format
 
             if version[3] == "0": # "v1.0"
                 # v1.0 original coefficients from 2004 paper game

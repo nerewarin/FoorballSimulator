@@ -34,12 +34,12 @@ class Team():
             self.id, self.name, self.ruName, self.countryID, emblem = teaminfo_data
 
             team_rank  = db.select(what = ["rating", "position"], table_names=db.TEAM_RATINGS_TABLENAME,
-                                      columns="id", values=self.id,
-                                      where = " WHERE ", sign = " = ", fetch="all")
+                                      where = " WHERE ", columns="id", sign = " = ", values=self.id,
+                                      fetch="all", suffix=" ORDER BY id DESC LIMIT 1")
             self.rating, self.uefaPos = team_rank
             # print "self.rating, self.uefaPos", self.rating, self.uefaPos
-            self.country = db.select(what = "name", table_names=db.COUNTRIES_TABLE, columns="id", values=self.countryID,
-                                  where = " WHERE ", sign = " = ", fetch="one")
+            self.country = db.select(what = "name", table_names=db.COUNTRIES_TABLE, where = " WHERE ", columns="id",
+                                     sign = " = ",  values=self.countryID, fetch="one")
         # if not country: ;else: self.country = country
         else:
             self.name  = name
@@ -106,9 +106,9 @@ class Teams():
     all teams container - used for store all team data in RAM to quick access instead of get from database every time
     """
     def __init__(self, season, year, nations):
-        self.season = season # id
-        self.year = year # id
-        self.nations = nations
+        # self.season = season # id
+        # self.year = year # id
+        # self.nations = nations
         # self.setTeams()
 
         # create list of ALL TEAMS OBJECTS
