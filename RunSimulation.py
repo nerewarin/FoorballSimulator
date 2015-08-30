@@ -31,15 +31,16 @@ class Simulation():
             self.object = getattr(sys.modules[__name__], self.ObjectClassName)(members = self.teams)
             result = self.object.run()
             # print result
-            print self.object
+            # print self.object
 
 
 if __name__ == "__main__":
     # create teams list
-    teamsL = DataStoring.createTeamsFromExcelTable()
+    teamsL = Teams(members = DataStoring.createTeamsFromExcelTable())
     # for team in teamsL:
     #     print team.getName()
-    classes_to_test = ("Match", "DoubleMatch", "League", "Cup", "UEFA_Champions_League", "Season")
+    classes_to_test = ("Season", )
+    # classes_to_test = ("Match", "DoubleMatch", "League", "Cup", "UEFA_Champions_League", "Season")
     ITERATIONS  = 2
     for ObjectClassName in classes_to_test:
         print "\nRun Simulation \"%s\"\n" % str(ObjectClassName).split(".")[0]

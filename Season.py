@@ -423,10 +423,11 @@ def Test(*args, **kwargs):
     last_season_row = db.trySQLquery(query="SELECT id FROM %s ORDER BY ID DESC LIMIT 1"
                                        % db.SEASONS_TABLE, fetch="one")
 
-    t_num = 1
+
     if "t_num" in kwargs:
         t_num = kwargs["t_num"]
-
+    else:
+        t_num = 1
 
     if "print_matches" in kwargs.keys():
         print_matches = kwargs["print_matches"]
@@ -497,7 +498,7 @@ if __name__ == "__main__":
     #     Test("League", team_num = team_num, pair_mode = pair_mode, print_matches = True, print_ratings = False)
 
     # HOW MANY SEASONS WILL BE CREATED DURING THE TEST
-    TESTS_NUM = 2
+    TESTS_NUM = 1
     # PRINT MATCHES AFTER RUN
     PRINT_MATCHES = False
     PRINT_MATCHES = True
@@ -506,7 +507,7 @@ if __name__ == "__main__":
     PRINT_RATINGS = False
     # RESET ALL MATCHES DATA BEFORE TEST
     PRE_TRUNCATE = False
-    PRE_TRUNCATE = True
+    # PRE_TRUNCATE = True
     # RESET ALL MATCHES DATA AFTER TEST
     POST_TRUNCATE = False
     # POST_TRUNCATE = True

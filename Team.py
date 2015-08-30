@@ -105,8 +105,14 @@ class Teams():
     """
     all teams container - used for store all team data in RAM to quick access instead of get from database every time
     """
-    def __init__(self):
+    def __init__(self, members = None):
 
+         # dictionary of teams sorted by tournament ID
+        self.tourn_teams = {}
+
+        if members:
+            self.teams = members
+            return
         # create list of ALL TEAMS INSTANCES sorted by UEFA position
         # list is mutable so it will collect all data of teams needed for simulation and
         # also, every match will affect to this list by changing match members ratings
@@ -149,9 +155,6 @@ class Teams():
             team = Team(id=id_team, name = name, country=country_name, rating=rating, ruName=ruName, uefaPos=uefaPos,
                         countryID=countryID)
             self.teams.append(team)
-
-        # dictionary of teams sorted by tournament ID
-        self.tourn_teams = {}
 
     def str(self):
         """
@@ -199,11 +202,16 @@ class Teams():
             return None
             raise KeyError, "no data for getTournResults tournament_tournament_id = %s" %tournament_id
 
-    def sorted_by_rating(self):
+    def sorted_by_rating(self, members = None):
         """
         :return: list of teams sorted by current rating
         """
-        teamsL = sorted(self.teams, key=lambda x: x.getRating(), reverse = True)
+        if not members:
+            # sort all teams
+            teams = self.teams
+        else:
+            teams = members
+        teamsL = sorted(teams, key=lambda x: x.getRating(), reverse = True)
         return teamsL
 
     def sortedByCountryPos(self, season_id):

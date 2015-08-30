@@ -9,7 +9,7 @@ from Team import Team
 import Match as M
 import DataStoring as db
 import values as v
-from values import Coefficients as C, LEAGUE_TYPE_ID
+from values import Coefficients as C, LEAGUE_TYPE_ID, TEST_TOURNAMENT_ID
 from operator import attrgetter, itemgetter
 from collections import defaultdict
 import random
@@ -28,7 +28,7 @@ class League(object):
 
     """
     def __init__(self,
-                 name = None,
+                 name = TEST_TOURNAMENT_ID,
                  season = None,
                  year = None,
                  members = None,
@@ -257,6 +257,7 @@ class League(object):
         else:
             # unregistered yet - for national Leagues
             # saving tournament id before run to pass id to matches correctly
+            # if self.name_id != TEST_TOURNAMENT_ID:
             self.name_id = self.saveTounramentPlayed()
 
 
