@@ -113,7 +113,7 @@ class Teams():
         if members:
             self.teams = members
             return
-        # create list of ALL TEAMS INSTANCES sorted by UEFA position
+        # create list of ALL TEAMS INSTANCES sorted by id (list sorted by rating is available by appropriate method here)
         # list is mutable so it will collect all data of teams needed for simulation and
         # also, every match will affect to this list by changing match members ratings
         self.teams = []
@@ -130,22 +130,20 @@ class Teams():
         teaminfo_data = db.select(what = "*", table_names=db.TEAMINFO_TABLE, fetch="all", ind="all")
 
         # get rating of every team from database sorted by UEFA position in last season (or current)
-        teams_ranks  = db.select(what = ["id_team", "rating"], table_names=db.TEAM_RATINGS_TABLENAME,
+        teams_ranks  = db.select(what = ["id_team", "rating", "position"], table_names=db.TEAM_RATINGS_TABLENAME,
                                where = " WHERE ", columns="id_season", sign = " = ",
                                values="(select max(id_season) from %s)" % db.TEAM_RATINGS_TABLENAME,
-                               fetch="all", ind="all", suffix=" ORDER BY position ASC")
+                               fetch="all", ind="all", suffix=" ORDER BY id_team ASC")
 
         # get countries for every team
         countries_names =  [data[0] for data in
                             db.select(what = "name", table_names=db.COUNTRIES_TABLE, fetch="all", ind="all")]
 
-        # create list of Team instances sorted by UEFA position
-        for pos, team_rank in enumerate(teams_ranks):
-            id_team, rating = team_rank
-            # teams_ranks are already sorted by UEFA pos so we can just convert py index to pos by adding 1
-            uefaPos = pos + 1
-            # -1 cause id_team starts from 1 but python list indexes starts from 0
-            _id, name, ruName, countryID, emblem = teaminfo_data[id_team - 1]
+        # create list of Team instances sorted by id
+        for teaminfo in teaminfo_data:
+            _id, name, ruName, countryID, emblem = teaminfo
+            # -1 cause id column in DB starts from 1 but python list indexes starts from 0
+            id_team, rating, uefaPos = teams_ranks[_id - 1]
             assert _id == id_team, "id from team_info and team_ratings tables must be equal!"
             # -1 cause countryID starts from 1 but python list indexes starts from 0
             country_name = countries_names[countryID - 1]

@@ -234,9 +234,10 @@ class Season(object):
         # or position from prev. national league
         # and then run
         self.RunNationalTournaments()
-        print "ok RunNationalTournaments\n"
+        print "ok RunNationalTournaments"
         print "print ratings"
         print [team.getRating() for team in self.teams.get_team()]
+        print
         # for team in self.teams.get_team():
         #     print team.getRating()
 
@@ -283,8 +284,7 @@ class Season(object):
         print "ok run_UEFA_Champions_League\n"
         print "print ratings"
         print [format(team.getRating(), '.3f') for team in self.teams.get_team()]
-        # for team in self.teams.get_team():
-        #     print team.getRating()
+
 
         self.run_UEFA_Europa_League()
         print "ok run_UEFA_Europa_League\n"
@@ -312,7 +312,7 @@ class Season(object):
 
         # save group_third_places
         self.CL_EL_seeding = UEFA_CL_tourn.get_group3()
-        # get Qual 3 and Qual 4 loosers indexes
+        # get Qual 3 and Qual 4 loosers indexes to seed them to League Europa
         q3 = [i[0] for i in db.select(what="id_team", table_names=db.TOURNAMENTS_RESULTS_TABLE, where=" WHERE ",
                                      columns="position", sign=" LIKE ", values="'Q%3'", fetch="all", ind="all")]
         q4 = [i[0] for i in db.select(what="id_team", table_names=db.TOURNAMENTS_RESULTS_TABLE, where=" WHERE ",
@@ -324,7 +324,7 @@ class Season(object):
         # print "self.teams", self.teams[q3[0]]
 
     def get_CL_EL_seeding(self, key = None):
-        print "self.CL_EL_seeding", self.CL_EL_seeding
+        # print "self.CL_EL_seeding", self.CL_EL_seeding
         if key:
             return self.CL_EL_seeding[key]
         return self.CL_EL_seeding
