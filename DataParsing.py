@@ -105,7 +105,7 @@ def createTeamsFromHTML(season = "2014/2015", mode = "creating"):
         # create teams
         country_ID = None
         # print "UEFArating", UEFArating, type(UEFArating)
-        teamObj = Team.Team(0, teamName, country, UEFArating, ruName, UEFAposition, country_ID, UEFAratings)
+        teamObj = Team.Team(0, teamName, country, UEFArating, ruName, UEFAposition, country_ID)
         teamsD[teamName] = teamObj
         teamsL.append(teamObj)
 

@@ -1,14 +1,21 @@
 __author__ = 'NereWARin'
 # -*- coding: utf-8 -*-
-# import Team
+from Team import Teams
 import Match
 # import Leagues
 # import DataParsing
 import DataStoring
 
 class Simulation():
-    def __init__(self, teams, ObjectClassName, iterations):
-        self.teams = teams
+    def __init__(self, ObjectClassName, iterations, teams = None):
+        if not teams:
+            # if its first calling of season simulation,
+            # create teams instances and get all its data from database
+            # Teams contains method setTournResults to quick access to results of current tournament used by cups and UEFA
+            self.teams = Teams()
+        else:
+            # alse we already have Teams object, just use it
+            self.teams = teams
         # print type(ObjectClassName), ObjectClassName
         self.ObjectClassName = ObjectClassName
         self.iterations = iterations

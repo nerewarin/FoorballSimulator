@@ -64,7 +64,7 @@ class Season(object):
             # if its first calling of season simulation,
             # create teams instances and get all its data from database
             # Teams contains method setTournResults to quick access to results of current tournament used by cups and UEFA
-            self.teams = Teams(self.season_id, self.year, self.nations)
+            self.teams = Teams()
         else:
             # alse we already have Teams object, just use it
             self.teams = teams
@@ -133,7 +133,7 @@ class Season(object):
                     # query to tournament_played table to get id_tournament from prev season
                     query_tourn_played_id = "SELECT id FROM %s WHERE id_season = '%s' AND id_type = '%s'" % \
                                      (db.TOURNAMENTS_PLAYED_TABLE, self.prev_season, tourn_id)
-                    print "query_tourn_played_id =", query_tourn_played_id
+                    # print "query_tourn_played_id =", query_tourn_played_id
                     db.trySQLquery(func="execute", query=query_tourn_played_id)
                     query_tourn_played_id = db.CUR.fetchone()[0]
                     # query_to_results = "SELECT id_team FROM %s WHERE id_tournament = '(%s)';" % \

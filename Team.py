@@ -18,12 +18,13 @@ class Team():
     """
     represents team
     """
-    def __init__(self, id, name = None, country=None, rating=None, ruName=None, uefaPos=None, countryID=None, UEFAratings = []):
+    def __init__(self, id, name = None, country=None, rating=None, ruName=None, uefaPos=None, countryID=None):
         self.id = id
         # at start, when database initially filled, id of every team = 0 (not used),
         # and all other parameters are stored here like in buffer.
-        # when DB is already initialized we can initialze Team only by id and other attributes we get from SQL
+        # when DB is already initialized we can initialize Team only by id and other attributes we get from SQL
         if not name: # and not country e.t.c
+            # get all data from database by id
             # self.name = db.select(what = "*", table_names=db.TEAMINFO_TABLE, columns="id", values=self.id,
             #                       where = " WHERE ", sign = " = ")
             teaminfo_data = db.select(what = "*", table_names=db.TEAMINFO_TABLE, columns="id", values=self.id,
@@ -48,7 +49,6 @@ class Team():
             self.ruName = ruName
             self.uefaPos = uefaPos
             self.countryID = countryID
-        self.last_ratings = UEFAratings
         self.methods = ["getUefaPos", "getName", "getRuName", "getCountry", "getRating"]
 
     def __str__(self):
@@ -105,17 +105,50 @@ class Teams():
     """
     all teams container - used for store all team data in RAM to quick access instead of get from database every time
     """
-    def __init__(self, season, year, nations):
-        # self.season = season # id
-        # self.year = year # id
-        # self.nations = nations
-        # self.setTeams()
+    def __init__(self):
 
-        # create list of ALL TEAMS OBJECTS
-        teams_num = db.select(what="id", table_names=db.TEAMINFO_TABLE, suffix=" ORDER BY id DESC LIMIT 1", fetch="one")
-        # print "teams_num = %s" % teams_num
-        self.teams = [Team(ind) for ind in xrange(1, teams_num + 1)]
-        # self.teams = {}
+        # create list of ALL TEAMS INSTANCES sorted by UEFA position
+        # list is mutable so it will collect all data of teams needed for simulation and
+        # also, every match will affect to this list by changing match members ratings
+        self.teams = []
+
+        # v1 one by one
+        # teams_num = db.select(what="id", table_names=db.TEAMINFO_TABLE, suffix=" ORDER BY id DESC LIMIT 1", fetch="one")
+        # # print "teams_num = %s" % teams_num
+        # self.teams = [Team(ind) for ind in xrange(1, teams_num + 1)]
+        # # self.teams = {}
+
+        # v2 get all info by 1 query
+        # self.name = db.select(what = "*", table_names=db.TEAMINFO_TABLE, columns="id", values=self.id,
+        #                       where = " WHERE ", sign = " = ")
+        teaminfo_data = db.select(what = "*", table_names=db.TEAMINFO_TABLE, fetch="all", ind="all")
+
+        # get rating of every team from database sorted by UEFA position in last season (or current)
+        teams_ranks  = db.select(what = ["id_team", "rating"], table_names=db.TEAM_RATINGS_TABLENAME,
+                               where = " WHERE ", columns="id_season", sign = " = ",
+                               values="(select max(id_season) from %s)" % db.TEAM_RATINGS_TABLENAME,
+                               fetch="all", ind="all", suffix=" ORDER BY position ASC")
+
+        # get countries for every team
+        countries_names =  [data[0] for data in
+                            db.select(what = "name", table_names=db.COUNTRIES_TABLE, fetch="all", ind="all")]
+
+        # create list of Team instances sorted by UEFA position
+        for pos, team_rank in enumerate(teams_ranks):
+            id_team, rating = team_rank
+            # teams_ranks are already sorted by UEFA pos so we can just convert py index to pos by adding 1
+            uefaPos = pos + 1
+            # -1 cause id_team starts from 1 but python list indexes starts from 0
+            _id, name, ruName, countryID, emblem = teaminfo_data[id_team - 1]
+            assert _id == id_team, "id from team_info and team_ratings tables must be equal!"
+            # -1 cause countryID starts from 1 but python list indexes starts from 0
+            country_name = countries_names[countryID - 1]
+            # # print "self.rating, self.uefaPos", self.rating, self.uefaPos
+            # self.country = db.select(what = "name", table_names=db.COUNTRIES_TABLE, where = " WHERE ", columns="id",
+            #                          sign = " = ",  values=self.countryID, fetch="one")
+            team = Team(id=id_team, name = name, country=country_name, rating=rating, ruName=ruName, uefaPos=uefaPos,
+                        countryID=countryID)
+            self.teams.append(team)
 
         # dictionary of teams sorted by tournament ID
         self.tourn_teams = {}
