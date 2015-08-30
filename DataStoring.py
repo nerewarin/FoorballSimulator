@@ -113,21 +113,21 @@ def createTeamsFromExcelTable(excelFilename = "initial rating.xls"):
     # create teams list
     # create teams list sorted by rating
     teamsL = []
-    for rownum in range(1, sheet.nrows): # exclude 1 cause there are headers
+    # -1 cause exclude headers (titles) row
+    rows_num = sheet.nrows - 1
+    for rownum in range(1, rows_num + 1):
         row = sheet.row_values(rownum)
         # print row#.encode('utf8')
         name = row[1].replace("\'", "").replace("/", "-")
-        print "creating teamsL", util.unicode_to_str(name)
         country = str(row[3])
         rating = float(row[4])
         ruName = row[2]
         uefaPos = int(row[0])
-        countryID = "undefined"
-        teamsL.append(Team.Team(name, country, rating, ruName, uefaPos, countryID))
-        # print tournament, country, rating, ruName, uefaPos
-    # print to console all teams
-    return teamsL
+        countryID = get_id_from_value(COUNTRIES_TABLE, "name", country)
+        teamsL.append(Team.Team(uefaPos, name, country, rating, ruName, uefaPos, countryID))
 
+    print "{0} Team instances created in teamsL from {1}".format(rows_num, excelFilename)
+    return teamsL
 
 # CREATE DATABASE AND TABLES
 def createDB(teamsL, storage = "Postgre", overwrite = False):
@@ -427,7 +427,7 @@ def get_country_id(cur, country_name):
     return country_ID
 
 
-def get_id_from_value(cur, table_name, column, value):
+def get_id_from_value(table_name, column, value):
     """
     converts value to id
     :param cur:
@@ -436,9 +436,8 @@ def get_id_from_value(cur, table_name, column, value):
     :param value:
     :return:
     """
-    print "table_name, column, value =", table_name, column, value
-    cur.execute("""SELECT id FROM %s WHERE %s = '%s';""" %table_name,  (column, value)) # ok
-    id = cur.fetchone()[0]
+    CUR.execute("""SELECT id FROM %s WHERE %s = '%s';""" % (table_name, column, value)) # ok
+    id = CUR.fetchone()[0]
     return id
 
 # def trySQLquery(cur, func, query, data = None):

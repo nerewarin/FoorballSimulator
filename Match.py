@@ -15,23 +15,24 @@ import DataStoring as db
 
 
 class Match(object):
-    def __init__(self, members, deltaCoefs, tournament = 0, round = "no round", playoff = False,
-        result_format = [0,1,2], mode = "dice original", save_to_db = True):
+    def __init__(self, members, deltaCoefs = C(v.VALUES_VERSION).getRatingUpdateCoefs("list"), tournament = 0,
+                 name = "no round", playoff = False, result_format = [0,1,2], mode = "dice original",
+                 save_to_db = True):
         # result_format = {"Win" : 0, "Lose" : 1, "Draw" : 2}, mode = "dice original"):
         """
 
         :param members: tuple of 2 teams objects
         :param deltaCoefs: coefficients to compute tearing changes after match
         :param tournament: tournament id
-        :param round: string (qualification 1....final)
+        :param name: string (qualification 1....final)
         :param playoff: Draw result available (for league) or not (for Cup play-offs and finals)
         :param result_format: what getWinner will return
         :param mode: computing match result logic
 
         :return:
         """
-        self.tournament = tournament # from tournaments_played
-        self.round = str(round)
+        self.tournament = tournament # id from tournaments_played
+        self.round = str(name)
         self.name = str(self.tournament) + " " + self.round
 
         self.members = members
@@ -41,6 +42,10 @@ class Match(object):
         self.mode = mode
         self.save_to_db = save_to_db
 
+        if not members:
+            raise ValueError, "no members to start Match"
+        elif len(members) > 2:
+            warnings.warn("more than 2 members passed to play match!")
         self.home  = self.members[0]
         self.guest = self.members[1]
 
@@ -74,7 +79,7 @@ class Match(object):
         # new-styled
         if not self.tournament or self.tournament == v.TEST_TOURNAMENT_ID:
             # common case
-            representation = self.tournament + " " + self.round
+            representation = str(self.tournament) + " " + self.round
         else:
             # test or friendly match
             season_name = db.select(what="name", table_names=db.SEASONS_TABLE, suffix=" ORDER BY ID DESC LIMIT 1")
@@ -319,7 +324,9 @@ class DoubleMatch(Match):
     """
     represents two matches (home - guest) for pair (useful in Cups)
     """
-    def __init__(self, members, deltaCoefs, tournament = 0,  round = "no round", playoff = False, result_format = [0, 1, 2], mode = "dice original", save_to_db = True):
+    def __init__(self, members, deltaCoefs = C(v.VALUES_VERSION).getRatingUpdateCoefs("list"), tournament = 0,
+                 name = "no round", playoff = False, result_format = [0, 1, 2], mode = "dice original",
+                 save_to_db = True):
         """
          :param members: tuple of 2 teams objects
          :param deltaCoefs: coefficients to compute tearing changes after match
@@ -329,7 +336,7 @@ class DoubleMatch(Match):
          :return:
         """
 
-        super(DoubleMatch, self).__init__(members, deltaCoefs, tournament, round, playoff, result_format, mode, save_to_db)
+        super(DoubleMatch, self).__init__(members, deltaCoefs, tournament, name, playoff, result_format, mode, save_to_db)
         self.playoff = playoff
         self.result = ("not played",)#, ("not played",)
         self.matches_results = ("not played","not played"), ("not played","not played")
@@ -349,7 +356,7 @@ class DoubleMatch(Match):
         #              ,self.guestName)
         if not self.tournament or self.tournament == v.TEST_TOURNAMENT_ID:
             # common case
-            representation = self.tournament + " " + self.round
+            representation = str(self.tournament) + " " + self.round
         else:
             # test or friendly match
             season_name = db.select(what="name", table_names=db.SEASONS_TABLE, suffix=" ORDER BY ID DESC LIMIT 1")
@@ -564,7 +571,8 @@ def Test(iterations = 20, pre_truncate = False, post_truncate = False, save_to_d
             else:
                 pair = (team1, team2)
             # testMatch = Match(pair, coefs, "testMatch%s" % (i + 1))
-            testMatch = Match(pair, coefs, tournament = v.TEST_TOURNAMENT_ID, round = "test%s" % (i + 1), save_to_db = save_to_db)
+            testMatch = Match(pair, coefs, tournament = v.TEST_TOURNAMENT_ID, round = "test%s" % (i + 1),
+                              save_to_db = save_to_db)
 
             testMatch.run()
             # print testMatch.printResult(), "updated ratings", team1.getRating(), team2.getRating()

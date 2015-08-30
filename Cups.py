@@ -359,7 +359,7 @@ class Cup(League):
 
                 # PLAY MATCH OR DOUBLE_MATCH
                 # struggle = classname(pair, self.delta_coefs, tournament=self.getID(), round = round_name, playoff = playoff, save_to_db=self.save_to_db"multi_values")
-                struggle = classname(pair, self.delta_coefs, tournament=self.getID(), round = self.prefix + round_name,
+                struggle = classname(pair, self.delta_coefs, tournament=self.getID(), name = self.prefix + round_name,
                                      playoff = playoff, save_to_db="multi_values")
                 struggle.run()
                 # collecting match values to insert all matches of League to db at once

@@ -85,6 +85,10 @@ class League(object):
                                                % db.SEASONS_TABLE, fetch="one")
         self.year = year
         self.members = members
+        # TODO temp solution for test league with 454 teams - it was too slow!
+        if not prefix and isinstance(members, list) and len(members) > 40:
+            warnings.warn("{0} members cutted to first 40".format(len(members)))
+            self.members = members[:40]
         self.delta_coefs = delta_coefs
         self.seeding = seeding # not used in League - used hardcoded roundRobin instead
         self.pair_mode = pair_mode
@@ -196,7 +200,7 @@ class League(object):
 
         # new-style
         # match = M.Match(pair, self.delta_coefs, tournament=self.getID(), round = round, save_to_db=self.save_to_db)
-        match = M.Match(pair, self.delta_coefs, tournament=self.getID(), round = round, save_to_db="multi_values")
+        match = M.Match(pair, self.delta_coefs, tournament=self.getID(), name = round, save_to_db="multi_values")
         match_score = match.run()
         # collecting match values to insert all matches of League to db at once
         self.match_values.append(match.get_insert_values())
@@ -393,6 +397,9 @@ class League(object):
             self.season_id = self.season
         else:
             self.season_id = self.season.getID()
+        if not self.name_id:
+            warnings.warn("no name_id! (id of tournament type) - default test id=1 was used")
+            self.name_id = 1
         values = [self.season_id, self.name_id]
         # print "values are ", values
         db.insert(db.TOURNAMENTS_PLAYED_TABLE, columns, values)

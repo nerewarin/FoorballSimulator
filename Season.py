@@ -19,7 +19,7 @@ class Season(object):
     """
     creates all tournament
     """
-    def __init__(self, teams = False):
+    def __init__(self, members = False):
         """
 
         :param season_year: string like "2014/2015"
@@ -60,14 +60,14 @@ class Season(object):
         # move UEFA tournaments to the end
         self.tournaments = self.national_tournaments + self.uefa_tournaments
 
-        if not teams:
+        if not members:
             # if its first calling of season simulation,
             # create teams instances and get all its data from database
             # Teams contains method setTournResults to quick access to results of current tournament used by cups and UEFA
             self.teams = Teams()
         else:
             # alse we already have Teams object, just use it
-            self.teams = teams
+            self.teams = members
 
     def getID(self):
         return self.season_id
