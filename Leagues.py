@@ -28,7 +28,7 @@ class League(object):
 
     """
     def __init__(self,
-                 name = TEST_TOURNAMENT_ID,
+                 name,
                  season = None,
                  year = None,
                  members = None,
@@ -398,17 +398,15 @@ class League(object):
             self.season_id = self.season
         else:
             self.season_id = self.season.getID()
-        if not self.name_id:
-            warnings.warn("no name_id! (id of tournament type) - default test id=1 was used")
-            self.name_id = 1
-        values = [self.season_id, self.name_id]
+        values = [self.season_id, self.type_id]
         # print "values are ", values
         db.insert(db.TOURNAMENTS_PLAYED_TABLE, columns, values)
                   # output = "OUTPUT %s.id"%db.TOURNAMENTS_PLAYED_TABLE, fetch = "one")
 
         # print "new tournament id (%s) of season_id (%s) inserted" % (values[1], values[0])
         # return id
-        name_id =  db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="one", suffix = " ORDER BY id DESC LIMIT 1")
+        # name_id =  db.select(table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="one", suffix = " ORDER BY id DESC LIMIT 1")
+        name_id =  db.select(what="id", table_names=db.TOURNAMENTS_PLAYED_TABLE, fetch="one", suffix = " ORDER BY id DESC LIMIT 1")
         # assert (id == self.id ), "storeed (%s) and argument (%s) id not equals!" % (id,  self.id)
         # print "id", id
         # print "id[0]", id[0]

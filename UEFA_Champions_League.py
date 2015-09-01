@@ -21,7 +21,7 @@ import warnings
 
 class UEFA_Champions_League(Cup):
     def __init__(self,
-                 name = UEFA_CL_TYPE_ID, # id from Tournaments
+                 name = None, # id from Tournaments_played
                  season = None,
                  year = None,
                  members = None,
