@@ -377,21 +377,21 @@ UEFA_EL_SCHEMA = [
                     "pair_mode" : 2,
                     # every tour is a row of dict {round tournament : dict{country ind : team pos of national league}}
                     "tindx_in_round" : {
-                        # count=78
+                        # 1 round count=78
                         # 20 cup winners 35-54, 1 winner of 54*, 28* silver of 27-54*, 29 bronze 22-52
                         1 : {tuple(range(35,55)) : "cupwinner",  (54, ) : 1, tuple(range(27,54)) : 2,
                              tuple(range(22,52)) : 3},
-                        # 2 round
+                        # 2 round count=80
                          # 15 cup winners 20-34, 11 silver 16-26, 6 bronze 16-21, 6 fourth 10-15, 3 fifth 7-9,
-                         # and 38 winners of prev
+                         # and 39 winners of prev
                         2 : {tuple(range(20,35)) : "cupwinner",  tuple(range(16,27)) : 2, tuple(range(16,22)) : 3,
                                tuple(range(10,16)) : 4,  tuple(range(7,10)) : 5},
-                        # 3 round
+                        # 3 round  count=58
                          # 3 cup winners 17-19, 6 bronze 10-15, 3 fourth 7-9, 3 fifth 4-6, 3 sixth 1-3,
-                         # and 38 winners of prev
+                         # and 40 winners of prev
                         3 : {tuple(range(17,20)) : "cupwinner",  tuple(range(10,16)) : 3, tuple(range(7,10)) : 4,
                                tuple(range(4,7)) : 5,  tuple(range(1,4)) : 6}, # or league cup see todo above
-                        # Play-Off round
+                        # Play-Off round count=62
                          # 9 cup winners 8-16, 3 bronze 7-9, 3 fourth 4-6, 3 fifth 1-3,
                          # 15 from 3th qualification round of champions league
                          # and 38 winners of prev

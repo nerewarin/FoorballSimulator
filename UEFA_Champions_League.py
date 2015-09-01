@@ -99,7 +99,7 @@ class UEFA_Champions_League(Cup):
         # winners of every sub-tournament will be added to next sub-tournament
         winners = []
 
-        # UEFA tournament consists of sub_tournemants - Qualification, Group, Pla-off which are played in order
+        # UEFA tournament consists of sub_tournaments - Qualification, Group, Pla-off which are played in order
         for sub_tourn in self.seeding: # schema - list of dicts
             # print stage
             sub_tourn_members = []
@@ -276,6 +276,8 @@ class UEFA_Champions_League(Cup):
                 pass
                 # split by 4 baskets
                 baskets_count = 4
+                if len(members) % baskets_count != 0:
+                    pass
                 assert len(members) % baskets_count == 0, "teams in baskets cannot be equal!"
                 basket_len = len(members) / baskets_count
                 baskets = []
