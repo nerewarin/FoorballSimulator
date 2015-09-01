@@ -107,13 +107,15 @@ class Teams():
     """
     def __init__(self, members = None):
 
-         # dictionary of teams sorted by tournament ID
+         # dictionary of teams where key is tournament_type_id, value is list of teams sorted by position *
+         # *for cups its just winner
         self.tourn_teams = {}
 
         if members:
             self.teams = members
             return
-        # create list of ALL TEAMS INSTANCES sorted by id (list sorted by rating is available by appropriate method here)
+        # create list of ALL TEAMS INSTANCES sorted by id
+        # (another list sorted by rating is available by appropriate method sorted_by_rating)
         # list is mutable so it will collect all data of teams needed for simulation and
         # also, every match will affect to this list by changing match members ratings
         self.teams = []
@@ -195,7 +197,6 @@ class Teams():
             # return self.teams[self.tourn_teams[tournament_id] - 1]
 
             return [self.teams[ind-1] for ind in self.tourn_teams[tournament_id]]
-            return self.tourn_teams[tournament_id]
         else:
             return None
             raise KeyError, "no data for getTournResults tournament_tournament_id = %s" %tournament_id
@@ -218,33 +219,32 @@ class Teams():
         :country_positions: list of country_positions (national tournaments) positions
         :return: dict of teams where keys are country_ids sorted by its rating and
         """
-
+        # TODO store info about if ntp had been already computed in this season (first call by CL, second call by EL)
         # get country ratings for this season - list of tuples [(country_id, position), ...]
         # country_positions = db.select(what="id_country, position", table_names=db.COUNTRY_RATINGS_TABLE, where=" WHERE ",
         #                             columns="id_season", sign=" = ", values=(self.season_id-1), fetch="all", ind="all")
         country_positions = db.select(what="id_country", table_names=db.COUNTRY_RATINGS_TABLE, where=" WHERE ",
                                     columns="id_season", sign=" = ", values=(season_id-1), fetch="all", ind="all")
         country_positions = [country[0] for country in country_positions]
-        # print "country_positions", country_positions
 
         # ntp is NATIONAL TOURNAMENTS POSITIONS
         # twice - for national_leagues and cups
         ntp = country_positions + [cup_id + len(country_positions) for cup_id in country_positions]
-        # in other words,
+        # in other words, ntp is a list of countries_id (for tournaments) with shift of number of countries for cups,
+        # sorted by country_pos
         # ntp = ntp_leagues + ntp_cups    where
         # ntp_leagues = [league_teams for league_teams in ntp_leagues]
         # ntp_cups = [(cup_teams + shift) for cup_teams in ntp_leagues] where shift = len(country_positions)
 
-        # ntp teams - list of teams, sorted by ntp
+        # ntp teams - list of lists of (teams, sorted by result in tournament), sorted by ntp
         # self.ntp_teams = [self.tourn_teams[tournament_id + 2] for tournament_id in  ntp]
         # print "self.ntp_teams v1", len(self.ntp_teams), self.ntp_teams
         # for ntp_team in self.ntp_teams:
         #     print ntp_team
-
-
         self.ntp_teams = []
         for tournament_id in ntp:
             tourn_teams = []
+            # assume national_league type_id = country_id + 2
             teams_indexes = self.tourn_teams[tournament_id + 2]
             if isinstance(teams_indexes, list):
                 # for every pos in League

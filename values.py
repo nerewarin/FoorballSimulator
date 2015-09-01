@@ -103,7 +103,7 @@ class Coefficients():
         # self.version = version
         if version[1] == "1": #"v1.x"
 
-            self.scaler = 0.5 # to scale to rating UEFA format
+            self.scaler = 0.25 # to scale to rating UEFA format
 
             if version[3] == "0": # "v1.0"
                 # v1.0 original coefficients from 2004 paper game
@@ -404,7 +404,7 @@ UEFA_EL_SCHEMA = [
 
             {"Group" : {
                     "classname" : "League",
-                    # split members to 12 groups
+                    # split 48 members to 12 groups
                     "parts" : 12,
                     "pair_mode" : 2,
                     "tindx_in_round" : {

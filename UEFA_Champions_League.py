@@ -19,17 +19,6 @@ import os
 import sys
 import warnings
 
-# TODO func here avoid importing - delete it if DB is installed on executable env
-# def trySQLquery(a,b,c):
-#     return a
-#
-# def connectDB(a="",b="",c="",d=""):
-#     return a,cur()
-#
-# class cur():
-#     def execute(self):
-#         return None
-
 class UEFA_Champions_League(Cup):
     def __init__(self,
                  name = UEFA_CL_TYPE_ID, # id from Tournaments
@@ -138,7 +127,7 @@ class UEFA_Champions_League(Cup):
                 # borders = {}
                 for round_num, seeded_sources in rounds_info.items():
                     # print "round_num = %s" % round_num#, members_schema
-                    rounds_info[round_num] = {}
+                    rounds_info[round_num] = {} # replace dict ntp_index:pos by
                     round_members = []
 
                     for source, pos in seeded_sources.iteritems():
@@ -214,12 +203,12 @@ class UEFA_Champions_League(Cup):
                         rounds_info[round_num]["count"] = 0
 
             self.sub_schems.append((classname, sub_tourn_name, sub_tourn_members[::-1], rounds_info, parts, pair_mode))
-
+        # TODO delete [::-1] iabove and below
         # common list of members used for quick search by another tournament (UEFA_EL) - maybe it will be unused
         self.members = []
-        for members in reversed(self.sub_schems):
+        for sub_schema in reversed(self.sub_schems): # from qualification to play-off
             # get sub_tourn_members   from  sub_schems and add them to the common list
-            self.members += members[2]
+            self.members += sub_schema[2]
         # reverse back - now its from favorite to outsider
         self.members = self.members[::-1]
         print "ok UEFA setMembers"
@@ -350,7 +339,7 @@ class UEFA_Champions_League(Cup):
                     # prefix = tourn_type_name + " " + sub_tourn_name
                     prefix = sub_tourn_name + " "
 
-                if classname == "Cup":
+                if classname == "Cup" and "qualification" in prefix.lower():
                     pass # catching problem (debug breakpoint)
                 sub_tournament = tourn_class(name = self.name_id,
                                      season = self.season,
