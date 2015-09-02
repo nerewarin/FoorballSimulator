@@ -69,6 +69,12 @@ class Season(object):
             # alse we already have Teams object, just use it
             self.teams = members
 
+    def get_teams(self):
+        """
+        :return: all teams and their results data for using in next season if it will be called successively with that
+        """
+        return self.teams
+
     def getID(self):
         return self.season_id
 
@@ -309,7 +315,7 @@ class Season(object):
         # save for future access to UEFA_EL for seeding
         self.UEFA_CL_members = UEFA_CL_tourn.getMember()
         # id of tournament from TOURNAMENT_PLAYED (and also from TOURNAMENTS_RESULTS)
-        UEFA_CL_tourn.run()
+        UEFA_CL_tourn.run() # TODO FIX NotImplementedError FOR RUN 2nd SEASON IN SESSION
         # id if played CL is defined in run method
         CL_id_tourn = UEFA_CL_tourn.getID()
 
@@ -494,11 +500,15 @@ def Test(*args, **kwargs):
         # # better (but slower) to use full recreation
         db.Test()
 
-    # RUN SEASON
+    # RUN SEASONS
+    # members is a cached data from previous seasons stored in RAM for quick access if next season will be called in
+    # the same session
+    members = None
     for t_ in range(t_num):
         print "\n=======================================\nTEST SEASON %s" % (t_ + 1)
-        tst_season = Season()
+        tst_season = Season(members)
         tst_season.run()
+        members = tst_season.get_teams()
 
     if post_truncate:
         db.truncate(db.TOURNAMENTS_PLAYED_TABLE)
@@ -514,7 +524,7 @@ if __name__ == "__main__":
     #     Test("League", team_num = team_num, pair_mode = pair_mode, print_matches = True, print_ratings = False)
 
     # HOW MANY SEASONS WILL BE CREATED DURING THE TEST
-    TESTS_NUM = 1
+    TESTS_NUM = 3
     # PRINT MATCHES AFTER RUN
     PRINT_MATCHES = False
     PRINT_MATCHES = True
@@ -523,7 +533,7 @@ if __name__ == "__main__":
     PRINT_RATINGS = False
     # RESET ALL MATCHES DATA BEFORE TEST
     PRE_TRUNCATE = False
-    # PRE_TRUNCATE = True
+    PRE_TRUNCATE = True
     # RESET ALL MATCHES DATA AFTER TEST
     POST_TRUNCATE = False
     # POST_TRUNCATE = True

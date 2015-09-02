@@ -18,6 +18,7 @@ import time
 import os
 import sys
 import warnings
+import copy
 
 class UEFA_Champions_League(Cup):
     def __init__(self,
@@ -100,7 +101,7 @@ class UEFA_Champions_League(Cup):
         winners = []
 
         # UEFA tournament consists of sub_tournaments - Qualification, Group, Pla-off which are played in order
-        for sub_tourn in self.seeding: # schema - list of dicts
+        for sub_tourn in copy.deepcopy(self.seeding): # schema - list of dicts
             # print stage
             sub_tourn_members = []
             classname, round_num, parts, seeding, round_num, sub_tourn_name, pair_mode = \
@@ -277,7 +278,7 @@ class UEFA_Champions_League(Cup):
                 pass
                 # split by 4 baskets
                 baskets_count = 4
-                if len(members) % baskets_count != 0:
+                if len(members) % baskets_count != 0: # TODO deleteme
                     pass
                 assert len(members) % baskets_count == 0, "teams in baskets cannot be equal!"
                 basket_len = len(members) / baskets_count
