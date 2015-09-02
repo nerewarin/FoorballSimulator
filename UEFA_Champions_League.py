@@ -185,7 +185,8 @@ class UEFA_Champions_League(Cup):
                                     # if League or Cup member out of range, shift tournament to next
                                     team_index += 1
                                     if team_index > (len(ntt) - 1):
-                                        # if tournament has ot got more unseeded teams, tourn will be shifted to next
+                                        # if tournament hasn't got more unseeded teams, shift source by rating to get
+                                        # next national tournament
                                         tourn_id, ntt = shift_tourn(ntp_teams, nations, tourn_id)
                                         # TODO we check one tournament but not others!  we can make "reserve" tag in schema for additional list of teams and pop from it
                                     seeded_team = ntt[team_index]#.pop()
@@ -359,16 +360,22 @@ class UEFA_Champions_League(Cup):
                     second_place = group_results[1]["Team"]
                     # if its CL, if will be used used for EL
                     third_place = group_results[2]["Team"]
+                    # collect all groups winners
                     sub_winners = [first_place] + sub_winners + [second_place]
+                    # save 3rd places to seed them to Europe League play-off started soon
                     self.CL_EL_seeding["Group 3th places"].append(third_place)
                 else:
                     # classname == "Cup"
                     sub_results = sub_tournament.run()
                     sub_winners += sub_results
+                    if "qualification" in prefix.lower():
+                        net = sub_tournament.getNet()
+                        self.CL_EL_seeding["Qualification 3"] = [pair[-1] for pair in net[3]] # -1 points to loosers
+                        self.CL_EL_seeding["Qualification 4"] = [pair[-1] for pair in net[4]] # -1 points to loosers
             pre_winners = sub_winners
         return
 
-    def get_group3(self):
+    def get_CL_to_EL_seeding(self):
         """
         :return: dict {"Qualification 3" : [Team...Team], "Qualification 4" : [], "Group 3th places" : []}
         """

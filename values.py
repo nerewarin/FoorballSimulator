@@ -313,16 +313,16 @@ UEFA_CL_SCHEMA = [
                     # * - if int, pos, if string and == "cupwinner" - so its winner from national cups,
 
                     "tindx_in_round" : {
-                       # 1 round
+                       # 1 round count=6
                        # 6 champions of national_leagues 48-53 (all but 54)
                        1 : {tuple(range(48,54,1)) : 1},
-                       # 2 round
+                       # 2 round count=34
                        # 31 champions of national_leagues 17-47 and 3 winners of prev round
                        2 : {tuple(range(17,48,1)) : 1},
-                       # 3 round
+                       # 3 round count=30
                        # 3 champions of 14-16, 9 silver of 7-15, 1 bronze of 6 and 17 winners of prev
                        3 : {tuple(range(14,17)) : 1, tuple(range(7,16)) : 2, (6,) : 3},
-                       # final of Play-Off round
+                       # final or Play-Off round count=20
                        # 2 bronze 4-5, 3 fourth of 1-3, and 15 winners of prev
                        4 : {(4,5) : 3, (1,2,3) : 4}
                     }

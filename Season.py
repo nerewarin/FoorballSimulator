@@ -132,7 +132,7 @@ class Season(object):
 
                     # query to tournament_played table to get id_tournament from prev season
                     query_tourn_played_id = "SELECT id FROM %s WHERE id_season = '%s' AND id_type = '%s'" % \
-                                     (db.TOURNAMENTS_PLAYED_TABLE, self.prev_season, tourn_id)
+                                     (db.TOURNAMENTS_PLAYED_TABLE, self.prev_season, tourn_type_id)
                     # print "query_tourn_played_id =", query_tourn_played_id
                     db.trySQLquery(func="execute", query=query_tourn_played_id)
                     query_tourn_played_id = db.CUR.fetchone()[0]
@@ -312,24 +312,31 @@ class Season(object):
         # id if played CL is defined in run method
         CL_id_tourn = UEFA_CL_tourn.getID()
 
-        # save group_third_places
-        self.CL_EL_seeding = UEFA_CL_tourn.get_group3()
-        # get Qual 3 and Qual 4 loosers indexes to seed them to League Europa
-        values_for_q3 = (db.TOURNAMENTS_RESULTS_TABLE, CL_id_tourn, 'Q%3')
-        values_for_q4 = (db.TOURNAMENTS_RESULTS_TABLE, CL_id_tourn, 'Q%4')
-        query_q3 = "SELECT FROM %s WHERE id_tournament = %s AND position LIKE '%s'" % values_for_q3
-        query_q4=  "SELECT FROM %s WHERE id_tournament = %s AND position LIKE '%s'" % values_for_q4
-        # q3 = [i[0] for i in db.select(what="id_team", table_names=db.TOURNAMENTS_RESULTS_TABLE, where=" WHERE ",
-        #                              columns="position", sign=" LIKE ", values="'Q%3'", fetch="all", ind="all")]
-        # q4 = [i[0] for i in db.select(what="id_team", table_names=db.TOURNAMENTS_RESULTS_TABLE, where=" WHERE ",
-        #                              columns="position", sign=" LIKE ", values="'Q%4'", fetch="all", ind="all")]
-        q3 = db.trySQLquery(func="execute", query=query_q3, fetch="all")
-        q4 = db.trySQLquery(func="execute", query=query_q4, fetch="all")
-        self.CL_EL_seeding["Qualification 3"] = [self.teams.get_team(ind-1) for ind in q3]
-        self.CL_EL_seeding["Qualification 4"] = [self.teams.get_team(ind-1) for ind in q4]
-        # print "self.teams", self.teams
-        # print "self.teams", self.teams.sortedByID(), len(self.teams.sortedByID())
-        # print "self.teams", self.teams[q3[0]]
+        # use CL data to seed loosers of some rounds of CL to EL
+        # get group_third_places to seed them to League Europa
+        self.CL_EL_seeding = UEFA_CL_tourn.get_CL_to_EL_seeding()
+
+        if not (self.CL_EL_seeding["Qualification 3"] or self.CL_EL_seeding["Qualification 4"]):
+            # normally this should never happens
+
+            # # get Qual 3 and Qual 4 loosers indexes to seed them to League Europa
+            # self.CL_EL_seeding = UEFA_CL_tourn.getNet()
+
+            values_for_q3 = (db.TOURNAMENTS_RESULTS_TABLE, CL_id_tourn, 'Q%3')
+            values_for_q4 = (db.TOURNAMENTS_RESULTS_TABLE, CL_id_tourn, 'Q%4')
+            query_q3 = "SELECT FROM %s WHERE id_tournament = %s AND position LIKE '%s'" % values_for_q3
+            query_q4=  "SELECT FROM %s WHERE id_tournament = %s AND position LIKE '%s'" % values_for_q4
+            # q3 = [i[0] for i in db.select(what="id_team", table_names=db.TOURNAMENTS_RESULTS_TABLE, where=" WHERE ",
+            #                              columns="position", sign=" LIKE ", values="'Q%3'", fetch="all", ind="all")]
+            # q4 = [i[0] for i in db.select(what="id_team", table_names=db.TOURNAMENTS_RESULTS_TABLE, where=" WHERE ",
+            #                              columns="position", sign=" LIKE ", values="'Q%4'", fetch="all", ind="all")]
+            q3 = db.trySQLquery(func="execute", query=query_q3, fetch="all")
+            q4 = db.trySQLquery(func="execute", query=query_q4, fetch="all")
+            self.CL_EL_seeding["Qualification 3"] = [self.teams.get_team(ind-1) for ind in q3]
+            self.CL_EL_seeding["Qualification 4"] = [self.teams.get_team(ind-1) for ind in q4]
+            # print "self.teams", self.teams
+            # print "self.teams", self.teams.sortedByID(), len(self.teams.sortedByID())
+            # print "self.teams", self.teams[q3[0]]
 
     def get_CL_EL_seeding(self, key = None):
         # print "self.CL_EL_seeding", self.CL_EL_seeding
@@ -515,8 +522,8 @@ if __name__ == "__main__":
     PRINT_RATINGS = False
     # RESET ALL MATCHES DATA BEFORE TEST
     PRE_TRUNCATE = False
-    PRE_TRUNCATE = True
-    # RESET ALL MATCHES DATA AFTER TEST
+    # PRE_TRUNCATE = True
+    # RESET ALL MATCHES D\ATA AFTER TEST
     POST_TRUNCATE = False
     # POST_TRUNCATE = True
     # SAVE TO DB - to avoid data integrity (if important data in table exists), turn it off
