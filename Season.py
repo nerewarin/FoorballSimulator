@@ -38,7 +38,7 @@ class Season(object):
         self.tourn_classes = [clsname[0] for clsname in db.select(what="name", table_names=db.TOURNAMENTS_TYPES_TABLE,
                                                            fetch="all", ind="all")]
 
-        # print "self.id, self.year", self.id, self.year
+        # list of tuples (id_type (*3=Eng League), id_class (*3=League, 4=Cup), id_country (*1 ENG))  * - examples mark
         season_tournaments = db.select(what=["id", "type", "id_country"],
                                             table_names=db.TOURNAMENTS_TABLE, fetch="all", ind = "all")
         # print "season_tournaments=", season_tournaments
@@ -102,19 +102,32 @@ class Season(object):
         - store tournament_played, tournament_results, matches
         ratings of teams updated in team instances (in RAM)
         """
-        tourn_type_id = self.national_leagues[0][1] # 0 cause any number is ok
-        classname = self.tourn_classes[tourn_type_id - 1].replace(" ", "_")
+        tourn_class_id = self.national_leagues[0][1] # 0 cause any number is ok
+        classname = self.tourn_classes[tourn_class_id - 1].replace(" ", "_")
         tourn_class = getattr(sys.modules[__name__], classname)
 
         # TODO ALWAYS ENGLAND LEAGUE IF NOT FIRST SIM SEASON!!! CHECK TOURNAMENT ID!!
 
-        for tournament in self.national_leagues:
-            tourn_id = tournament[0]
-            # tourn_type_id = tournament[1] - already defined above
+        # prepare list of tournament_id of nat leagues of prev season to get indexes of its members ordered by position
+        if self.year > db.START_SIM_SEASON: #  and not members
+            # print "setNationalResults by position of previous national national_leagues results"
+
+            # query to tournament_played table to get id_tournament from prev season
+            query_tourn_played_id = "SELECT id FROM %s WHERE id_season = '%s' AND id_type = '%s'" % \
+                             (db.TOURNAMENTS_PLAYED_TABLE, self.prev_season, tourn_class_id)
+            # print "query_tourn_played_id =", query_tourn_played_id
+            db.trySQLquery(func="execute", query=query_tourn_played_id)
+            # list of ids of tournaments "national league" played in previous season
+            national_leagues_ids = [nti[0] for nti in db.CUR.fetchall()]
+            pass
+
+        for ind, tournament in enumerate(self.national_leagues):
+            tourn_type_id = tournament[0] # *3 for England League
+            # tourn_class_id = tournament[1] - already defined above
             country_id = tournament[2]
 
             # get last Leagues results and run new Leagues
-            members = self.teams.getTournResults(tourn_id)
+            members = self.teams.getTournResults(tourn_type_id)
             # if this is the 1st season simulation (prev results not stored in RAM), get it from database and save as
             # an attribute of Teams instance
             if not members:
@@ -128,28 +141,16 @@ class Season(object):
                     teams_indexes = [team[0] for team in teams_tuples]
 
                 else:
-                    # print "setNationalResults by position of previous national national_leagues results"
-
-                    # query to tournament_played table to get id_tournament from prev season
-                    query_tourn_played_id = "SELECT id FROM %s WHERE id_season = '%s' AND id_type = '%s'" % \
-                                     (db.TOURNAMENTS_PLAYED_TABLE, self.prev_season, tourn_type_id)
-                    # print "query_tourn_played_id =", query_tourn_played_id
-                    db.trySQLquery(func="execute", query=query_tourn_played_id)
-                    query_tourn_played_id = db.CUR.fetchone()[0]
-                    # query_to_results = "SELECT id_team FROM %s WHERE id_tournament = '(%s)';" % \
-                    #                    (db.TOURNAMENTS_RESULTS_TABLE, query_tourn_played_id)
-                    # print "query_to_results =", query_to_results
-
                     teams_tuples = db.select(what="id_team", table_names=db.TOURNAMENTS_RESULTS_TABLE, where=" WHERE ",
-                                             columns="id_tournament ", sign=" = ", values=query_tourn_played_id, fetch="all",
+                                             columns="id_tournament ", sign=" = ", values=national_leagues_ids[ind], fetch="all",
                                              ind="all")
                     # teams_tuples = db.trySQLquery(func="execute", query=query_to_results)
                     teams_indexes = [team[0] for team in teams_tuples]
 
                 # store teams indexes
-                self.teams.setTournResults(tourn_id, teams_indexes)
+                self.teams.setTournResults(tourn_type_id, teams_indexes)
                 # now we can get teams instances from that indexes
-                members = self.teams.getTournResults(tourn_id)
+                members = self.teams.getTournResults(tourn_type_id)
             else:
                 pass
 
@@ -157,7 +158,7 @@ class Season(object):
             # RUN TOURNAMENT (members will be collected by tournament itself)
             # tourn = tourn_class(name=tourn_id, season=self.season_id, year=self.year,
             #  TODO SEASON OBJ INSTEAD OF ID
-            tourn = tourn_class(name=tourn_id, season=self.getID(), year=self.year,
+            tourn = tourn_class(name=tourn_type_id, season=self.getID(), year=self.year,
                                 members = members, country_id=country_id)
             final_table = tourn.run()
             # print "final_table\n", final_table
@@ -170,12 +171,12 @@ class Season(object):
             # self.teams.setTournResults(tourn_id, teams_by_pos)
             # # print "updated self.teams", [team.getID() for team in self.teams.getTournResults(tourn_id)]
 
-            # IDS
+            # team_ids list ordered by position in just played League - used for future UEFA tournaments
             teams_ind_by_pos = [result["Team"].getID() for result in final_table]
             # print "teams_by_pos", [team.getID() for team in teams_by_pos]
 
             # store teams for league in external class
-            self.teams.setTournResults(tourn_id, teams_ind_by_pos)
+            self.teams.setTournResults(tourn_type_id, teams_ind_by_pos)
             # print "updated self.teams", [team.getID() for team in self.teams.getTournResults(tourn_id)]
 
         # print "\nfinally_print_all_teams"
@@ -523,7 +524,7 @@ if __name__ == "__main__":
     # RESET ALL MATCHES DATA BEFORE TEST
     PRE_TRUNCATE = False
     # PRE_TRUNCATE = True
-    # RESET ALL MATCHES D\ATA AFTER TEST
+    # RESET ALL MATCHES DATA AFTER TEST
     POST_TRUNCATE = False
     # POST_TRUNCATE = True
     # SAVE TO DB - to avoid data integrity (if important data in table exists), turn it off
