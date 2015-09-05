@@ -185,7 +185,7 @@ class UEFA_Champions_League(Cup):
                                     # get team of lower position of the same league
                                     # if League or Cup member out of range, shift tournament to next
                                     team_index += 1
-                                    if team_index > (len(ntt) - 1):
+                                    while team_index > (len(ntt) - 1):
                                         # if tournament hasn't got more unseeded teams, shift source by rating to get
                                         # next national tournament
                                         tourn_id, ntt = shift_tourn(ntp_teams, nations, tourn_id)

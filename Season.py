@@ -524,7 +524,7 @@ if __name__ == "__main__":
     #     Test("League", team_num = team_num, pair_mode = pair_mode, print_matches = True, print_ratings = False)
 
     # HOW MANY SEASONS WILL BE CREATED DURING THE TEST
-    TESTS_NUM = 3
+    TESTS_NUM = 100
     # PRINT MATCHES AFTER RUN
     PRINT_MATCHES = False
     PRINT_MATCHES = True
